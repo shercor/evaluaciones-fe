@@ -1,0 +1,51 @@
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <p class="eyebrow">Administración</p>
+      <p class="producto">Evaluación de Personal</p>
+    </div>
+
+    <nav>
+      <ul>
+        @for (item of menu; track item.ruta) {
+          <li>
+            @if (item.proximamente) {
+              <span class="link apagado" aria-disabled="true">
+                {{ item.etiqueta }}
+                <em>Próximamente</em>
+              </span>
+            } @else {
+              <a
+                class="link"
+                [routerLink]="item.ruta"
+                routerLinkActive="activo"
+                [routerLinkActiveOptions]="{ exact: true }"
+                >{{ item.etiqueta }}</a
+              >
+            }
+          </li>
+        }
+      </ul>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="persona">
+        <span class="avatar" aria-hidden="true">{{ user()?.initials }}</span>
+        <span class="datos">
+          <b>{{ user()?.full_name }}</b>
+          <em>{{ user()?.role_label }}</em>
+        </span>
+      </div>
+
+      <button type="button" class="btn btn-quiet" (click)="salir()" [disabled]="saliendo()">
+        {{ saliendo() ? 'Saliendo…' : 'Cerrar sesión' }}
+      </button>
+    </header>
+
+    <main class="contenido">
+      <router-outlet />
+    </main>
+  </div>
+</div>

@@ -1,0 +1,114 @@
+@if (aviso()) {
+  <p class="alert alert-ok" role="status">
+    {{ aviso() }}
+    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">×</button>
+  </p>
+}
+@if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+}
+
+@if (cargando()) {
+  <p class="vacio">Armando la previsualización…</p>
+} @else if (datos(); as d) {
+  @if (d.huerfanos.length > 0) {
+    <section class="bloque">
+      <h2>Participantes sueltos</h2>
+      <p class="explica">
+        Estas <b>{{ d.huerfanos.length }}</b> personas no tienen supervisor dentro del proceso y
+        tampoco tienen gente a cargo. Tal como está, no evaluarían a nadie ni serían evaluadas.
+      </p>
+      <p class="explica">
+        Podés volver atrás y darles un supervisor, o dejarlas fuera de este proceso.
+      </p>
+
+      <ul class="huerfanos">
+        @for (h of d.huerfanos; track h.user_id) {
+          <li>
+            <span class="avatar-mini" aria-hidden="true">{{ h.iniciales }}</span>
+            <span>
+              <b>{{ h.nombre }}</b>
+              <em>{{ h.cargo ?? 'Sin cargo' }} · {{ h.sucursal ?? 'Sin sucursal' }}</em>
+            </span>
+          </li>
+        }
+      </ul>
+
+      <button type="button" class="btn btn-quiet" (click)="excluirHuerfanos()">
+        Dejarlas fuera del proceso
+      </button>
+    </section>
+  }
+
+  <section class="bloque">
+    <h2>Cómo queda la estructura</h2>
+    <p class="explica">
+      <b>{{ d.total_participantes }}</b> participantes en
+      <b>{{ d.grupos.length }}</b> {{ d.grupos.length === 1 ? 'grupo' : 'grupos' }}.
+      Cada grupo es un jefe con su equipo.
+    </p>
+
+    @if (d.grupos.length === 0) {
+      <p class="vacio">
+        No se formó ningún grupo. Volvé al paso anterior y asegurate de que los participantes
+        tengan supervisores que también participen.
+      </p>
+    } @else {
+      <div class="grupos">
+        @for (g of d.grupos; track g.supervisor.user_id) {
+          <article class="grupo">
+            <header>
+              <span class="avatar-mini" aria-hidden="true">{{ g.supervisor.iniciales }}</span>
+              <span>
+                <b>{{ g.supervisor.nombre }}</b>
+                <em>{{ g.supervisor.cargo ?? 'Sin cargo' }}</em>
+              </span>
+              <span class="cuenta">{{ g.integrantes.length }}</span>
+            </header>
+            <ul>
+              @for (i of g.integrantes; track i.user_id) {
+                <li>
+                  <b>{{ i.nombre }}</b>
+                  <em>{{ i.cargo ?? 'Sin cargo' }}</em>
+                </li>
+              }
+            </ul>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  <div class="acciones-paso">
+    <button type="button" class="btn btn-quiet" (click)="volver()">Volver a participantes</button>
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="enviando() || d.grupos.length === 0"
+      (click)="pedirEnvio()"
+    >
+      {{ enviando() ? 'Enviando…' : 'Enviar y crear el proceso' }}
+    </button>
+  </div>
+}
+
+@if (confirmandoEnvio()) {
+  <div class="modal-fondo" (click)="cancelarEnvio()">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>¿Enviar el proceso?</h2>
+      <p>
+        Se manda el padrón completo a Evaluación 360, que va a generar las tareas de cada
+        participante. El proceso queda en «Preparando» hasta que termine, y puede tardar varios
+        minutos.
+      </p>
+      <p class="nota">
+        Después vas a poder seguir corrigiendo los participantes, pero cada cambio tendrá que
+        reenviarse.
+      </p>
+      <div class="acciones-modal">
+        <button type="button" class="btn btn-quiet" (click)="cancelarEnvio()">Cancelar</button>
+        <button type="button" class="btn btn-primary" (click)="enviar()">Enviar</button>
+      </div>
+    </div>
+  </div>
+}

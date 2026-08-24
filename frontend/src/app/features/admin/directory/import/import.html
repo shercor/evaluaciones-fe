@@ -1,0 +1,209 @@
+<header class="encabezado">
+  <div>
+    <h1 class="pagina-titulo">Importar nómina</h1>
+    <p class="pagina-intro">
+      Cargá la planilla de Recursos Humanos. Una fila con errores no voltea el archivo: se
+      importa todo lo demás y se explica qué se rechazó.
+    </p>
+  </div>
+  <div class="acciones-encabezado">
+    <a class="btn btn-quiet" routerLink="/admin/directorio">Volver al directorio</a>
+  </div>
+</header>
+
+@if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+}
+
+<!-- Carga -->
+<section class="bloque">
+  <h2>1 · Elegí el archivo</h2>
+
+  <p class="explica">
+    Acepta CSV y Excel. Las columnas que entiende son
+    <code>codigo</code>, <code>nombre</code>, <code>apellido</code>, <code>correo</code>,
+    <code>cargo</code>, <code>sucursal</code>, <code>codigo_supervisor</code> y
+    <code>rol</code>. Los acentos y las mayúsculas del encabezado no importan.
+  </p>
+
+  <p class="explica">
+    El <b>código</b> es la identidad de cada persona: si ya existe se actualiza, si no se crea.
+    Reimportar la misma planilla no duplica a nadie. Las sucursales y los cargos que no existan
+    se crean solos.
+  </p>
+
+  <p>
+    <a [href]="urlPlantilla()" class="btn btn-quiet">Descargar planilla de ejemplo</a>
+  </p>
+
+  <div class="carga">
+    <input
+      type="file"
+      id="archivo"
+      accept=".csv,.txt,.xlsx,.xls"
+      (change)="seleccionar($event)"
+    />
+
+    <label class="recordar">
+      <input
+        type="checkbox"
+        [checked]="enviarInvitaciones()"
+        (change)="alternarInvitaciones($event)"
+      />
+      <span>Enviar invitación por correo a quienes tengan dirección</span>
+    </label>
+
+    <button type="button" class="btn btn-primary" [disabled]="!archivo() || subiendo()" (click)="subir()">
+      {{ subiendo() ? 'Procesando…' : 'Importar' }}
+    </button>
+  </div>
+
+  <p class="explica nota-clave">
+    Quien no tenga correo queda con una <b>contraseña temporal</b> que vas a poder descargar al
+    terminar, para entregarla en mano.
+  </p>
+</section>
+
+<!-- Resultado -->
+@if (resultado(); as r) {
+  <section class="bloque">
+    <h2>2 · Resultado</h2>
+
+    @if (mensaje()) {
+      <p class="alert alert-ok" role="status">{{ mensaje() }}</p>
+    }
+
+    <div class="marcadores">
+      <div class="marcador">
+        <b>{{ r.rows_total }}</b>
+        <span>Filas leídas</span>
+      </div>
+      <div class="marcador ok">
+        <b>{{ r.rows_created }}</b>
+        <span>Creadas</span>
+      </div>
+      <div class="marcador">
+        <b>{{ r.rows_updated }}</b>
+        <span>Actualizadas</span>
+      </div>
+      <div class="marcador" [class.mal]="r.rows_failed > 0">
+        <b>{{ r.rows_failed }}</b>
+        <span>Rechazadas</span>
+      </div>
+    </div>
+
+    @if (r.error) {
+      <p class="alert alert-error" role="alert">
+        <b>Avisos sobre el organigrama:</b> {{ r.error }}
+      </p>
+    }
+
+    @if (r.has_passwords) {
+      <p class="alert alert-ok">
+        Hay personas sin correo a las que se les generó una contraseña temporal.
+        <a [href]="urlContrasenas(r.id)">Descargar las contraseñas</a> — no se vuelven a mostrar.
+      </p>
+    }
+
+    <div class="filtro-filas">
+      <button
+        type="button"
+        class="mini"
+        [class.activo]="filtroFilas() === 'todas'"
+        (click)="cambiarFiltro('todas')"
+      >
+        Todas las filas
+      </button>
+      <button
+        type="button"
+        class="mini"
+        [class.activo]="filtroFilas() === 'failed'"
+        (click)="cambiarFiltro('failed')"
+      >
+        Solo las rechazadas
+      </button>
+    </div>
+
+    @if (filas().length === 0) {
+      <p class="vacio">No hay filas que mostrar con este filtro.</p>
+    } @else {
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th class="num">Línea</th>
+              <th>Código</th>
+              <th>Persona</th>
+              <th>Resultado</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of filas(); track f.line) {
+              <tr>
+                <td class="num">{{ f.line }}</td>
+                <td>{{ f.payload['codigo'] || '—' }}</td>
+                <td>{{ f.payload['nombre'] }} {{ f.payload['apellido'] }}</td>
+                <td>
+                  @if (f.outcome === 'failed') {
+                    <span class="chip chip-error">{{ etiquetaResultado(f) }}</span>
+                  } @else {
+                    <span class="chip chip-ok">{{ etiquetaResultado(f) }}</span>
+                  }
+                </td>
+                <td>
+                  @if (f.error) {
+                    {{ f.error }}
+                  } @else if (f.has_temporary_password) {
+                    <span class="chip chip-pendiente">Contraseña temporal generada</span>
+                  } @else {
+                    —
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+}
+
+<!-- Historial -->
+@if (historial().length > 0) {
+  <section class="bloque">
+    <h2>Cargas anteriores</h2>
+
+    <div class="tabla-scroll">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Archivo</th>
+            <th>Quién</th>
+            <th class="num">Creadas</th>
+            <th class="num">Actualizadas</th>
+            <th class="num">Rechazadas</th>
+            <th class="acciones"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (h of historial(); track h.id) {
+            <tr>
+              <td><b>{{ h.filename }}</b></td>
+              <td>{{ h.user ?? '—' }}</td>
+              <td class="num">{{ h.rows_created }}</td>
+              <td class="num">{{ h.rows_updated }}</td>
+              <td class="num">{{ h.rows_failed }}</td>
+              <td class="acciones">
+                <button type="button" class="mini" (click)="verImportacion(h)">Ver detalle</button>
+                @if (h.has_passwords) {
+                  <a class="mini" [href]="urlContrasenas(h.id)">Contraseñas</a>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+}

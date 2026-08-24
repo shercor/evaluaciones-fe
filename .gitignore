@@ -1,0 +1,31 @@
+# Dependencias
+/backend/vendor/
+/frontend/node_modules/
+/frontend/.angular/
+
+# Compilados
+/frontend/dist/
+/backend/public/build/
+
+# Entorno — nunca versionar credenciales
+.env
+.env.*
+!.env.example
+/backend/.env
+!/backend/.env.example
+
+# Laravel
+/backend/storage/*.key
+/backend/storage/framework/cache/data/*
+/backend/storage/framework/sessions/*
+/backend/storage/framework/views/*
+/backend/storage/logs/*
+!/backend/storage/**/.gitignore
+/backend/bootstrap/cache/*.php
+
+# Herramientas
+/.idea/
+/.vscode/
+*.swp
+.DS_Store
+.phpunit.result.cache

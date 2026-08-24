@@ -1,0 +1,25 @@
+<header class="topbar">
+  <div class="marca">
+    <a routerLink="/portal" class="producto">Evaluación de Personal</a>
+    <nav>
+      <a routerLink="/portal" routerLinkActive="activo" [routerLinkActiveOptions]="{ exact: true }"
+        >Mis evaluaciones</a
+      >
+    </nav>
+  </div>
+
+  <div class="persona">
+    <span class="avatar" aria-hidden="true">{{ user()?.initials }}</span>
+    <span class="datos">
+      <b>{{ user()?.full_name }}</b>
+      <em>{{ user()?.job_position?.name ?? user()?.role_label }}</em>
+    </span>
+    <button type="button" class="btn btn-quiet" (click)="salir()" [disabled]="saliendo()">
+      {{ saliendo() ? 'Saliendo…' : 'Salir' }}
+    </button>
+  </div>
+</header>
+
+<main class="contenido">
+  <router-outlet />
+</main>

@@ -1,0 +1,66 @@
+@if (cargando()) {
+  <p class="vacio">Cargando tus tareas…</p>
+} @else if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+} @else if (evaluacion(); as e) {
+  <header class="encabezado">
+    <div>
+      <h1 class="pagina-titulo">{{ e.titulo }}</h1>
+      <p class="pagina-intro">{{ e.descripcion }}</p>
+    </div>
+    <div class="acciones-encabezado">
+      <a class="btn btn-quiet" routerLink="/portal">Volver</a>
+    </div>
+  </header>
+
+  @if (cerrada()) {
+    <p class="alert alert-error">
+      Este proceso ya está cerrado, así que no se admiten más respuestas.
+    </p>
+  }
+
+  @if (resumen(); as r) {
+    <section class="progreso">
+      <div class="barra" role="img" [attr.aria-label]="r.completadas + ' de ' + r.total + ' tareas completadas'">
+        <span [style.width.%]="porcentaje()"></span>
+      </div>
+      <p>
+        <b>{{ r.completadas }}</b> de <b>{{ r.total }}</b> tareas completadas
+        @if (r.pendientes > 0) {
+          · te quedan {{ r.pendientes }}
+        } @else {
+          · ¡terminaste!
+        }
+      </p>
+    </section>
+  }
+
+  @for (f of formularios(); track f.form_id) {
+    <section class="bloque">
+      <h2>{{ f.nombre }}</h2>
+      <ul class="evaluados">
+        @for (ev of f.evaluados; track ev.tarea_id) {
+          <li>
+            <span class="quien">
+              <b>{{ ev.nombre }}</b>
+              @if (ev.realizado) {
+                <span class="chip chip-ok">Respondida</span>
+              } @else {
+                <span class="chip chip-pendiente">Pendiente</span>
+              }
+            </span>
+            @if (cerrada()) {
+              <span class="mini apagado">No disponible</span>
+            } @else {
+              <a class="btn" [class.btn-primary]="!ev.realizado" [class.btn-quiet]="ev.realizado"
+                 [routerLink]="['/portal/tarea', ev.tarea_id]"
+                 [queryParams]="{ evaluacion: evaluacionId }">
+                {{ ev.realizado ? 'Revisar' : 'Responder' }}
+              </a>
+            }
+          </li>
+        }
+      </ul>
+    </section>
+  }
+}

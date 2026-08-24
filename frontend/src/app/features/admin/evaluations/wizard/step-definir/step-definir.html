@@ -1,0 +1,103 @@
+@if (cargando()) {
+  <p class="vacio">Cargando plantillas y grupos…</p>
+} @else {
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+
+  <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+    <section class="bloque">
+      <h2>Datos del proceso</h2>
+
+      <div class="grilla-form">
+        <div class="field ancho-doble">
+          <label for="titulo">Título</label>
+          <input id="titulo" type="text" formControlName="titulo" placeholder="Evaluación anual de desempeño" />
+          @if (formulario.controls.titulo.touched && formulario.controls.titulo.invalid) {
+            <span class="error">El título es obligatorio.</span>
+          }
+        </div>
+
+        <div class="field ancho-doble">
+          <label for="descripcion">Descripción</label>
+          <input id="descripcion" type="text" formControlName="descripcion" placeholder="Para qué es este proceso" />
+          @if (formulario.controls.descripcion.touched && formulario.controls.descripcion.invalid) {
+            <span class="error">La descripción es obligatoria.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="grupo">Grupo</label>
+          <select id="grupo" formControlName="group_id">
+            <option [value]="0" disabled>Elegí un grupo</option>
+            @for (g of opciones()!.groups; track g.id) {
+              <option [value]="g.id">{{ g.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="year">Año</label>
+          <select id="year" formControlName="year">
+            @for (y of opciones()!.years; track y) {
+              <option [value]="y">{{ y }}</option>
+            }
+          </select>
+          <span class="pista">La API solo admite el año actual o el anterior.</span>
+        </div>
+
+        <div class="field">
+          <label for="periodo">Período</label>
+          <input id="periodo" type="number" min="1" formControlName="periodo" />
+          <span class="pista">Se sugiere el siguiente al último usado en este grupo y año.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloque">
+      <h2>Plantilla</h2>
+      <p class="explica">
+        Define qué preguntas se hacen y desde qué perspectivas se evalúa a cada persona.
+      </p>
+
+      <div class="plantillas">
+        @for (t of opciones()!.templates; track t.id) {
+          <button
+            type="button"
+            class="plantilla"
+            [class.elegida]="formulario.controls.template_id.value === t.id"
+            (click)="elegirPlantilla(t.id)"
+          >
+            <b>{{ t.nombre }}</b>
+            <em>{{ t.formularios.length }} formularios</em>
+          </button>
+        }
+      </div>
+
+      @if (plantillaElegida(); as plantilla) {
+        <h3 class="sub">Formularios incluidos</h3>
+        <p class="explica">
+          Cada uno es una perspectiva desde la que se evalúa. Podés dejar fuera los que no
+          apliquen a este proceso.
+        </p>
+
+        <ul class="formularios">
+          @for (f of plantilla.formularios; track f.id) {
+            <li>
+              <label class="recordar">
+                <input type="checkbox" [checked]="estaElegido(f.id)" (change)="alternarFormulario(f.id)" />
+                <span>{{ f.nombre }}</span>
+              </label>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <div class="acciones-paso">
+      <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+        {{ guardando() ? 'Creando…' : 'Crear y continuar' }}
+      </button>
+    </div>
+  </form>
+}

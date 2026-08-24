@@ -1,0 +1,260 @@
+<header class="encabezado">
+  <div>
+    <h1 class="pagina-titulo">Directorio</h1>
+    <p class="pagina-intro">
+      Las personas de la empresa, con su cargo, sucursal y quién las supervisa. De acá sale el
+      padrón de cada evaluación.
+    </p>
+  </div>
+  <div class="acciones-encabezado">
+    <a class="btn btn-quiet" routerLink="/admin/directorio/importar">Importar nómina</a>
+    <button type="button" class="btn btn-primary" (click)="abrirNueva()">Agregar persona</button>
+  </div>
+</header>
+
+<nav class="pestanas">
+  <a routerLink="/admin/directorio" class="activa">Personas</a>
+  <a routerLink="/admin/directorio/sucursales">Sucursales</a>
+  <a routerLink="/admin/directorio/cargos">Cargos</a>
+</nav>
+
+@if (aviso()) {
+  <p class="alert alert-ok" role="status">
+    {{ aviso() }}
+    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">×</button>
+  </p>
+}
+@if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+}
+
+<!-- Filtros -->
+<form class="filtros" [formGroup]="filtros">
+  <div class="field">
+    <label for="f-buscar">Buscar</label>
+    <input id="f-buscar" type="search" formControlName="search" placeholder="Nombre, correo o código" />
+  </div>
+
+  <div class="field">
+    <label for="f-sucursal">Sucursal</label>
+    <select id="f-sucursal" formControlName="branch_office_id">
+      <option value="">Todas</option>
+      @for (s of sucursales(); track s.id) {
+        <option [value]="s.id">{{ s.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="f-cargo">Cargo</label>
+    <select id="f-cargo" formControlName="job_position_id">
+      <option value="">Todos</option>
+      @for (c of cargos(); track c.id) {
+        <option [value]="c.id">{{ c.name }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="f-rol">Rol</label>
+    <select id="f-rol" formControlName="role">
+      <option value="">Todos</option>
+      <option value="super_admin">Super administrador</option>
+      <option value="admin">Administrador</option>
+      <option value="collaborator">Colaborador</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="f-estado">Estado</label>
+    <select id="f-estado" formControlName="active">
+      <option value="">Todos</option>
+      <option value="1">Activas</option>
+      <option value="0">Inactivas</option>
+    </select>
+  </div>
+
+  <button type="button" class="btn btn-quiet" (click)="limpiarFiltros()">Limpiar</button>
+</form>
+
+<!-- Tabla -->
+@if (cargando()) {
+  <p class="vacio">Cargando…</p>
+} @else if (personas().length === 0) {
+  <p class="vacio">No hay personas que coincidan con el filtro.</p>
+} @else {
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Persona</th>
+          <th>Cargo</th>
+          <th>Sucursal</th>
+          <th>Supervisor</th>
+          <th class="num">A cargo</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th class="acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of personas(); track p.id) {
+          <tr [class.inactiva]="!p.email">
+            <td>
+              <div class="persona-celda">
+                <span class="avatar-mini" aria-hidden="true">{{ p.initials }}</span>
+                <span>
+                  <b>{{ p.full_name }}</b>
+                  @if (sinCorreoReal(p)) {
+                    <em class="sin-correo">Sin correo</em>
+                  } @else {
+                    <em>{{ p.email }}</em>
+                  }
+                </span>
+              </div>
+            </td>
+            <td>{{ p.job_position?.name ?? '—' }}</td>
+            <td>{{ p.branch_office?.name ?? '—' }}</td>
+            <td>{{ p.supervisor?.full_name ?? '—' }}</td>
+            <td class="num">{{ cuentaSupervisados(p) || '—' }}</td>
+            <td>{{ p.role_label }}</td>
+            <td>
+              @if (p.must_set_password) {
+                <span class="chip chip-pendiente">Sin contraseña</span>
+              } @else {
+                <span class="chip chip-ok">Activa</span>
+              }
+            </td>
+            <td class="acciones">
+              <button type="button" class="mini" (click)="abrirEdicion(p)">Editar</button>
+              @if (sinCorreoReal(p)) {
+                <button type="button" class="mini" (click)="generarContrasena(p)">Clave</button>
+              } @else {
+                <button type="button" class="mini" (click)="reenviarInvitacion(p)">Invitar</button>
+              }
+              <button type="button" class="mini" (click)="alternarActiva(p)">
+                {{ p.is_administrative ? 'Desactivar' : 'Activar/Desactivar' }}
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (meta(); as m) {
+    <nav class="paginacion">
+      <button type="button" class="btn btn-quiet" [disabled]="m.current_page <= 1" (click)="irAPagina(m.current_page - 1)">
+        Anterior
+      </button>
+      <span>Página {{ m.current_page }} de {{ m.last_page }} · {{ m.total }} personas</span>
+      <button type="button" class="btn btn-quiet" [disabled]="m.current_page >= m.last_page" (click)="irAPagina(m.current_page + 1)">
+        Siguiente
+      </button>
+    </nav>
+  }
+}
+
+<!-- Contraseña temporal: se muestra una sola vez -->
+@if (contrasenaTemporal(); as ct) {
+  <div class="modal-fondo" (click)="cerrarContrasena()">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>Contraseña temporal</h2>
+      <p>Para <b>{{ ct.persona }}</b>. Anotala ahora: no se vuelve a mostrar.</p>
+      <p class="clave">{{ ct.clave }}</p>
+      <p class="nota">
+        Entregásela en mano. Al entrar por primera vez, el sistema le va a pedir que la cambie.
+      </p>
+      <button type="button" class="btn btn-primary" (click)="cerrarContrasena()">Entendido</button>
+    </div>
+  </div>
+}
+
+<!-- Alta y edición -->
+@if (editando(); as persona) {
+  <div class="modal-fondo" (click)="cerrarFormulario()">
+    <div class="modal ancho-form" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>{{ persona.id === 0 ? 'Agregar persona' : 'Editar persona' }}</h2>
+
+      @if (errorFormulario()) {
+        <p class="alert alert-error" role="alert">{{ errorFormulario() }}</p>
+      }
+
+      <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+        <div class="grilla-form">
+          <div class="field">
+            <label for="p-codigo">Código interno</label>
+            <input id="p-codigo" type="text" formControlName="external_code" placeholder="RUT o ficha" />
+          </div>
+
+          <div class="field">
+            <label for="p-nombre">Nombre</label>
+            <input id="p-nombre" type="text" formControlName="name" />
+            @if (formulario.controls.name.touched && formulario.controls.name.invalid) {
+              <span class="error">El nombre es obligatorio.</span>
+            }
+          </div>
+
+          <div class="field">
+            <label for="p-apellido">Apellido</label>
+            <input id="p-apellido" type="text" formControlName="lastname" />
+          </div>
+
+          <div class="field">
+            <label for="p-correo">Correo</label>
+            <input id="p-correo" type="email" formControlName="email" placeholder="Opcional" />
+            <span class="pista">Si lo dejás vacío, se entra con una contraseña temporal.</span>
+          </div>
+
+          <div class="field">
+            <label for="p-rol">Rol</label>
+            <select id="p-rol" formControlName="role">
+              <option value="collaborator">Colaborador</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="p-sucursal">Sucursal</label>
+            <select id="p-sucursal" formControlName="branch_office_id">
+              <option value="">Sin sucursal</option>
+              @for (s of sucursales(); track s.id) {
+                <option [value]="s.id">{{ s.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="p-cargo">Cargo</label>
+            <select id="p-cargo" formControlName="job_position_id">
+              <option value="">Sin cargo</option>
+              @for (c of cargos(); track c.id) {
+                <option [value]="c.id">{{ c.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="p-supervisor">Supervisor</label>
+            <select id="p-supervisor" formControlName="supervisor_id">
+              <option value="">Sin supervisor</option>
+              @for (o of personas(); track o.id) {
+                @if (o.id !== persona.id) {
+                  <option [value]="o.id">{{ o.full_name }}</option>
+                }
+              }
+            </select>
+            <span class="pista">Solo aparecen las personas de esta página.</span>
+          </div>
+        </div>
+
+        <div class="acciones-modal">
+          <button type="button" class="btn btn-quiet" (click)="cerrarFormulario()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

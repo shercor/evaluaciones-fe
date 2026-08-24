@@ -1,0 +1,44 @@
+<h1 class="pagina-titulo">Hola, {{ user()?.name }}</h1>
+<p class="pagina-intro">
+  Estás en el portal de administración. Desde acá vas a crear y monitorear los procesos de
+  evaluación cuando lleguen los hitos siguientes.
+</p>
+
+@if (permisoConfirmado() === true) {
+  <p class="alert alert-ok" role="status">
+    Permisos verificados contra el backend: tu rol
+    <b>{{ user()?.role_label }}</b> tiene acceso administrativo.
+  </p>
+} @else if (permisoConfirmado() === false) {
+  <p class="alert alert-error" role="alert">
+    El backend rechazó la comprobación de permisos. Revisá el middleware de rol.
+  </p>
+}
+
+<section class="tarjetas">
+  <article class="tarjeta">
+    <h2>Directorio</h2>
+    <p>
+      Empleados, sucursales, cargos y el organigrama. La importación desde planilla llega con
+      el hito 3.
+    </p>
+    <span class="etiqueta">Hito 3</span>
+  </article>
+
+  <article class="tarjeta">
+    <h2>Evaluaciones</h2>
+    <p>
+      El listado con sus estados y las acciones de abrir, cerrar y publicar. Después, el
+      asistente de creación de seis pasos.
+    </p>
+    <span class="etiqueta">Hitos 4 y 5</span>
+  </article>
+
+  <article class="tarjeta">
+    <h2>Resultados</h2>
+    <p>
+      Monitoreo del avance y los tableros de resultados, generales y por persona.
+    </p>
+    <span class="etiqueta">Hito 7</span>
+  </article>
+</section>

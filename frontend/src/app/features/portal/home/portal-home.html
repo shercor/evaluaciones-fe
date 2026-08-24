@@ -1,0 +1,80 @@
+<h1 class="pagina-titulo">Hola, {{ user()?.name }}</h1>
+<p class="pagina-intro">
+  Acá encontrás tus evaluaciones pendientes y, cuando se publiquen, tus resultados.
+</p>
+
+@if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+}
+
+@if (cargando()) {
+  <p class="vacio">Cargando…</p>
+} @else {
+  @if (enCurso(); as e) {
+    <section class="destacada" [class.lista]="e.tareas_completadas">
+      <div class="cabecera">
+        <span class="etiqueta-viva">
+          {{ e.tareas_completadas ? 'Ya respondiste' : 'Evaluación abierta' }}
+        </span>
+        <h2>{{ e.titulo }}</h2>
+        <p>Período {{ e.periodo }} de {{ e.year }}</p>
+      </div>
+
+      @if (e.tareas_completadas) {
+        <p class="mensaje">
+          Completaste todas tus tareas. Cuando se publiquen los resultados vas a poder verlos
+          desde acá.
+        </p>
+        <a class="btn btn-quiet" [routerLink]="['/portal/evaluacion', e.id]">Revisar mis respuestas</a>
+      } @else {
+        <p class="mensaje">
+          Tenés tareas pendientes en este proceso. Podés responderlas de a una y volver más
+          tarde: se guardan a medida que avanzás.
+        </p>
+        <a class="btn btn-primary" [routerLink]="['/portal/evaluacion', e.id]">Responder ahora</a>
+      }
+    </section>
+  } @else {
+    <section class="pendiente">
+      <h2>Sin evaluaciones abiertas</h2>
+      <p>
+        Ahora mismo no tenés ninguna evaluación por responder. Cuando se abra un proceso en el
+        que participes, vas a verlo acá.
+      </p>
+    </section>
+  }
+
+  @if (finalizadas().length > 0) {
+    <section class="ficha">
+      <h2>Evaluaciones anteriores</h2>
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Proceso</th>
+              <th class="num">Año</th>
+              <th class="num">Período</th>
+              <th>Resultados</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of finalizadas(); track f.id) {
+              <tr>
+                <td><b>{{ f.titulo }}</b></td>
+                <td class="num">{{ f.year }}</td>
+                <td class="num">{{ f.periodo }}</td>
+                <td>
+                  @if (f.publicado) {
+                    <span class="mini apagado" title="Llega con el hito 7">Ver resultados</span>
+                  } @else {
+                    <span class="chip chip-pendiente">Sin publicar</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

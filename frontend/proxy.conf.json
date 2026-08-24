@@ -1,0 +1,14 @@
+{
+  "/api": {
+    "target": "http://nginx:80",
+    "secure": false,
+    "changeOrigin": false,
+    "logLevel": "debug"
+  },
+  "/sanctum": {
+    "target": "http://nginx:80",
+    "secure": false,
+    "changeOrigin": false,
+    "logLevel": "debug"
+  }
+}

@@ -1,0 +1,36 @@
+<header class="encabezado">
+  <div>
+    <h1 class="pagina-titulo">Crear evaluación</h1>
+    <p class="pagina-intro">
+      Cada paso se guarda al completarlo, así que podés salir y retomar donde quedaste.
+    </p>
+  </div>
+  <div class="acciones-encabezado">
+    <a class="btn btn-quiet" routerLink="/admin/evaluaciones">Salir del asistente</a>
+  </div>
+</header>
+
+<ol class="pasos">
+  @for (paso of pasos; track paso.numero) {
+    <li
+      class="paso"
+      [class.activo]="paso.numero === numeroActual()"
+      [class.completado]="paso.numero < numeroActual()"
+      [class.bloqueado]="!estaHabilitado(paso)"
+    >
+      @if (estaHabilitado(paso)) {
+        <a [routerLink]="enlaceDe(paso)">
+          <span class="numero">{{ paso.numero }}</span>
+          <span class="etiqueta">{{ paso.etiqueta }}</span>
+        </a>
+      } @else {
+        <span class="inerte">
+          <span class="numero">{{ paso.numero }}</span>
+          <span class="etiqueta">{{ paso.etiqueta }}</span>
+        </span>
+      }
+    </li>
+  }
+</ol>
+
+<router-outlet />

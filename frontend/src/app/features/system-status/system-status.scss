@@ -1,0 +1,175 @@
+:host {
+  --paper: #f4f7f6;
+  --surface: #ffffff;
+  --ink: #0e1a19;
+  --ink-2: #40514f;
+  --ink-3: #6d817e;
+  --rule: #d3dcda;
+  --accent: #0a6a60;
+  --warn: #8a5a00;
+  --danger: #a4262c;
+
+  display: block;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --paper: #0b1413;
+    --surface: #111d1c;
+    --ink: #e5edeb;
+    --ink-2: #a9bcb9;
+    --ink-3: #7a8f8c;
+    --rule: #22403c;
+    --accent: #4fd4c4;
+    --warn: #f0c05a;
+    --danger: #ff8a86;
+  }
+}
+
+.page {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 4.5rem) 1.5rem 5rem;
+}
+
+.masthead {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 1.4rem;
+  margin-bottom: 2.2rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+h1 {
+  margin: 0 0 0.7rem;
+  font-size: clamp(1.9rem, 5vw, 2.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.standfirst {
+  margin: 0;
+  max-width: 34rem;
+  color: var(--ink-2);
+  line-height: 1.6;
+}
+
+.loading {
+  color: var(--ink-3);
+}
+
+.checks {
+  list-style: none;
+  margin: 0 0 1.8rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: start;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.check:last-child {
+  border-bottom: 0;
+}
+
+.marker {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+  margin-top: 0.42rem;
+  background: var(--ink-3);
+}
+
+.check[data-state='ok'] .marker { background: var(--accent); }
+.check[data-state='pending'] .marker { background: var(--warn); }
+.check[data-state='fail'] .marker { background: var(--danger); }
+
+.check b {
+  display: block;
+  font-size: 0.98rem;
+  margin-bottom: 0.16rem;
+}
+
+.check p {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.state {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-top: 0.28rem;
+  color: var(--ink-3);
+}
+
+.check[data-state='ok'] .state { color: var(--accent); }
+.check[data-state='pending'] .state { color: var(--warn); }
+.check[data-state='fail'] .state { color: var(--danger); }
+
+.refresh {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.refresh:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.refresh:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.next {
+  margin-top: 3rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--rule);
+}
+
+.next h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+}
+
+.next p {
+  margin: 0;
+  max-width: 34rem;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--ink-2);
+}

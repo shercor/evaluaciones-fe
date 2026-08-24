@@ -1,0 +1,56 @@
+@if (cargando()) {
+  <p class="vacio">Cargando sucursales…</p>
+} @else {
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+
+  <section class="bloque">
+    <h2>¿Quiénes participan?</h2>
+    <p class="explica">
+      Elegí de qué sucursales sale la gente. Solo aparecen las que tienen personal evaluable:
+      los super administradores y las cuentas inactivas nunca entran al padrón.
+    </p>
+
+    <div class="filtro-filas">
+      <button type="button" class="mini" (click)="todas()">Seleccionar todas</button>
+      <button type="button" class="mini" (click)="ninguna()">Ninguna</button>
+    </div>
+
+    @if (disponibles().length === 0) {
+      <p class="vacio">
+        No hay sucursales con personal. Cargá la nómina desde Directorio → Importar nómina.
+      </p>
+    } @else {
+      <ul class="sucursales">
+        @for (s of disponibles(); track s.id) {
+          <li>
+            <label class="sucursal" [class.elegida]="estaElegida(s.id)">
+              <input type="checkbox" [checked]="estaElegida(s.id)" (change)="alternar(s.id)" />
+              <span class="datos">
+                <b>{{ s.name }}</b>
+                <em>{{ s.staff_count }} {{ s.staff_count === 1 ? 'persona' : 'personas' }}</em>
+              </span>
+            </label>
+          </li>
+        }
+      </ul>
+
+      <p class="resumen-seleccion">
+        <b>{{ totalPersonas() }}</b>
+        {{ totalPersonas() === 1 ? 'persona entraría' : 'personas entrarían' }} al padrón.
+      </p>
+    }
+  </section>
+
+  <div class="acciones-paso">
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="guardando() || elegidas().size === 0"
+      (click)="continuar()"
+    >
+      {{ guardando() ? 'Armando el padrón…' : 'Armar padrón y continuar' }}
+    </button>
+  </div>
+}

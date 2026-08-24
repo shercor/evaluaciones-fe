@@ -1,0 +1,173 @@
+<header class="encabezado">
+  <div>
+    <h1 class="pagina-titulo">Evaluaciones</h1>
+    <p class="pagina-intro">
+      Los procesos de evaluación de la organización. Desde acá se abren, se cierran y se
+      publican sus resultados.
+    </p>
+  </div>
+  <div class="acciones-encabezado">
+    <a class="btn btn-primary" routerLink="/admin/evaluaciones/asistente">Crear evaluación</a>
+  </div>
+</header>
+
+@if (aviso()) {
+  <p class="alert alert-ok" role="status">
+    {{ aviso() }}
+    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">×</button>
+  </p>
+}
+@if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+}
+
+<form class="filtros" [formGroup]="filtros">
+  <div class="field">
+    <label for="f-nombre">Nombre</label>
+    <input id="f-nombre" type="search" formControlName="nombre" placeholder="Título del proceso" />
+  </div>
+
+  <div class="field">
+    <label for="f-year">Año</label>
+    <input id="f-year" type="text" formControlName="year" maxlength="4" inputmode="numeric" />
+  </div>
+
+  <div class="field">
+    <label for="f-periodo">Período</label>
+    <input id="f-periodo" type="text" formControlName="periodo" maxlength="2" inputmode="numeric" />
+  </div>
+
+  <div class="field">
+    <label for="f-estado">Estado</label>
+    <select id="f-estado" formControlName="estado">
+      <option value="">Todos</option>
+      @for (e of estados(); track e.valor) {
+        <option [value]="e.valor">{{ e.label }}</option>
+      }
+    </select>
+  </div>
+
+  <button type="button" class="btn btn-quiet" (click)="limpiarFiltros()">Limpiar</button>
+</form>
+
+@if (cargando()) {
+  <p class="vacio">Cargando…</p>
+} @else if (evaluaciones().length === 0) {
+  <p class="vacio">
+    No hay procesos de evaluación que coincidan con el filtro.
+  </p>
+} @else {
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Proceso</th>
+          <th class="num">Año</th>
+          <th class="num">Período</th>
+          <th>Inicio</th>
+          <th>Término</th>
+          <th>Estado</th>
+          <th class="acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (e of evaluaciones(); track e.id) {
+          <tr [class.ocupada]="ocupada() === e.id">
+            <td>
+              <b>{{ e.titulo ?? 'Sin título' }}</b>
+              @if (e.publicado) {
+                <em class="publicado">Resultados publicados</em>
+              }
+            </td>
+            <td class="num">{{ e.year ?? '—' }}</td>
+            <td class="num">{{ e.periodo ?? '—' }}</td>
+            <td>{{ e.fecha_inicio ? (e.fecha_inicio | date: 'dd/MM/yyyy') : '—' }}</td>
+            <td>{{ e.fecha_fin ? (e.fecha_fin | date: 'dd/MM/yyyy') : '—' }}</td>
+            <td>
+              <span
+                class="estado"
+                [style.background-color]="e.estado_color ?? '#6c757d'"
+                [title]="e.estado_descripcion ?? ''"
+              >
+                {{ e.estado_label ?? e.estado }}
+                @if (e.en_transicion) {
+                  <span class="latido" aria-hidden="true"></span>
+                }
+              </span>
+              @if (!e.activo) {
+                <span class="chip chip-error">Desactivada</span>
+              }
+            </td>
+            <td class="acciones">
+              @if (ocupada() === e.id) {
+                <span class="trabajando">Procesando…</span>
+              } @else if (e.en_transicion) {
+                <span class="trabajando">Preparando…</span>
+              } @else if (e.acciones.length === 0) {
+                <span class="sin-acciones">—</span>
+              } @else {
+                @if (puede(e, 'open')) {
+                  <button type="button" class="mini" (click)="pedirAbrir(e)">Abrir</button>
+                }
+                @if (puede(e, 'close')) {
+                  <button type="button" class="mini" (click)="pedirCerrar(e)">Cerrar</button>
+                }
+                @if (puede(e, 'publish')) {
+                  <button type="button" class="mini" (click)="pedirPublicar(e)">Publicar</button>
+                }
+                @if (puede(e, 'continue_creation')) {
+                  <a class="mini" [routerLink]="['/admin/evaluaciones/asistente', e.id, 'sucursales']">Continuar</a>
+                }
+                @if (puede(e, 'participants')) {
+                  <a class="mini" [routerLink]="['/admin/evaluaciones/asistente', e.id, 'participantes']">Participantes</a>
+                }
+                @if (puede(e, 'monitor')) {
+                  <span class="mini apagado" title="Llega con el hito 7">Monitorear</span>
+                }
+                @if (puede(e, 'dashboard')) {
+                  <span class="mini apagado" title="Llega con el hito 7">Resultados</span>
+                }
+                @if (puede(e, 'restore')) {
+                  <button type="button" class="mini" (click)="pedirReactivar(e)">Reactivar</button>
+                }
+                @if (puede(e, 'delete')) {
+                  <button type="button" class="mini peligro" (click)="pedirDesactivar(e)">
+                    Desactivar
+                  </button>
+                }
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (confirmacion(); as c) {
+  <div class="modal-fondo" (click)="cancelarConfirmacion()">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>{{ c.titulo }}</h2>
+      <p>{{ c.cuerpo }}</p>
+
+      @if (c.advertencia) {
+        <p class="alert alert-error">{{ c.advertencia }}</p>
+      }
+
+      <div class="acciones-modal">
+        <button type="button" class="btn btn-quiet" (click)="cancelarConfirmacion()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn"
+          [class.btn-primary]="!c.peligrosa"
+          [class.btn-peligro]="c.peligrosa"
+          (click)="c.ejecutar()"
+        >
+          {{ c.etiquetaBoton }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,199 @@
+@if (aviso()) {
+  <p class="alert alert-ok" role="status">
+    {{ aviso() }}
+    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">×</button>
+  </p>
+}
+@if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+}
+@if (cambiosPendientes() > 0) {
+  <p class="alert alert-error">
+    Hay <b>{{ cambiosPendientes() }}</b> cambios sin enviar. Hasta que los envíes, este proceso
+    queda marcado y no se puede abrir ni cerrar.
+  </p>
+}
+
+<section class="bloque">
+  <h2>Participantes del proceso</h2>
+  <p class="explica">
+    Quitá a quien no corresponda. Los cambios de cargo, sucursal o supervisor valen
+    <b>solo dentro de esta evaluación</b>: el directorio no se toca.
+  </p>
+
+  <form class="filtros" [formGroup]="filtros">
+    <div class="field">
+      <label for="p-buscar">Buscar</label>
+      <input id="p-buscar" type="search" formControlName="search" placeholder="Nombre o código" />
+    </div>
+    <div class="field">
+      <label for="p-sucursal">Sucursal</label>
+      <select id="p-sucursal" formControlName="branch_office_id">
+        <option value="">Todas</option>
+        @for (s of sucursales(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+      </select>
+    </div>
+    <div class="field">
+      <label for="p-cargo">Cargo</label>
+      <select id="p-cargo" formControlName="job_position_id">
+        <option value="">Todos</option>
+        @for (c of cargos(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+      </select>
+    </div>
+    <div class="field">
+      <label for="p-participa">Participación</label>
+      <select id="p-participa" formControlName="participate">
+        <option value="">Todos</option>
+        <option value="1">Solo incluidos</option>
+        <option value="0">Solo excluidos</option>
+      </select>
+    </div>
+    <button type="button" class="btn btn-quiet" (click)="limpiarFiltros()">Limpiar</button>
+  </form>
+
+  @if (cargando()) {
+    <p class="vacio">Cargando…</p>
+  } @else if (participantes().length === 0) {
+    <p class="vacio">No hay participantes que coincidan con el filtro.</p>
+  } @else {
+    <div class="tabla-scroll">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th style="width:5rem">Participa</th>
+            <th>Persona</th>
+            <th>Cargo</th>
+            <th>Sucursal</th>
+            <th>Supervisor</th>
+            <th class="num">A cargo</th>
+            <th class="acciones"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of participantes(); track p.user_id) {
+            <tr [class.excluido]="!p.participate" [class.ocupada]="ocupado() === p.user_id">
+              <td>
+                <label class="interruptor">
+                  <input
+                    type="checkbox"
+                    [checked]="p.participate"
+                    [disabled]="ocupado() !== null"
+                    (change)="alternarParticipacion(p)"
+                  />
+                </label>
+              </td>
+              <td>
+                <div class="persona-celda">
+                  <span class="avatar-mini" aria-hidden="true">{{ p.iniciales }}</span>
+                  <b>{{ p.nombre }}</b>
+                </div>
+              </td>
+              <td>{{ p.cargo?.nombre ?? '—' }}</td>
+              <td>{{ p.sucursal?.nombre ?? '—' }}</td>
+              <td>{{ p.supervisor?.nombre ?? '—' }}</td>
+              <td class="num">{{ p.supervisados || '—' }}</td>
+              <td class="acciones">
+                <button type="button" class="mini" (click)="abrirEdicion(p)">Editar</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (meta(); as m) {
+      <nav class="paginacion">
+        <button type="button" class="btn btn-quiet" [disabled]="m.current_page <= 1" (click)="irAPagina(m.current_page - 1)">Anterior</button>
+        <span>
+          Página {{ m.current_page }} de {{ m.last_page }} · <b>{{ m.participando }}</b> de
+          {{ m.total }} participan
+        </span>
+        <button type="button" class="btn btn-quiet" [disabled]="m.current_page >= m.last_page" (click)="irAPagina(m.current_page + 1)">Siguiente</button>
+      </nav>
+    }
+  }
+</section>
+
+<div class="acciones-paso">
+  <button type="button" class="btn btn-quiet" (click)="volver()">Volver a sucursales</button>
+  <button type="button" class="btn btn-primary" (click)="continuar()">Revisar los grupos</button>
+</div>
+
+@if (confirmandoCascada(); as p) {
+  <div class="modal-fondo" (click)="cancelarCascada()">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>{{ p.nombre }} tiene gente a cargo</h2>
+      <p>
+        Dependen de esta persona <b>{{ p.supervisados }}</b> participantes, contando toda la
+        cadena.
+      </p>
+      <p class="nota">
+        Si la excluís sola, sus supervisados quedan sin jefe dentro del proceso y puede que
+        terminen sueltos en el paso siguiente.
+      </p>
+      <div class="acciones-modal">
+        <button type="button" class="btn btn-quiet" (click)="cancelarCascada()">Cancelar</button>
+        <button type="button" class="btn btn-quiet" (click)="confirmarCascada(false)">
+          Excluir solo a {{ p.nombre.split(' ')[0] }}
+        </button>
+        <button type="button" class="btn btn-primary" (click)="confirmarCascada(true)">
+          Excluir con su cadena
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (editando(); as p) {
+  <div class="modal-fondo" (click)="cerrarEdicion()">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>{{ p.nombre }}</h2>
+      <p class="nota">Estos cambios valen solo dentro de esta evaluación.</p>
+
+      @if (errorFormulario()) {
+        <p class="alert alert-error" role="alert">{{ errorFormulario() }}</p>
+      }
+
+      <form [formGroup]="formulario" (ngSubmit)="guardarEdicion()" novalidate>
+        <div class="field">
+          <label for="e-sucursal">Sucursal</label>
+          <select id="e-sucursal" formControlName="branch_office_id">
+            <option value="">Sin sucursal</option>
+            @for (s of sucursales(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="e-cargo">Cargo</label>
+          <select id="e-cargo" formControlName="job_position_id">
+            <option value="">Sin cargo</option>
+            @for (c of cargos(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="e-buscar-sup">Buscar supervisor</label>
+          <input id="e-buscar-sup" type="search" (input)="alBuscarSupervisor($event)" placeholder="Escribí un nombre" />
+        </div>
+
+        <div class="field">
+          <label for="e-supervisor">Supervisor</label>
+          <select id="e-supervisor" formControlName="supervisor_id">
+            <option value="">Sin supervisor</option>
+            @for (s of supervisoresPosibles(); track s.id) {
+              <option [value]="s.id">{{ s.nombre }}</option>
+            }
+          </select>
+          <span class="pista">Solo personas del padrón. No se permite crear ciclos.</span>
+        </div>
+
+        <div class="acciones-modal">
+          <button type="button" class="btn btn-quiet" (click)="cerrarEdicion()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

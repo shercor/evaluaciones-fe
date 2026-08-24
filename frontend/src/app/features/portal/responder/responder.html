@@ -1,0 +1,99 @@
+@if (cargando()) {
+  <p class="vacio">Cargando la tarea…</p>
+} @else if (tarea(); as t) {
+  <header class="encabezado">
+    <div>
+      <h1 class="pagina-titulo">{{ t.nombre }}</h1>
+      <p class="pagina-intro">{{ t.descripcion }}</p>
+      <p class="evaluando">
+        Estás evaluando a <b>{{ t.evaluado.user.name }}</b>
+      </p>
+    </div>
+    <div class="acciones-encabezado">
+      <button type="button" class="btn btn-quiet" (click)="volver()">Volver</button>
+    </div>
+  </header>
+
+  @if (cerrada()) {
+    <p class="alert alert-error">
+      Este proceso ya está cerrado. Podés ver lo que respondiste, pero no modificarlo.
+    </p>
+  }
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+
+  @for (categoria of t.categorias; track categoria.id) {
+    <section class="bloque">
+      <h2>{{ categoria.nombre }}</h2>
+      @if (categoria.descripcion) {
+        <p class="explica">{{ categoria.descripcion }}</p>
+      }
+
+      <ol class="preguntas">
+        @for (p of categoria.preguntas; track p.id) {
+          <li>
+            <p class="enunciado">
+              {{ p.nombre }}
+              @if (p.opcional) {
+                <em class="opcional">Opcional</em>
+              }
+            </p>
+
+            @if (esSeleccion(p)) {
+              <div class="escala" role="radiogroup" [attr.aria-label]="p.nombre">
+                @for (n of escala(p); track n) {
+                  <button
+                    type="button"
+                    class="punto"
+                    role="radio"
+                    [attr.aria-checked]="valorDe(p) === n"
+                    [class.elegido]="valorDe(p) === n"
+                    [disabled]="cerrada()"
+                    (click)="elegir(p, n)"
+                  >
+                    {{ n }}
+                  </button>
+                }
+              </div>
+              <p class="leyenda">1 es el valor más bajo · {{ p.rango }} el más alto</p>
+            } @else {
+              <textarea
+                rows="3"
+                [value]="valorDe(p) ?? ''"
+                [disabled]="cerrada()"
+                (input)="alEscribir(p, $event)"
+                placeholder="Escribí tu respuesta"
+              ></textarea>
+            }
+          </li>
+        }
+      </ol>
+    </section>
+  }
+
+  @if (!cerrada()) {
+    <div class="acciones-paso">
+      <span class="faltantes">
+        @if (obligatoriasSinResponder() > 0) {
+          Te faltan {{ obligatoriasSinResponder() }} de {{ totalPreguntas() }} respuestas
+        } @else {
+          Respondiste todo
+        }
+      </span>
+      <button type="button" class="btn btn-quiet" (click)="volver()">Cancelar</button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="guardando() || obligatoriasSinResponder() > 0"
+        (click)="guardar()"
+      >
+        {{ guardando() ? 'Guardando…' : 'Guardar respuestas' }}
+      </button>
+    </div>
+  }
+} @else if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+  <button type="button" class="btn btn-quiet" (click)="volver()">Volver</button>
+}
