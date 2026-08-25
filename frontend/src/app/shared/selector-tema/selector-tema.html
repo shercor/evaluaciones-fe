@@ -1,0 +1,58 @@
+<button
+  type="button"
+  class="boton-apariencia"
+  [attr.aria-expanded]="abierto()"
+  aria-haspopup="dialog"
+  aria-label="Cambiar la apariencia"
+  title="Apariencia"
+  (click)="alternar()"
+>
+  <!-- Un círculo mitad lleno: la forma con que se representa el contraste. -->
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 3a9 9 0 0 0 0 18Z" fill="currentColor" stroke="none" />
+  </svg>
+</button>
+
+@if (abierto()) {
+  <div class="panel-apariencia entra" role="dialog" aria-label="Apariencia">
+    <p class="panel-titulo">Modo</p>
+    <div class="grid grid-cols-3 gap-1.5">
+      @for (m of modos; track m.id) {
+        <button
+          type="button"
+          class="opcion-modo"
+          [class.elegido]="apariencia.modo() === m.id"
+          [attr.aria-pressed]="apariencia.modo() === m.id"
+          (click)="apariencia.elegirModo(m.id)"
+        >
+          {{ m.nombre }}
+        </button>
+      }
+    </div>
+
+    <p class="panel-titulo mt-4">Color</p>
+    <div class="grid grid-cols-2 gap-1.5">
+      @for (t of temas; track t.id) {
+        <button
+          type="button"
+          class="opcion-tema"
+          [class.elegido]="apariencia.tema() === t.id"
+          [attr.aria-pressed]="apariencia.tema() === t.id"
+          (click)="apariencia.elegirTema(t.id)"
+        >
+          <span class="muestra" aria-hidden="true">
+            <span [style.background]="t.acento"></span>
+            <span [style.background]="t.realce"></span>
+          </span>
+          {{ t.nombre }}
+        </button>
+      }
+    </div>
+
+    <p class="mt-4 text-[0.68rem] leading-snug text-ink-3">
+      Los ocho están medidos contra WCAG AA en claro y en oscuro. La elección queda guardada en este
+      navegador.
+    </p>
+  </div>
+}

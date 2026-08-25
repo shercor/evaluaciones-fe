@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { SelectorTema } from '../../shared/selector-tema/selector-tema';
 import { PendingNotice } from '../../shared/pending-notice/pending-notice';
 import { AuthService } from '../../core/auth/auth.service';
 
@@ -10,7 +11,7 @@ import { AuthService } from '../../core/auth/auth.service';
  */
 @Component({
   selector: 'app-portal-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, PendingNotice],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, PendingNotice, SelectorTema],
   templateUrl: './portal-layout.html',
 })
 export class PortalLayout {

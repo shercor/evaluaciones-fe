@@ -14,21 +14,18 @@
           <li>
             @if (item.proximamente) {
               <span
-                class="flex items-center justify-between gap-2 rounded-md px-2.5 py-2
-                       text-sm text-ink-3"
+                class="flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm text-ink-3"
                 aria-disabled="true"
               >
                 {{ item.etiqueta }}
                 <em
-                  class="rounded border border-rule px-1.5 py-px text-[0.6rem]
-                         not-italic uppercase tracking-wide text-ink-3"
-                >Pronto</em>
+                  class="rounded border border-rule px-1.5 py-px text-[0.6rem] not-italic uppercase tracking-wide text-ink-3"
+                  >Pronto</em
+                >
               </span>
             } @else {
               <a
-                class="flex items-center justify-between gap-2 rounded-md px-2.5 py-2
-                       text-sm text-ink-2 no-underline transition-colors duration-150
-                       hover:bg-surface-2 hover:text-ink"
+                class="flex items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm text-ink-2 no-underline transition-colors duration-150 hover:bg-surface-2 hover:text-ink"
                 [routerLink]="item.ruta"
                 routerLinkActive="!bg-accent-soft !text-accent font-semibold"
                 [routerLinkActiveOptions]="{ exact: true }"
@@ -43,8 +40,7 @@
 
   <div class="flex min-w-0 flex-col">
     <header
-      class="flex items-center justify-between gap-4 border-b border-rule
-             bg-surface px-6 py-3"
+      class="flex items-center justify-between gap-4 border-b border-rule bg-surface px-6 py-3"
     >
       <div class="flex min-w-0 items-center gap-3">
         <span class="avatar-mini" aria-hidden="true">
@@ -56,9 +52,12 @@
         </span>
       </div>
 
-      <button type="button" class="btn btn-quiet" (click)="salir()" [disabled]="saliendo()">
-        {{ saliendo() ? 'Saliendo…' : 'Cerrar sesión' }}
-      </button>
+      <div class="flex items-center gap-2">
+        <app-selector-tema />
+        <button type="button" class="btn btn-quiet" (click)="salir()" [disabled]="saliendo()">
+          {{ saliendo() ? 'Saliendo…' : 'Cerrar sesión' }}
+        </button>
+      </div>
     </header>
 
     <main class="min-w-0 px-6 pt-8 pb-16">

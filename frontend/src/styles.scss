@@ -21,37 +21,55 @@
 }
 
 @theme {
-  /* Superficies y tinta. El gris tira levemente al verde del acento: un
-     gris neutro puro se lee como no elegido. */
-  --color-paper: #f2f6f5;
-  --color-surface: #ffffff;
-  --color-surface-2: #eaefee;
-  --color-ink: #0e1a19;
-  --color-ink-2: #40514f;
-  --color-ink-3: #6d817e;
-  --color-rule: #dde5e3;
+  /*
+    Superficies y tinta. El gris tira al morado del acento: un gris neutro
+    puro al lado de un violeta se lee frío y descolgado.
 
-  --color-accent: #0a6a60;
-  --color-accent-hover: #085a52;
+    Todos los pares de esta paleta están medidos contra WCAG AA (4.5:1 para
+    texto). No se eligieron a ojo.
+  */
+  --color-paper: #f6f3f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #efeaf3;
+  --color-ink: #241c2b;
+  --color-ink-2: #544a5e;
+  --color-ink-3: #736881;
+  --color-rule: #ddd2e6;
+
+  /* Violeta profundo: el morado de la paleta es demasiado claro para actuar
+     como color de acción, así que se usa como fondo suave y el acento se
+     deriva oscureciéndolo. */
+  --color-accent: #654a8f;
+  --color-accent-hover: #523878;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: #d7ebe8;
+  --color-accent-soft: #ede4f2;
 
   --color-warn: #8a5a00;
   --color-warn-soft: #fbeecf;
-  --color-danger: #a4262c;
-  --color-danger-hover: #8d1f24;
-  --color-danger-soft: #f6e2e2;
+  --color-danger: #a32741;
+  --color-danger-hover: #8a1f36;
+  --color-danger-soft: #f8e3e8;
 
   /* Los títulos llevan la voz; el cuerpo se hace a un lado para que se lea. */
   --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
   --font-sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  /* Acento secundario: un índigo que hace contrapunto al verde sin pelearse
-     con él. Se reserva para lo que merece una segunda voz —el paso activo del
-     asistente, el realce de una cifra—, nunca para relleno. */
-  --color-indigo: #4b45b8;
-  --color-indigo-soft: #e6e5f7;
-  --color-indigo-ink: #ffffff;
+  /*
+    Segunda voz: una malva que hace contrapunto al violeta sin pelearse con
+    él. Se reserva para lo que merece destacarse —el paso activo del
+    asistente, el realce de una cifra—, nunca para relleno.
+
+    Se llama `realce` y no por su color: el token anterior decía «realce» y
+    terminó guardando otra cosa, que es como se pierde el sentido de un
+    nombre.
+  */
+  --color-realce: #9c4f8f;
+  --color-realce-soft: #f7e8f4;
+  --color-realce-ink: #ffffff;
+
+  /* Tercera voz, para gráficos y para lo que va bien sin ser «éxito». */
+  --color-salvia: #5f6b38;
+  --color-salvia-soft: #eef4d8;
 
   --radius-card: 0.75rem;
 
@@ -62,9 +80,9 @@
   */
   --alto-control: 2.375rem;
 
-  --shadow-suave: 0 1px 2px rgb(14 26 25 / 5%), 0 1px 3px rgb(14 26 25 / 4%);
-  --shadow-alzado: 0 4px 6px -1px rgb(14 26 25 / 7%), 0 2px 4px -2px rgb(14 26 25 / 5%);
-  --shadow-flotante: 0 20px 25px -5px rgb(14 26 25 / 12%), 0 8px 10px -6px rgb(14 26 25 / 8%);
+  --shadow-suave: 0 1px 2px rgb(36 28 43 / 6%), 0 1px 3px rgb(36 28 43 / 5%);
+  --shadow-alzado: 0 4px 6px -1px rgb(36 28 43 / 8%), 0 2px 4px -2px rgb(36 28 43 / 6%);
+  --shadow-flotante: 0 20px 25px -5px rgb(36 28 43 / 14%), 0 8px 10px -6px rgb(36 28 43 / 10%);
 }
 
 /* Los mismos tokens, re-pisados para el fondo oscuro. No es una
@@ -72,25 +90,27 @@
 @layer theme {
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme='light']) {
-      --color-paper: #0b1413;
-      --color-surface: #111d1c;
-      --color-surface-2: #182726;
-      --color-ink: #e5edeb;
-      --color-ink-2: #a9bcb9;
-      --color-ink-3: #7a8f8c;
-      --color-rule: #22403c;
-      --color-accent: #4fd4c4;
-      --color-accent-hover: #6fdfd1;
-      --color-accent-ink: #06201d;
-      --color-accent-soft: #12312d;
+      --color-paper: #141018;
+      --color-surface: #1d1723;
+      --color-surface-2: #261e2e;
+      --color-ink: #ede6f2;
+      --color-ink-2: #b9aec4;
+      --color-ink-3: #8b7f96;
+      --color-rule: #413550;
+      --color-accent: #c4a2e0;
+      --color-accent-hover: #d5b9ec;
+      --color-accent-ink: #221033;
+      --color-accent-soft: #2f2142;
       --color-warn: #f0c05a;
-      --color-warn-soft: #33280d;
-      --color-danger: #ff8a86;
-      --color-danger-hover: #ffa5a2;
-      --color-danger-soft: #341a1c;
-      --color-indigo: #a8a3f0;
-      --color-indigo-soft: #21203f;
-      --color-indigo-ink: #14132b;
+      --color-warn-soft: #3a2e10;
+      --color-danger: #ff8a9b;
+      --color-danger-hover: #ffa7b4;
+      --color-danger-soft: #3a1a22;
+      --color-realce: #e0a5d3;
+      --color-realce-soft: #352339;
+      --color-realce-ink: #2b1730;
+      --color-salvia: #bfc48e;
+      --color-salvia-soft: #2a2e1c;
       --shadow-suave: 0 1px 2px rgb(0 0 0 / 30%), 0 1px 3px rgb(0 0 0 / 24%);
       --shadow-alzado: 0 4px 6px -1px rgb(0 0 0 / 40%), 0 2px 4px -2px rgb(0 0 0 / 30%);
       --shadow-flotante: 0 20px 25px -5px rgb(0 0 0 / 55%), 0 8px 10px -6px rgb(0 0 0 / 40%);
@@ -98,30 +118,369 @@
   }
 
   :root[data-theme='dark'] {
-    --color-paper: #0b1413;
-    --color-surface: #111d1c;
-    --color-surface-2: #182726;
-    --color-ink: #e5edeb;
-    --color-ink-2: #a9bcb9;
-    --color-ink-3: #7a8f8c;
-    --color-rule: #22403c;
-    --color-accent: #4fd4c4;
-    --color-accent-hover: #6fdfd1;
-    --color-accent-ink: #06201d;
-    --color-accent-soft: #12312d;
+    --color-paper: #141018;
+    --color-surface: #1d1723;
+    --color-surface-2: #261e2e;
+    --color-ink: #ede6f2;
+    --color-ink-2: #b9aec4;
+    --color-ink-3: #8b7f96;
+    --color-rule: #413550;
+    --color-accent: #c4a2e0;
+    --color-accent-hover: #d5b9ec;
+    --color-accent-ink: #221033;
+    --color-accent-soft: #2f2142;
     --color-warn: #f0c05a;
-    --color-warn-soft: #33280d;
-    --color-danger: #ff8a86;
-    --color-danger-hover: #ffa5a2;
-    --color-danger-soft: #341a1c;
-    --color-indigo: #a8a3f0;
-    --color-indigo-soft: #21203f;
-    --color-indigo-ink: #14132b;
+    --color-warn-soft: #3a2e10;
+    --color-danger: #ff8a9b;
+    --color-danger-hover: #ffa7b4;
+    --color-danger-soft: #3a1a22;
+    --color-realce: #e0a5d3;
+    --color-realce-soft: #352339;
+    --color-realce-ink: #2b1730;
+    --color-salvia: #bfc48e;
+    --color-salvia-soft: #2a2e1c;
     --shadow-suave: 0 1px 2px rgb(0 0 0 / 30%), 0 1px 3px rgb(0 0 0 / 24%);
     --shadow-alzado: 0 4px 6px -1px rgb(0 0 0 / 40%), 0 2px 4px -2px rgb(0 0 0 / 30%);
     --shadow-flotante: 0 20px 25px -5px rgb(0 0 0 / 55%), 0 8px 10px -6px rgb(0 0 0 / 40%);
   }
 }
+
+/* ------------------------------------------------------------------
+   Temas.
+
+   Cada uno se define por un tono y un croma; el resto de los valores sale
+   de una fórmula fija en OKLCH y está validado contra WCAG AA en claro y
+   en oscuro. Para agregar un tema no hay que elegir catorce colores: hay
+   que elegir un tono y volver a correr la validación.
+
+   Dos ejes independientes: `data-tema` (qué paleta) y `data-theme`
+   (claro u oscuro). Cada paleta guarda sus dos juegos —`--t-*` para el
+   claro, `--td-*` para el oscuro— y el mapeo de abajo decide cuál rige.
+   ------------------------------------------------------------------ */
+
+@layer theme {
+
+  /* Violeta */
+  :root[data-tema='violeta'] {
+    --t-paper: #f6f5f9;
+    --t-surface: #ffffff;
+    --t-surface-2: #edecf2;
+    --t-ink: #231d2e;
+    --t-ink-2: #575261;
+    --t-ink-3: #706c78;
+    --t-rule: #dad8df;
+    --t-accent: #61468a;
+    --t-accent-hover: #4f3476;
+    --t-accent-ink: #ffffff;
+    --t-accent-soft: #ebe7f4;
+    --t-realce: #8a4a76;
+    --t-realce-soft: #f4e7ef;
+    --t-realce-ink: #ffffff;
+
+    --td-paper: #120f17;
+    --td-surface: #1d1a23;
+    --td-surface-2: #292630;
+    --td-ink: #eeebf3;
+    --td-ink-2: #b8b6bf;
+    --td-ink-3: #8c8992;
+    --td-rule: #3f3b47;
+    --td-accent: #c6b1ef;
+    --td-accent-hover: #d9c9fb;
+    --td-accent-ink: #1e1131;
+    --td-accent-soft: #332c41;
+    --td-realce: #e8aed3;
+    --td-realce-soft: #3e2b37;
+    --td-realce-ink: #2c1024;
+  }
+
+  /* Azul */
+  :root[data-tema='azul'] {
+    --t-paper: #f3f6f9;
+    --t-surface: #ffffff;
+    --t-surface-2: #e9edf2;
+    --t-ink: #142230;
+    --t-ink-2: #4b5763;
+    --t-ink-3: #677079;
+    --t-rule: #d4dae0;
+    --t-accent: #1c5991;
+    --t-accent-hover: #01477d;
+    --t-accent-ink: #ffffff;
+    --t-accent-soft: #e1ebf5;
+    --t-realce: #007284;
+    --t-realce-soft: #dfeff2;
+    --t-realce-ink: #ffffff;
+
+    --td-paper: #0b1118;
+    --td-surface: #161c24;
+    --td-surface-2: #202931;
+    --td-ink: #e7eef4;
+    --td-ink-2: #b1b8c0;
+    --td-ink-3: #848b93;
+    --td-rule: #353e48;
+    --td-accent: #92c3f5;
+    --td-accent-hover: #b0d7ff;
+    --td-accent-ink: #001a34;
+    --td-accent-soft: #213243;
+    --td-realce: #80d2e0;
+    --td-realce-soft: #1a373b;
+    --td-realce-ink: #00222a;
+  }
+
+  /* Verde azulado */
+  :root[data-tema='teal'] {
+    --t-paper: #f3f7f6;
+    --t-surface: #ffffff;
+    --t-surface-2: #e8eeed;
+    --t-ink: #112521;
+    --t-ink-2: #4a5956;
+    --t-ink-3: #66726f;
+    --t-rule: #d3dbd9;
+    --t-accent: #006658;
+    --t-accent-hover: #005447;
+    --t-accent-ink: #ffffff;
+    --t-accent-soft: #e0edea;
+    --t-realce: #4b6294;
+    --t-realce-soft: #e6ebf5;
+    --t-realce-ink: #ffffff;
+
+    --td-paper: #091311;
+    --td-surface: #141e1c;
+    --td-surface-2: #1f2a28;
+    --td-ink: #e7efed;
+    --td-ink-2: #b0bab7;
+    --td-ink-3: #838d8b;
+    --td-rule: #33403d;
+    --td-accent: #89cdbf;
+    --td-accent-hover: #a9e0d4;
+    --td-accent-ink: #00201a;
+    --td-accent-soft: #1e3631;
+    --td-realce: #adc3ef;
+    --td-realce-soft: #2a3141;
+    --td-realce-ink: #111b31;
+  }
+
+  /* Bosque */
+  :root[data-tema='bosque'] {
+    --t-paper: #f4f6f4;
+    --t-surface: #ffffff;
+    --t-surface-2: #eaeeea;
+    --t-ink: #17241a;
+    --t-ink-2: #4e5950;
+    --t-ink-3: #69716a;
+    --t-rule: #d5dbd6;
+    --t-accent: #2c643b;
+    --t-accent-hover: #18522a;
+    --t-accent-ink: #ffffff;
+    --t-accent-soft: #e3ece4;
+    --t-realce: #6f6423;
+    --t-realce-soft: #edece1;
+    --t-realce-ink: #ffffff;
+
+    --td-paper: #0c120d;
+    --td-surface: #171e18;
+    --td-surface-2: #222a23;
+    --td-ink: #e9efea;
+    --td-ink-2: #b3b9b4;
+    --td-ink-3: #868d87;
+    --td-rule: #374038;
+    --td-accent: #9dcba6;
+    --td-accent-hover: #b8debf;
+    --td-accent-ink: #05200c;
+    --td-accent-soft: #253528;
+    --td-realce: #ccc492;
+    --td-realce-soft: #353221;
+    --td-realce-ink: #211c01;
+  }
+
+  /* Borgoña */
+  :root[data-tema='borgona'] {
+    --t-paper: #f9f4f5;
+    --t-surface: #ffffff;
+    --t-surface-2: #f2ebeb;
+    --t-ink: #2e1a1b;
+    --t-ink-2: #625051;
+    --t-ink-3: #796a6b;
+    --t-rule: #e0d6d7;
+    --t-accent: #893943;
+    --t-accent-hover: #742632;
+    --t-accent-ink: #ffffff;
+    --t-accent-soft: #f5e5e6;
+    --t-realce: #844c7f;
+    --t-realce-soft: #f2e7f1;
+    --t-realce-ink: #ffffff;
+
+    --td-paper: #180d0e;
+    --td-surface: #231819;
+    --td-surface-2: #312424;
+    --td-ink: #f4eaea;
+    --td-ink-2: #c0b4b5;
+    --td-ink-3: #938788;
+    --td-rule: #483939;
+    --td-accent: #f1a7ab;
+    --td-accent-hover: #fec0c3;
+    --td-accent-ink: #300b10;
+    --td-accent-soft: #42282a;
+    --td-realce: #e2b0dc;
+    --td-realce-soft: #3c2b3a;
+    --td-realce-ink: #2a1128;
+  }
+
+  /* Cobre */
+  :root[data-tema='cobre'] {
+    --t-paper: #f8f5f3;
+    --t-surface: #ffffff;
+    --t-surface-2: #f1ece8;
+    --t-ink: #2c1d12;
+    --t-ink-2: #5f524a;
+    --t-ink-3: #776c65;
+    --t-rule: #dfd7d3;
+    --t-accent: #804515;
+    --t-accent-hover: #6c3300;
+    --t-accent-ink: #ffffff;
+    --t-accent-soft: #f3e7e0;
+    --t-realce: #924c47;
+    --t-realce-soft: #f6e7e6;
+    --t-realce-ink: #ffffff;
+
+    --td-paper: #160f0a;
+    --td-surface: #221a15;
+    --td-surface-2: #2f251f;
+    --td-ink: #f2ebe7;
+    --td-ink-2: #beb6b0;
+    --td-ink-3: #918983;
+    --td-rule: #463b33;
+    --td-accent: #e7b18c;
+    --td-accent-hover: #f5c8aa;
+    --td-accent-ink: #2c1100;
+    --td-accent-soft: #3e2c1f;
+    --td-realce: #efb0aa;
+    --td-realce-soft: #412b29;
+    --td-realce-ink: #2f110f;
+  }
+
+  /* Índigo */
+  :root[data-tema='indigo'] {
+    --t-paper: #f4f5fa;
+    --t-surface: #ffffff;
+    --t-surface-2: #ebecf4;
+    --t-ink: #1b1f33;
+    --t-ink-2: #505466;
+    --t-ink-3: #6b6e7c;
+    --t-rule: #d6d9e2;
+    --t-accent: #434d9e;
+    --t-accent-hover: #333a89;
+    --t-accent-ink: #ffffff;
+    --t-accent-soft: #e5e9f8;
+    --t-realce: #006e9b;
+    --t-realce-soft: #deeef7;
+    --t-realce-ink: #ffffff;
+
+    --td-paper: #0e101a;
+    --td-surface: #191b26;
+    --td-surface-2: #242733;
+    --td-ink: #eaecf6;
+    --td-ink-2: #b4b7c2;
+    --td-ink-3: #878a95;
+    --td-rule: #393c4b;
+    --td-accent: #aab9ff;
+    --td-accent-hover: #c2cfff;
+    --td-accent-ink: #11143a;
+    --td-accent-soft: #2a2e47;
+    --td-realce: #7ccff6;
+    --td-realce-soft: #193643;
+    --td-realce-ink: #002034;
+  }
+
+  /* Grafito */
+  :root[data-tema='grafito'] {
+    --t-paper: #f5f6f7;
+    --t-surface: #ffffff;
+    --t-surface-2: #ecedee;
+    --t-ink: #1f2025;
+    --t-ink-2: #545559;
+    --t-ink-3: #6d6e72;
+    --t-rule: #d8d9db;
+    --t-accent: #505668;
+    --t-accent-hover: #3f4456;
+    --t-accent-ink: #ffffff;
+    --t-accent-soft: #e8e9ed;
+    --t-realce: #5d6374;
+    --t-realce-soft: #eaebee;
+    --t-realce-ink: #ffffff;
+
+    --td-paper: #101013;
+    --td-surface: #1b1c1e;
+    --td-surface-2: #27282a;
+    --td-ink: #ecedef;
+    --td-ink-2: #b6b7ba;
+    --td-ink-3: #8a8a8d;
+    --td-rule: #3c3d40;
+    --td-accent: #b7bdce;
+    --td-accent-hover: #cdd2e0;
+    --td-accent-ink: #161921;
+    --td-accent-soft: #2e3036;
+    --td-realce: #bdc2d2;
+    --td-realce-soft: #303137;
+    --td-realce-ink: #191c23;
+  }
+
+  /* Claro: el juego `--t-*`. */
+  :root[data-tema] {
+    --color-paper: var(--t-paper);
+    --color-surface: var(--t-surface);
+    --color-surface-2: var(--t-surface-2);
+    --color-ink: var(--t-ink);
+    --color-ink-2: var(--t-ink-2);
+    --color-ink-3: var(--t-ink-3);
+    --color-rule: var(--t-rule);
+    --color-accent: var(--t-accent);
+    --color-accent-hover: var(--t-accent-hover);
+    --color-accent-ink: var(--t-accent-ink);
+    --color-accent-soft: var(--t-accent-soft);
+    --color-realce: var(--t-realce);
+    --color-realce-soft: var(--t-realce-soft);
+    --color-realce-ink: var(--t-realce-ink);
+  }
+
+  /* Oscuro por preferencia del sistema, salvo que se haya forzado el claro. */
+  @media (prefers-color-scheme: dark) {
+    :root[data-tema]:not([data-theme='light']) {
+    --color-paper: var(--td-paper);
+    --color-surface: var(--td-surface);
+    --color-surface-2: var(--td-surface-2);
+    --color-ink: var(--td-ink);
+    --color-ink-2: var(--td-ink-2);
+    --color-ink-3: var(--td-ink-3);
+    --color-rule: var(--td-rule);
+    --color-accent: var(--td-accent);
+    --color-accent-hover: var(--td-accent-hover);
+    --color-accent-ink: var(--td-accent-ink);
+    --color-accent-soft: var(--td-accent-soft);
+    --color-realce: var(--td-realce);
+    --color-realce-soft: var(--td-realce-soft);
+    --color-realce-ink: var(--td-realce-ink);
+    }
+  }
+
+  /* Oscuro forzado desde la aplicación. */
+  :root[data-tema][data-theme='dark'] {
+    --color-paper: var(--td-paper);
+    --color-surface: var(--td-surface);
+    --color-surface-2: var(--td-surface-2);
+    --color-ink: var(--td-ink);
+    --color-ink-2: var(--td-ink-2);
+    --color-ink-3: var(--td-ink-3);
+    --color-rule: var(--td-rule);
+    --color-accent: var(--td-accent);
+    --color-accent-hover: var(--td-accent-hover);
+    --color-accent-ink: var(--td-accent-ink);
+    --color-accent-soft: var(--td-accent-soft);
+    --color-realce: var(--td-realce);
+    --color-realce-soft: var(--td-realce-soft);
+    --color-realce-ink: var(--td-realce-ink);
+  }
+}
+
 
 /* ------------------------------------------------------------------ */
 
@@ -744,7 +1103,7 @@
   .con-hilo::before {
     content: '';
     @apply absolute inset-x-0 top-0 h-0.5;
-    background: linear-gradient(90deg, var(--color-accent), var(--color-indigo));
+    background: linear-gradient(90deg, var(--color-accent), var(--color-realce));
   }
 
   /* Avatar: en lugar de un círculo plano, un degradado del acento. */
@@ -754,7 +1113,7 @@
     background: linear-gradient(
       135deg,
       var(--color-accent),
-      color-mix(in oklab, var(--color-indigo) 55%, var(--color-accent))
+      color-mix(in oklab, var(--color-realce) 55%, var(--color-accent))
     );
   }
   .avatar-tenue {
@@ -779,7 +1138,7 @@
   .cifra::before {
     content: '';
     @apply absolute inset-x-0 top-0 h-0.5;
-    background: linear-gradient(90deg, var(--color-accent), var(--color-indigo));
+    background: linear-gradient(90deg, var(--color-accent), var(--color-realce));
   }
 
   .bloque {
@@ -789,7 +1148,7 @@
   /* El medidor se llena con un degradado y un brillo al final. */
   .medidor span {
     @apply block h-full rounded-full transition-all duration-700 ease-out;
-    background: linear-gradient(90deg, var(--color-accent), var(--color-indigo));
+    background: linear-gradient(90deg, var(--color-accent), var(--color-realce));
   }
 
   /* Botón primario con un poco de profundidad. */
@@ -806,7 +1165,7 @@
   }
 
   .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap; }
-  .chip-indigo { @apply bg-indigo-soft text-indigo; }
+  .chip-realce { @apply bg-realce-soft text-realce; }
 
   /* Pestañas con subrayado que se desliza. */
   .pestanas a {
@@ -862,9 +1221,9 @@
 
   /* Actual: halo para que se encuentre de un vistazo */
   .hito.es-actual .hito-punto {
-    @apply bg-indigo text-indigo-ink shadow-alzado ring-4 ring-indigo/20;
+    @apply bg-realce text-realce-ink shadow-alzado ring-4 ring-realce/20;
   }
-  .hito.es-actual .hito-etiqueta { @apply font-bold text-indigo; }
+  .hito.es-actual .hito-etiqueta { @apply font-bold text-realce; }
 
   /* Disponible pero todavía sin visitar */
   .hito.es-disponible .hito-punto {
@@ -920,9 +1279,51 @@
   }
   .cifra--alerta .cifra-valor { @apply text-warn; }
 
+  /* --- Selector de apariencia --- */
+
+  .boton-apariencia {
+    @apply grid size-9 place-items-center rounded-md border border-rule bg-surface
+           text-ink-2 transition-colors duration-150
+           hover:border-accent hover:text-accent;
+  }
+  .boton-apariencia svg { @apply size-[1.15rem]; }
+
+  .panel-apariencia {
+    @apply absolute right-0 top-11 z-50 w-72 rounded-card border border-rule
+           bg-surface p-4 shadow-flotante;
+  }
+  .panel-titulo {
+    @apply mb-2 text-[0.68rem] font-bold uppercase tracking-wide text-ink-3;
+  }
+
+  .opcion-modo {
+    @apply rounded-md border border-rule bg-surface px-2 py-1.5 text-xs
+           text-ink-2 transition-colors duration-150
+           hover:border-accent hover:text-accent;
+  }
+  .opcion-modo.elegido {
+    @apply border-accent bg-accent-soft font-semibold text-accent;
+  }
+
+  .opcion-tema {
+    @apply flex items-center gap-2 rounded-md border border-rule bg-surface
+           px-2 py-1.5 text-left text-xs text-ink-2 transition-all duration-150
+           hover:border-accent hover:text-accent;
+  }
+  .opcion-tema.elegido {
+    @apply border-accent bg-accent-soft font-semibold text-accent;
+  }
+
+  /* Dos mitades: el acento y la segunda voz, que es lo que distingue un
+     tema de otro cuando los tonos son parecidos. */
+  .muestra {
+    @apply flex size-4 shrink-0 overflow-hidden rounded-full ring-1 ring-rule;
+  }
+  .muestra > span { @apply block h-full w-1/2; }
+
   /* Encabezado del asistente y de pantallas con paso activo. */
-  .paso-activo { @apply border-indigo !text-indigo; }
-  .paso-activo .numero-paso { @apply bg-indigo text-indigo-ink; }
+  .paso-activo { @apply border-realce !text-realce; }
+  .paso-activo .numero-paso { @apply bg-realce text-realce-ink; }
 
   /* Estado vacío con más presencia. */
   .vacio {
@@ -953,7 +1354,7 @@
   .icono-bloque svg { @apply size-5; }
 
   /* Variante para que dos secciones seguidas no se confundan de un vistazo. */
-  .icono-bloque--indigo { @apply bg-indigo-soft text-indigo; }
+  .icono-bloque--realce { @apply bg-realce-soft text-realce; }
 
   /*
     Flechas del carril. Aparecen solo cuando hay algo hacia ese lado: una

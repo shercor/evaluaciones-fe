@@ -36,12 +36,29 @@ export function paleta(): string[] {
  * contraste de sobra contra la superficie en los dos modos.
  */
 export function colorSerieUnica(): string {
-  return esModoOscuro() ? '#4fd4c4' : '#0a6a60';
+  return token('--color-accent', esModoOscuro() ? '#c4a2e0' : '#654a8f');
+}
+
+/**
+ * Lee un color del tema activo.
+ *
+ * Los gráficos no pueden llevar el color escrito: con ocho temas elegibles,
+ * un hexadecimal fijo hace que el gráfico se vea ajeno al resto de la
+ * aplicación en siete de los ocho. El respaldo cubre el caso de que la
+ * variable no exista todavía —antes de que el tema se aplique—.
+ */
+function token(nombre: string, respaldo: string): string {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+  return v || respaldo;
 }
 
 /** Tinta de los textos. Nunca se usa el color de la serie para escribir. */
 export function tinta(): { primaria: string; secundaria: string; retícula: string } {
-  return esModoOscuro()
-    ? { primaria: '#e5edeb', secundaria: '#a9bcb9', retícula: '#22403c' }
-    : { primaria: '#0e1a19', secundaria: '#40514f', retícula: '#d3dcda' };
+  const oscuro = esModoOscuro();
+
+  return {
+    primaria: token('--color-ink', oscuro ? '#ede6f2' : '#241c2b'),
+    secundaria: token('--color-ink-2', oscuro ? '#b9aec4' : '#544a5e'),
+    retícula: token('--color-rule', oscuro ? '#413550' : '#ddd2e6'),
+  };
 }

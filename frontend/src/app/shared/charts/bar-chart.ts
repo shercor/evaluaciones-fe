@@ -1,7 +1,8 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import type { EChartsCoreOption } from 'echarts/core';
 import { colorSerieUnica, paleta, tinta } from './chart-theme';
+import { ThemeService } from '../../core/theme/theme.service';
 
 export interface SerieBarra {
   nombre: string;
@@ -32,9 +33,15 @@ export interface SerieBarra {
       [attr.aria-label]="descripcion()"
     ></div>
   `,
-  styles: `.grafico { width: 100%; }`,
+  styles: `
+    .grafico {
+      width: 100%;
+    }
+  `,
 })
 export class BarChart {
+  private readonly apariencia = inject(ThemeService);
+
   /** Etiquetas del eje: qué se compara. */
   readonly categorias = input.required<string[]>();
   readonly series = input.required<SerieBarra[]>();
@@ -56,6 +63,11 @@ export class BarChart {
   });
 
   protected readonly opciones = computed<EChartsCoreOption>(() => {
+    // Los colores se leen del tema en el momento de dibujar, así que hay que
+    // depender de esta señal: sin ella, cambiar de tema con un gráfico en
+    // pantalla lo dejaría con la paleta anterior hasta recargar.
+    this.apariencia.version();
+
     const t = tinta();
     const varias = this.series().length > 1;
     const colores = varias ? paleta() : [colorSerieUnica()];
@@ -73,7 +85,14 @@ export class BarChart {
       // Con una sola serie el título ya la nombra: una leyenda de un ítem
       // es ruido.
       legend: varias
-        ? { top: 0, left: 0, textStyle: { color: t.secundaria, fontSize: 12 }, icon: 'roundRect', itemWidth: 12, itemHeight: 12 }
+        ? {
+            top: 0,
+            left: 0,
+            textStyle: { color: t.secundaria, fontSize: 12 },
+            icon: 'roundRect',
+            itemWidth: 12,
+            itemHeight: 12,
+          }
         : undefined,
       xAxis: {
         type: 'value',

@@ -1,6 +1,5 @@
 <header
-  class="flex flex-wrap items-center justify-between gap-6 border-b border-rule
-         bg-surface px-4 py-3 sm:px-10"
+  class="flex flex-wrap items-center justify-between gap-6 border-b border-rule bg-surface px-4 py-3 sm:px-10"
 >
   <div class="flex min-w-0 items-center gap-7">
     <a routerLink="/portal" class="text-[0.95rem] font-semibold !text-ink no-underline">
@@ -11,8 +10,7 @@
         routerLink="/portal"
         routerLinkActive="!text-accent border-accent font-semibold"
         [routerLinkActiveOptions]="{ exact: true }"
-        class="border-b-2 border-transparent pb-0.5 text-sm !text-ink-2 no-underline
-               transition-colors duration-150 hover:!text-ink"
+        class="border-b-2 border-transparent pb-0.5 text-sm !text-ink-2 no-underline transition-colors duration-150 hover:!text-ink"
         >Mis evaluaciones</a
       >
     </nav>
@@ -28,9 +26,12 @@
         {{ user()?.job_position?.name ?? user()?.role_label }}
       </em>
     </span>
-    <button type="button" class="btn btn-quiet" (click)="salir()" [disabled]="saliendo()">
-      {{ saliendo() ? 'Saliendo…' : 'Salir' }}
-    </button>
+    <div class="flex items-center gap-2">
+      <app-selector-tema />
+      <button type="button" class="btn btn-quiet" (click)="salir()" [disabled]="saliendo()">
+        {{ saliendo() ? 'Saliendo…' : 'Salir' }}
+      </button>
+    </div>
   </div>
 </header>
 

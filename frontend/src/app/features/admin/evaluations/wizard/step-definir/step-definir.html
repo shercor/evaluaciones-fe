@@ -136,7 +136,7 @@
 
     <section class="bloque entra" style="animation-delay: 60ms">
       <div class="cabecera-bloque">
-        <span class="icono-bloque icono-bloque--indigo" aria-hidden="true">
+        <span class="icono-bloque icono-bloque--realce" aria-hidden="true">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -276,7 +276,7 @@
       @if (plantillaElegida(); as plantilla) {
         <h3 class="sub flex flex-wrap items-center gap-2">
           Formularios incluidos
-          <span class="chip chip-indigo">
+          <span class="chip chip-realce">
             {{ formulariosElegidos().size }} de {{ plantilla.formularios.length }}
           </span>
         </h3>
@@ -479,7 +479,7 @@
                     <span class="min-w-0 flex-1 text-sm">{{ p.texto }}</span>
                     <span
                       class="shrink-0 text-[0.68rem] uppercase tracking-wide"
-                      [class]="p.tipo === 'selection' ? 'text-accent' : 'text-indigo'"
+                      [class]="p.tipo === 'selection' ? 'text-accent' : 'text-realce'"
                     >
                       {{ p.tipo === 'selection' ? 'Escala' : 'Texto' }}
                     </span>
