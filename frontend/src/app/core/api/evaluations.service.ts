@@ -30,6 +30,8 @@ export interface Evaluacion {
   estado_color: string | null;
   /** La API está trabajando: no se ofrece ninguna acción y conviene consultar. */
   en_transicion: boolean;
+  /** Cambios en los participantes que todavía no viajaron a Evaluación 360. */
+  cambios_pendientes: number;
   activo: boolean;
   publicado: boolean;
   acciones: AccionEvaluacion[];
@@ -108,7 +110,10 @@ export class EvaluationsService {
     return this.transicion(id, 'reactivar');
   }
 
-  private transicion(id: number, accion: string): Observable<{ message: string; data: Evaluacion }> {
+  private transicion(
+    id: number,
+    accion: string,
+  ): Observable<{ message: string; data: Evaluacion }> {
     return this.http.post<{ message: string; data: Evaluacion }>(
       `${this.base}/${id}/${accion}`,
       {},

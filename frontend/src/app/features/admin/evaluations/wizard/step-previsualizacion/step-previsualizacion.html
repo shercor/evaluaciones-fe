@@ -1,7 +1,9 @@
 @if (aviso()) {
   <p class="alert alert-ok" role="status">
     {{ aviso() }}
-    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">×</button>
+    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">
+      ×
+    </button>
   </p>
 }
 @if (error()) {
@@ -11,15 +13,34 @@
 @if (cargando()) {
   <p class="vacio">Armando la previsualización…</p>
 } @else if (datos(); as d) {
+  @if (!d.es_alta && d.cambios_pendientes > 0) {
+    <div class="alert alert-error flex flex-wrap items-center justify-between gap-3">
+      <span>
+        Hay <b>{{ d.cambios_pendientes }}</b> cambios sin enviar sobre un proceso {{ d.estado }}.
+      </span>
+      <button type="button" class="mini peligro" (click)="deshacerCambios()">
+        Deshacer los cambios
+      </button>
+    </div>
+  }
   @if (d.huerfanos.length > 0) {
     <section class="bloque">
       <h2>Participantes sueltos</h2>
       <p class="explica">
-        Estas <b>{{ d.huerfanos.length }}</b> personas no tienen supervisor dentro del proceso y
-        tampoco tienen gente a cargo. Tal como está, no evaluarían a nadie ni serían evaluadas.
+        {{
+          d.huerfanos.length === 1
+            ? 'Esta persona no tiene'
+            : 'Estas ' + d.huerfanos.length + ' personas no tienen'
+        }}
+        ninguna relación de evaluación: su jefatura no participa, no
+        {{ d.huerfanos.length === 1 ? 'tiene' : 'tienen' }} gente a cargo y tampoco
+        {{ d.huerfanos.length === 1 ? 'tiene' : 'tienen' }} pares bajo la misma jefatura. Tal como
+        está, solo {{ d.huerfanos.length === 1 ? 'se evaluaría' : 'se evaluarían' }} a sí
+        {{ d.huerfanos.length === 1 ? 'misma' : 'mismas' }}.
       </p>
       <p class="explica">
-        Podés volver atrás y darles un supervisor, o dejarlas fuera de este proceso.
+        Podés volver atrás y darles una jefatura que sí participe, devolver a su equipo al proceso,
+        o dejarlas fuera.
       </p>
 
       <ul class="huerfanos">
@@ -43,25 +64,39 @@
   <section class="bloque">
     <h2>Cómo queda la estructura</h2>
     <p class="explica">
-      <b>{{ d.total_participantes }}</b> participantes en
-      <b>{{ d.grupos.length }}</b> {{ d.grupos.length === 1 ? 'grupo' : 'grupos' }}.
-      Cada grupo es un jefe con su equipo.
+      <b>{{ d.total_participantes }}</b> participantes en <b>{{ d.grupos.length }}</b>
+      {{ d.grupos.length === 1 ? 'grupo' : 'grupos' }}. Un equipo es una jefatura con sus
+      dependientes directos; si activaste la evaluación de pares, son ellos quienes se evalúan entre
+      sí.
     </p>
+
+    @if (d.jefes_excluidos > 0) {
+      <p class="explica mb-4 rounded-md bg-surface-2 px-4 py-3 text-xs">
+        <b>{{ d.jefes_excluidos }}</b>
+        {{ d.jefes_excluidos === 1 ? 'jefatura encabeza' : 'jefaturas encabezan' }} un equipo sin
+        participar. Aparecen atenuadas: su gente sí es evaluada, pero a ellas no las evalúa nadie.
+      </p>
+    }
 
     @if (d.grupos.length === 0) {
       <p class="vacio">
-        No se formó ningún grupo. Volvé al paso anterior y asegurate de que los participantes
-        tengan supervisores que también participen.
+        No se formó ningún grupo. Volvé al paso anterior y asegurate de que los participantes tengan
+        supervisores que también participen.
       </p>
     } @else {
       <div class="grupos">
         @for (g of d.grupos; track g.supervisor.user_id) {
           <article class="grupo">
-            <header>
+            <header [class.opacity-50]="!g.supervisor.participa">
               <span class="avatar-mini" aria-hidden="true">{{ g.supervisor.iniciales }}</span>
               <span>
                 <b>{{ g.supervisor.nombre }}</b>
-                <em>{{ g.supervisor.cargo ?? 'Sin cargo' }}</em>
+                <em>
+                  {{ g.supervisor.cargo ?? 'Sin cargo' }}
+                  @if (!g.supervisor.participa) {
+                    · no participa
+                  }
+                </em>
               </span>
               <span class="cuenta">{{ g.integrantes.length }}</span>
             </header>
@@ -79,15 +114,18 @@
     }
   </section>
 
-  <div class="acciones-paso">
+  <div class="acciones-paso items-center">
+    @if (motivoBloqueo(); as motivo) {
+      <p class="mr-auto m-0 max-w-xl text-sm text-warn">{{ motivo }}</p>
+    }
     <button type="button" class="btn btn-quiet" (click)="volver()">Volver a participantes</button>
     <button
       type="button"
       class="btn btn-primary"
-      [disabled]="enviando() || d.grupos.length === 0"
+      [disabled]="enviando() || motivoBloqueo() !== null"
       (click)="pedirEnvio()"
     >
-      {{ enviando() ? 'Enviando…' : 'Enviar y crear el proceso' }}
+      {{ enviando() ? 'Enviando…' : textoEnvio() }}
     </button>
   </div>
 }
@@ -95,16 +133,25 @@
 @if (confirmandoEnvio()) {
   <div class="modal-fondo" (click)="cancelarEnvio()">
     <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-      <h2>¿Enviar el proceso?</h2>
-      <p>
-        Se manda el padrón completo a Evaluación 360, que va a generar las tareas de cada
-        participante. El proceso queda en «Preparando» hasta que termine, y puede tardar varios
-        minutos.
-      </p>
-      <p class="nota">
-        Después vas a poder seguir corrigiendo los participantes, pero cada cambio tendrá que
-        reenviarse.
-      </p>
+      @if (datos()?.es_alta) {
+        <h2>¿Enviar el proceso?</h2>
+        <p>
+          Se manda el padrón completo a Evaluación 360, que va a generar las tareas de cada
+          participante. El proceso queda en «Preparando» hasta que termine, y puede tardar varios
+          minutos.
+        </p>
+        <p class="nota">
+          Después vas a poder seguir corrigiendo los participantes, pero cada cambio tendrá que
+          reenviarse.
+        </p>
+      } @else {
+        <h2>¿Guardar los cambios?</h2>
+        <p>
+          Se reenvía el padrón completo a Evaluación 360, que va a recalcular las tareas según quién
+          participa ahora.
+        </p>
+        <p class="nota">Una vez enviados, los cambios dejan de poder deshacerse desde acá.</p>
+      }
       <div class="acciones-modal">
         <button type="button" class="btn btn-quiet" (click)="cancelarEnvio()">Cancelar</button>
         <button type="button" class="btn btn-primary" (click)="enviar()">Enviar</button>

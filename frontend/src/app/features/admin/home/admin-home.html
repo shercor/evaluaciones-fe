@@ -1,7 +1,5 @@
 <h1 class="pagina-titulo">Hola, {{ user()?.name }}</h1>
-<p class="pagina-intro">
-  Desde acá administrás los procesos de evaluación de la organización.
-</p>
+<p class="pagina-intro">Desde acá administrás los procesos de evaluación de la organización.</p>
 
 @if (permisoConfirmado() === false) {
   <p class="alert alert-error mt-6" role="alert">
@@ -9,7 +7,40 @@
   </p>
 }
 
-<section class="entra-escalonado mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+<!--
+  Cuatro cifras para saber en qué anda la organización sin entrar a ninguna
+  pantalla. La de «cambios sin enviar» es la única que puede exigir acción, así
+  que se tiñe y enlaza directo.
+-->
+@if (cifrasListas()) {
+  <section class="entra-escalonado mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <article class="cifra">
+      <span class="cifra-valor"><app-contador [valor]="procesos()" /></span>
+      <span class="cifra-nombre">Procesos creados</span>
+    </article>
+    <article class="cifra">
+      <span class="cifra-valor"><app-contador [valor]="enCurso()" /></span>
+      <span class="cifra-nombre">En curso ahora</span>
+    </article>
+    <article class="cifra">
+      <span class="cifra-valor"><app-contador [valor]="personas()" /></span>
+      <span class="cifra-nombre">Personas activas</span>
+    </article>
+    @if (pendientes() > 0) {
+      <a routerLink="/admin/evaluaciones" class="cifra cifra--alerta">
+        <span class="cifra-valor"><app-contador [valor]="pendientes()" /></span>
+        <span class="cifra-nombre">Con cambios sin enviar</span>
+      </a>
+    } @else {
+      <article class="cifra">
+        <span class="cifra-valor">0</span>
+        <span class="cifra-nombre">Con cambios sin enviar</span>
+      </article>
+    }
+  </section>
+}
+
+<section class="entra-escalonado mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
   <a routerLink="/admin/evaluaciones" class="atajo group">
     <span class="atajo-titulo">Evaluaciones</span>
     <span class="atajo-texto">
@@ -28,26 +59,27 @@
 
   <a routerLink="/admin/grupos" class="atajo group">
     <span class="atajo-titulo">Grupos</span>
-    <span class="atajo-texto">
-      A qué conjunto de personas apunta cada proceso.
-    </span>
+    <span class="atajo-texto"> A qué conjunto de personas apunta cada proceso. </span>
     <span class="atajo-flecha" aria-hidden="true">→</span>
   </a>
 </section>
 
-<section class="mt-10 rounded-card border border-rule bg-surface p-6 shadow-suave">
-  <h2 class="mb-2 text-base font-semibold">Cómo se arma una evaluación</h2>
-  <ol class="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
+<!--
+  Los mismos cuatro pasos del asistente y con la misma línea de tiempo: quien
+  entra por primera vez ya reconoce la forma cuando llega al asistente de
+  verdad.
+-->
+<section class="mt-10 rounded-card border border-rule bg-surface p-6 pb-2 shadow-suave">
+  <h2 class="mb-1 text-base font-semibold">Cómo se arma una evaluación</h2>
+  <p class="explica mb-5">Cuatro pasos, y cada uno se guarda al completarlo.</p>
+
+  <ol class="linea-tiempo">
     @for (paso of pasos; track paso.numero) {
-      <li class="flex gap-3">
-        <span
-          class="grid size-7 shrink-0 place-items-center rounded-full
-                 bg-accent-soft text-xs font-bold text-accent"
-          >{{ paso.numero }}</span
-        >
-        <span>
-          <b class="block text-sm">{{ paso.titulo }}</b>
-          <em class="text-xs not-italic text-ink-3">{{ paso.detalle }}</em>
+      <li class="hito es-recorrido es-cumplido">
+        <span class="hito-punto" aria-hidden="true">{{ paso.numero }}</span>
+        <span class="hito-etiqueta">
+          <b class="block text-[0.8rem]">{{ paso.titulo }}</b>
+          <em class="not-italic text-ink-3">{{ paso.detalle }}</em>
         </span>
       </li>
     }

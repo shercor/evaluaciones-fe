@@ -20,6 +20,7 @@ export interface CategoriaPrevisualizada {
   /** Si no cuenta para el promedio, conviene decirlo al revisar. */
   en_promedio: boolean;
   condicional: boolean;
+  /** Qué tiene que cumplir la persona para que esta categoría le aplique. */
   condicion: string | null;
   preguntas: PreguntaPrevisualizada[];
 }

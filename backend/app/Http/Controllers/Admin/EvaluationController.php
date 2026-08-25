@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\EvaluationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Evaluation;
+use App\Models\EvaluationUserChange;
 use App\Services\EvaluationActions;
 use App\Support\E360\Resources\EvaluationsApi;
 use Illuminate\Http\JsonResponse;
@@ -42,8 +43,23 @@ class EvaluationController extends Controller
 
         $evaluaciones = $respuesta->collect('evaluaciones');
 
+        // Cuántos cambios sin enviar tiene cada proceso, en una sola consulta.
+        // Sin esto el listado ofrecía «Abrir» sobre una evaluación editada a
+        // medias, que es justo lo que no hay que dejar hacer.
+        $pendientes = EvaluationUserChange::query()
+            ->join('evaluations', 'evaluations.id', '=', 'evaluation_user_changes.evaluation_id')
+            ->whereIn('evaluations.e360_id', array_map(static fn ($e) => $e->id, $evaluaciones))
+            ->selectRaw('evaluations.e360_id, COUNT(*) as total')
+            ->groupBy('evaluations.e360_id')
+            ->pluck('total', 'e360_id');
+
         return response()->json([
-            'data' => array_map($this->presentar(...), $evaluaciones),
+            'data' => array_map(
+                fn ($e) => $this->presentar($e) + [
+                    'cambios_pendientes' => (int) ($pendientes[$e->id] ?? 0),
+                ],
+                $evaluaciones,
+            ),
             'meta' => $respuesta->meta,
             'statuses' => $this->catalogoDeEstados(),
         ]);

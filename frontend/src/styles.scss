@@ -55,6 +55,13 @@
 
   --radius-card: 0.75rem;
 
+  /*
+    Alto común de los controles de formulario. Existe como token porque el
+    input, el select, el botón y la casilla se definen en lugares distintos
+    y sin un número compartido terminan midiendo 38, 38, 40 y 42.
+  */
+  --alto-control: 2.375rem;
+
   --shadow-suave: 0 1px 2px rgb(14 26 25 / 5%), 0 1px 3px rgb(14 26 25 / 4%);
   --shadow-alzado: 0 4px 6px -1px rgb(14 26 25 / 7%), 0 2px 4px -2px rgb(14 26 25 / 5%);
   --shadow-flotante: 0 20px 25px -5px rgb(14 26 25 / 12%), 0 8px 10px -6px rgb(14 26 25 / 8%);
@@ -178,10 +185,21 @@
   .btn-peligro { @apply bg-danger text-white border-transparent hover:bg-danger-hover; }
 
   /* Botón chico, para acciones dentro de una fila de tabla. */
+  /*
+    Botón chico, para acciones dentro de una fila.
+
+    El estado deshabilitado tiene que **verse**: sin esto, un botón bloqueado
+    quedaba idéntico a uno activo y solo se descubría al pulsarlo y no pasar
+    nada. El `hover:not-disabled` evita que además reaccione al pasar por
+    encima, que es lo que termina de hacerlo parecer disponible.
+  */
   .mini {
     @apply inline-flex items-center rounded border border-rule bg-surface
            px-2.5 py-1 text-xs text-ink-2 no-underline cursor-pointer
-           transition-colors duration-150 hover:border-accent hover:text-accent;
+           transition-colors duration-150
+           hover:not-disabled:border-accent hover:not-disabled:text-accent
+           disabled:cursor-not-allowed disabled:border-dashed
+           disabled:bg-surface-2 disabled:text-ink-3 disabled:opacity-70;
   }
   .mini.apagado { @apply border-dashed text-ink-3 cursor-default hover:border-rule hover:text-ink-3; }
   .mini.peligro { @apply border-danger text-danger hover:bg-danger-soft; }
@@ -196,6 +214,21 @@
     @apply w-full rounded-md border border-rule bg-surface px-3 py-2
            text-sm text-ink transition-colors duration-150
            placeholder:text-ink-3 focus:border-accent focus:outline-none;
+    min-height: var(--alto-control);
+  }
+  .field textarea { min-height: calc(var(--alto-control) * 2.5); }
+
+  /*
+    Fila de controles —filtros, barras de herramientas—. Todo lo que va
+    dentro comparte alto y radio: si no, cada pieza trae el suyo y la fila
+    queda escalonada.
+  */
+  .fila-controles { @apply flex flex-wrap items-end gap-3; }
+  .fila-controles > .field { margin-bottom: 0; }
+  .fila-controles .tarjeta-opcion,
+  .fila-controles .btn {
+    @apply rounded-md py-0;
+    height: var(--alto-control);
   }
   .field input[aria-invalid='true'] { @apply border-danger; }
   .field .error { @apply text-xs text-danger; }
@@ -367,7 +400,47 @@
   tr.ocupada { @apply opacity-50; }
   tr.excluido { @apply opacity-50; }
   tr.excluido b { @apply line-through; }
-  .interruptor input { @apply size-4 cursor-pointer; accent-color: var(--color-accent); }
+  /*
+    Interruptor gobernado por el modelo, no por el estado de un <input>.
+    Un checkbox nativo se marca solo al hacer clic: si la acción se cancela o
+    falla, la casilla queda al revés de lo que dice el dato y la pantalla
+    miente. Un botón con `aria-checked` solo puede mostrar lo que hay.
+  */
+  .interruptor {
+    @apply relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center
+           rounded-full border border-rule bg-surface-2 p-0
+           transition-colors duration-150
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .interruptor::after {
+    content: '';
+    @apply absolute left-0.5 size-3.5 rounded-full bg-ink-3 transition-transform duration-150;
+  }
+  /*
+    Girito de espera junto al interruptor. Va en la fila y no en toda la
+    tabla: lo que se está guardando es esa persona, y vaciar el listado para
+    decirlo se siente como una recarga de página.
+  */
+  .girito {
+    @apply inline-block size-3.5 shrink-0 rounded-full border-2 border-rule
+           border-t-accent align-middle;
+    animation: girar 0.7s linear infinite;
+  }
+
+  .interruptor[aria-checked='true'] { @apply border-accent bg-accent; }
+  .interruptor[aria-checked='true']::after { @apply translate-x-4 bg-accent-ink; }
+
+  /*
+    Cabecera ordenable. Es un botón y no un enlace: ordenar no lleva a otra
+    parte, y un lector de pantalla anuncia mal un enlace que no navega.
+  */
+  .tabla th .orden {
+    @apply inline-flex w-full cursor-pointer items-center gap-0.5 border-0 bg-transparent
+           p-0 text-left font-semibold uppercase tracking-wide text-inherit
+           transition-colors duration-150 hover:text-accent;
+    font-size: inherit;
+  }
+  .flecha-orden { @apply text-accent; }
 
   /* --- Tarjetas de sección --- */
 
@@ -448,7 +521,22 @@
   /* --- Asistente --- */
 
   .acciones-paso { @apply mt-6 flex flex-wrap justify-end gap-3; }
-  .plantillas { @apply mb-2 grid gap-3; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+  /*
+    Las plantillas van en un carril horizontal. Una rejilla que envuelve deja
+    filas huérfanas y huecos cuando hay dos o tres; el carril siempre se ve
+    lleno y admite cuantas haya sin estirar la vista.
+  */
+  .carril-plantillas {
+    @apply flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1;
+    scrollbar-width: none;
+  }
+  .carril-plantillas::-webkit-scrollbar { display: none; }
+  /*
+    Ancho fijo: la tarjeta mide lo mismo haya una o diez. Estirar la única
+    hasta el ancho del bloque la deja con un texto minúsculo flotando en un
+    rectángulo enorme, que se lee peor que el hueco a su derecha.
+  */
+  .carril-plantillas > * { @apply w-72 shrink-0 snap-start; }
   .plantilla {
     @apply flex cursor-pointer flex-col gap-0.5 rounded-md border border-rule
            bg-surface p-4 text-left text-ink transition-colors duration-150
@@ -456,8 +544,13 @@
   }
   .plantilla.elegida { @apply border-accent bg-accent-soft; }
   .plantilla em { @apply text-xs not-italic text-ink-3; }
-  .formularios { @apply grid list-none gap-x-4 p-0; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
-  .formularios .recordar { @apply mb-1.5; }
+
+  /*
+    Los formularios se acomodan al ancho de su texto. En rejilla, «Evaluación
+    a personas a cargo» y «Autoevaluación» ocupaban lo mismo, con un hueco
+    enorme en la corta y una fila huérfana al final.
+  */
+  .formularios { @apply flex list-none flex-wrap gap-2 p-0; }
 
   .sucursales { @apply mb-4 grid list-none gap-3 p-0; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
   .sucursal {
@@ -602,9 +695,36 @@
   to { opacity: 1; transform: none; }
 }
 
+@keyframes sirena {
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-warn) 25%, transparent); }
+  50% {
+    box-shadow:
+      0 0 0 2px var(--color-warn),
+      0 0 12px color-mix(in oklab, var(--color-warn) 55%, transparent);
+  }
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
 @keyframes barrido {
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }
+}
+
+/*
+  Al saltar desde el índice a una categoría, el salto solo la deja arriba: sin
+  esto no queda claro a cuál se llegó. El destello lo dice sin escribir nada.
+*/
+@layer utilities {
+  .destella { animation: destello 1.6s ease-out; }
+  .con-margen-scroll { scroll-margin-top: 1rem; }
+}
+
+@keyframes destello {
+  from { background-color: color-mix(in oklab, var(--color-accent) 16%, transparent); }
+  to { background-color: transparent; }
 }
 
 /* ------------------------------------------------------------------
@@ -694,6 +814,112 @@
            text-ink-2 no-underline transition-colors duration-200 hover:text-ink;
   }
 
+  /* ------------------------------------------------------------------
+     Línea de tiempo del asistente.
+
+     Cuatro estados, y cada uno tiene que leerse sin depender del color:
+     el cumplido lleva un tilde, el actual un halo, el disponible un número
+     y el bloqueado un candado. Así funciona también para quien no distingue
+     el verde del índigo.
+     ------------------------------------------------------------------ */
+
+  .linea-tiempo {
+    @apply mb-6 flex list-none gap-0 overflow-x-auto overflow-y-hidden p-0 px-1 py-2;
+    scrollbar-width: none;
+  }
+  .linea-tiempo::-webkit-scrollbar { display: none; }
+
+  .hito { @apply relative flex min-w-28 flex-1 flex-col items-center gap-2.5 px-2; }
+
+  /*
+    El hilo que une con el hito anterior. Vive en el hito de la derecha
+    porque así se pinta sólido exactamente cuando ese tramo ya se recorrió.
+  */
+  .hito + .hito::before {
+    content: '';
+    @apply absolute -left-1/2 right-1/2 top-[1.5625rem] h-0.5;
+    background-image: radial-gradient(circle, var(--color-rule) 1.2px, transparent 1.3px);
+    background-size: 7px 2px;
+    background-repeat: repeat-x;
+  }
+  .hito.es-recorrido::before {
+    background-image: none;
+    @apply bg-accent;
+  }
+
+  .hito-punto {
+    @apply relative z-10 grid size-[2.125rem] shrink-0 place-items-center
+           rounded-full text-xs font-bold transition-all duration-200;
+  }
+  .hito-punto svg { @apply size-4; }
+
+  .hito-etiqueta {
+    @apply text-center text-xs leading-tight text-ink-2 transition-colors duration-200;
+  }
+
+  /* Cumplido */
+  .hito.es-cumplido .hito-punto { @apply bg-accent text-accent-ink shadow-suave; }
+
+  /* Actual: halo para que se encuentre de un vistazo */
+  .hito.es-actual .hito-punto {
+    @apply bg-indigo text-indigo-ink shadow-alzado ring-4 ring-indigo/20;
+  }
+  .hito.es-actual .hito-etiqueta { @apply font-bold text-indigo; }
+
+  /* Disponible pero todavía sin visitar */
+  .hito.es-disponible .hito-punto {
+    @apply border-2 border-rule bg-surface text-ink-2;
+  }
+
+  /* Bloqueado: no se puede llegar hasta completar lo anterior */
+  .hito.es-bloqueado .hito-punto {
+    @apply border-2 border-dashed border-rule bg-surface-2 text-ink-3;
+  }
+  .hito.es-bloqueado .hito-etiqueta { @apply text-ink-3; }
+
+  /* El hito entero es el blanco de clic, no solo el círculo. */
+  .hito-enlace {
+    @apply flex cursor-pointer flex-col items-center gap-2.5 rounded-md border-0
+           bg-transparent p-0 no-underline;
+  }
+  .hito-enlace:hover .hito-punto { @apply scale-110; }
+  .hito-enlace:hover .hito-etiqueta { @apply text-accent; }
+  .hito-enlace:focus-visible { @apply outline-2 outline-offset-4 outline-accent; }
+  .hito-enlace[aria-disabled='true'] { @apply cursor-not-allowed; }
+  .hito-enlace[aria-disabled='true']:hover .hito-punto { @apply scale-100; }
+  .hito-enlace[aria-disabled='true']:hover .hito-etiqueta { @apply text-ink-3; }
+
+  /*
+    Sirena: un proceso editado a medias late en ámbar hasta que se resuelve.
+    Late en vez de quedarse quieto porque en una tabla larga un color fijo
+    pasa desapercibido, y esto hay que verlo sí o sí antes de abrir nada.
+  */
+  .sirena { animation: sirena 2s ease-in-out infinite; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sirena {
+      animation: none;
+      box-shadow: 0 0 0 2px var(--color-warn);
+    }
+  }
+
+  /*
+    Cifra de portada. El número manda —grande y en la tipografía de titulares—
+    y la etiqueta acompaña, porque de un vistazo lo que se lee es la cantidad.
+  */
+  .cifra {
+    @apply flex flex-col gap-1 rounded-card border border-rule bg-surface p-5
+           shadow-suave no-underline transition-all duration-200;
+  }
+  .cifra-valor { @apply font-display text-3xl font-bold leading-none text-ink; }
+  .cifra-nombre { @apply text-xs text-ink-2; }
+
+  /* La única cifra que puede exigir acción se tiñe y responde al puntero. */
+  .cifra--alerta {
+    @apply border-warn/40 bg-warn-soft/40 hover:-translate-y-0.5 hover:shadow-alzado;
+  }
+  .cifra--alerta .cifra-valor { @apply text-warn; }
+
   /* Encabezado del asistente y de pantallas con paso activo. */
   .paso-activo { @apply border-indigo !text-indigo; }
   .paso-activo .numero-paso { @apply bg-indigo text-indigo-ink; }
@@ -709,4 +935,80 @@
     @apply mb-1 font-display text-lg font-semibold;
   }
   .bloque > h2 + .explica { @apply mb-5; }
+
+  /*
+    Cabecera de sección con ícono. El ícono no decora: en una vista con varias
+    secciones seguidas es lo que permite ubicarse de un vistazo, sin leer.
+  */
+  .cabecera-bloque {
+    @apply mb-5 flex items-start gap-3.5 border-b border-rule pb-4;
+  }
+  .cabecera-bloque h2 { @apply mb-0.5 font-display text-lg font-semibold leading-tight; }
+  .cabecera-bloque p { @apply m-0 max-w-2xl text-sm text-ink-2; }
+
+  .icono-bloque {
+    @apply grid size-10 shrink-0 place-items-center rounded-xl
+           bg-accent-soft text-accent shadow-suave;
+  }
+  .icono-bloque svg { @apply size-5; }
+
+  /* Variante para que dos secciones seguidas no se confundan de un vistazo. */
+  .icono-bloque--indigo { @apply bg-indigo-soft text-indigo; }
+
+  /*
+    Flechas del carril. Aparecen solo cuando hay algo hacia ese lado: una
+    flecha que no lleva a ninguna parte es peor que no tenerla.
+  */
+  /*
+    Flotan sobre el carril en vez de ocupar lugar a los lados. Si ocuparan
+    lugar, aparecer estrecharía el carril, lo que puede volver a provocar el
+    desbordamiento que las hizo aparecer: un ciclo del que no se sale.
+  */
+  .flecha-carril {
+    @apply absolute top-1/2 z-10 grid size-9 -translate-y-1/2 place-items-center
+           rounded-full border border-rule bg-surface text-ink-2 shadow-alzado
+           transition-colors duration-150 hover:border-accent hover:text-accent
+           disabled:pointer-events-none disabled:opacity-0;
+  }
+  .flecha-carril--izq { @apply -left-3; }
+  .flecha-carril--der { @apply -right-3; }
+
+  /*
+    Velo en el borde por donde sigue el carril. Sin él las tarjetas se cortan
+    a filo y parece un error de maquetación en vez de contenido que continúa.
+  */
+  .velo-carril { @apply pointer-events-none absolute inset-y-0 z-[5] w-14; }
+  .velo-carril--izq { @apply left-0 bg-gradient-to-r from-surface to-transparent; }
+  .velo-carril--der { @apply right-0 bg-gradient-to-l from-surface to-transparent; }
+  .flecha-carril svg { @apply size-4; }
+
+  /*
+    Campo cuyo valor no lo elige la persona. Se ve distinto a propósito: un
+    input igual a los demás que no acepta escritura se siente roto.
+  */
+  .campo-impuesto input {
+    @apply cursor-not-allowed border-dashed bg-surface-2 font-semibold text-ink-2;
+  }
+
+  /*
+    Opción que se prende y apaga entera. Un checkbox suelto tiene un blanco de
+    clic diminuto; acá el blanco es toda la tarjeta.
+  */
+  .tarjeta-opcion {
+    @apply flex cursor-pointer items-center gap-3 rounded-lg border border-rule
+           bg-surface px-3.5 py-3 text-sm transition-all duration-150
+           hover:border-accent hover:shadow-suave;
+  }
+  .tarjeta-opcion input { @apply sr-only; }
+  .tarjeta-opcion:has(input:checked) { @apply border-accent bg-accent-soft; }
+  .tarjeta-opcion:has(input:focus-visible) { @apply outline outline-2 outline-offset-2 outline-accent; }
+
+  .marca-opcion {
+    @apply grid size-5 shrink-0 place-items-center rounded-md border-2
+           border-rule bg-surface text-transparent transition-colors duration-150;
+  }
+  .tarjeta-opcion:has(input:checked) .marca-opcion {
+    @apply border-accent bg-accent text-accent-ink;
+  }
+  .marca-opcion svg { @apply size-3; }
 }

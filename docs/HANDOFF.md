@@ -279,6 +279,41 @@ queda en blanco— sin ningún error de compilación que lo delate.
 | Roles | Tres, no dos: `super_admin`, `admin`, `collaborator`. El super admin **no es evaluable**, igual que en la intranet. | Hito 2 |
 | Versiones | Laravel 13 y Angular 22 (los `latest`). El plan decía Laravel 12, que es lo que corre la API E360. **Sin confirmar** si conviene fijar a 12. | Hito 1 |
 | API E360 | No se modifica en ningún hito. | Hito 0 |
+| Jefe excluido que igual encabeza equipo | Un supervisor apartado del proceso **sigue formando su grupo**, atenuado en pantalla, y viaja a la API como `activo: false`. Es lo que hace la intranet, y lo que ya hacía `ParticipationSubmission`: exigir que el jefe participara dejaba a su equipo entero como «suelto» y la pantalla proponía echar gente sana. | 2026-08-25 |
+| Cambios sin enviar, en el listado | El estado late en ámbar («sirena») con ⚠, «Abrir» queda deshabilitado con el motivo en el tooltip, y arriba hay un aviso con enlace directo a terminar la edición. La intranet usa un modal al cargar; acá es un aviso persistente, porque un modal se cierra y se olvida. | 2026-08-25 |
+| Estado deshabilitado visible | `.mini` no tenía estilo `:disabled`: un botón bloqueado se veía idéntico a uno activo y solo se descubría al pulsarlo. Ahora va con borde punteado, fondo apagado y `cursor: not-allowed`. Vale para toda la app. | 2026-08-25 |
+| Línea de tiempo | `.linea-tiempo` + `.hito`, reutilizable. Cuatro estados que se distinguen **por forma y no solo por color** (tilde, halo, número, candado), hilo sólido detrás y punteado delante. Se usa en el asistente y en el inicio de administración. | 2026-08-25 |
+| Cambios de participación | Se aplican **en el lugar**, sin volver a pedir el listado: la respuesta trae a quiénes alcanzó el cambio y el total recalculado. Un girito junto al interruptor marca la fila que se está guardando, y el resto queda deshabilitado hasta que termina. Recargar la lista vaciaba la tabla y se sentía como una recarga de página. Editar a alguien sí relee —cambiar su jefe altera los conteos «a cargo» de otras filas— pero en silencio. | 2026-08-25 |
+| Quién queda «suelto» | Hace falta **al menos una relación de evaluación real**: que su jefatura participe, que tenga gente a cargo, o que tenga pares bajo la misma jefatura. La autoevaluación no cuenta. La intranet solo pregunta si alguien figura como tu jefe, sin mirar si ese jefe participa: con una jefatura apartada del proceso deja pasar gente a la que nadie evalúa y que no evalúa a nadie. | 2026-08-25 |
+| Bloqueo del envío | No se envía con huérfanos (igual que la intranet), ni sobre un proceso cuyo estado no admite cambios, ni cuando se corrige un proceso ya creado y no hay cambios pendientes. El motivo se muestra junto al botón en vez de dejarlo deshabilitado sin explicación. | 2026-08-25 |
+| Sucursales a escala | La lista se filtra y ordena en el cliente, sin paginar: buscador por nombre, orden por personal o alfabético, «solo las elegidas», y la lista dentro de un marco con altura máxima. Las acciones masivas actúan sobre **lo filtrado**, sumando o restando sin pisar el resto de la selección. Probado con 123 sucursales y 611 personas: `availableBranchOffices()` en 6,8 ms. La intranet resolvía lo mismo con DataTables paginando de a 10. | 2026-08-25 |
+| Grupo del proceso | Selector visible, con el primer grupo ya elegido: no hay que tocarlo para seguir. **No es un dato inerte** —de él dependen el período y el alcance del proceso, y la API lo exige— así que no se puede omitir, solo dar por defecto. La intranet lo esconde (`d-none`) y toma el primero; acá se muestra porque el proyecto tiene pantalla de Grupos propia. | 2026-08-25 |
+| Plantilla del proceso | Se puede cambiar. La intranet la tiene `disabled` con «está predefinida», que es un candado de ese despliegue, no una regla del dominio. | 2026-08-25 |
+| Período del proceso | Lo impone la API, no la persona. `GET /api/periodo` ya devuelve el **siguiente** al último usado: no hay que sumarle nada. Solo cuando responde `null` —el grupo nunca tuvo evaluaciones— el campo se abre y se puede elegir. Mismo comportamiento que la intranet. | 2026-08-25 |
+
+---
+
+## Trampa del entorno: la evaluación se queda en «preparando»
+
+E360 despacha los trabajos que arman las tareas a la cola **`heavy`**
+(`->onQueue('heavy')` en `ParticipantService`), no a `default`. Un
+`php artisan queue:work` a secas escucha solo `default`, así que los trabajos
+quedan encolados para siempre y el proceso no sale de «preparando». Tampoco
+hay servicio de worker en el `docker-compose.yml` de E360: hay que levantarlo
+a mano.
+
+```bash
+cd ~/Escritorio/proyectos/ideauno-evaluacion360-backend-laravel
+docker compose exec app php artisan queue:work --queue=heavy,default
+# o, equivalente a producción:
+docker compose exec app php artisan horizon
+```
+
+Para ver si hay algo atascado —ojo con el prefijo, no es `queues:`—:
+
+```bash
+docker compose exec redis redis-cli LLEN evaluacion360_database_queues:heavy
+```
 
 ---
 
@@ -288,7 +323,11 @@ queda en blanco— sin ningún error de compilación que lo delate.
 - **Los tres avisos de negocio por correo** y el botón de recordatorio, junto
   con la opción «abrir y notificar» del listado. La infraestructura de colas ya
   está levantada: es agregar los jobs.
-- **Sin tests automatizados** todavía. La verificación ha sido manual por HTTP.
+- **Sin tests automatizados** todavía, pero ya no toda la verificación es por
+  HTTP: `docs/recorrido.mjs` pulsa cada control de cada pantalla con un
+  navegador real y reporta los que no producen efecto. Nació porque tres veces
+  se construyó una pantalla y nunca se le puso el enlace, y verificar por API
+  no lo detecta: la API responde perfecto, lo que falta es el clic.
 - **El selector de supervisor** en el formulario de personas solo ofrece a quienes
   están en la página actual del listado. Sirve para el volumen de prueba, pero con
   una nómina grande necesita un buscador con consulta al servidor.

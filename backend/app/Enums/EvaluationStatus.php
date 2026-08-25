@@ -25,6 +25,22 @@ enum EvaluationStatus: string
     case FINISHED = 'finalizado';
     case CANCELED = 'cancelado';
 
+    /**
+     * ¿Se puede tocar el padrón en este estado?
+     *
+     * Mientras se crea, es el asistente. Con el proceso andando, se admiten
+     * altas y bajas —para eso existe la bitácora de cambios—. Terminado o
+     * cancelado ya no: las tareas están hechas y los resultados calculados,
+     * así que mover el padrón solo puede romper lo que ya se respondió.
+     */
+    public function allowsRosterEditing(): bool
+    {
+        return match ($this) {
+            self::CREATING, self::NEVER_PUBLISHED, self::IN_PROCESS => true,
+            self::PREPARING, self::FINISHED, self::CANCELED => false,
+        };
+    }
+
     public function label(): string
     {
         return match ($this) {

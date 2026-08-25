@@ -6,15 +6,27 @@
   }
 
   <section class="bloque">
-    <h2>¿Quiénes participan?</h2>
-    <p class="explica">
-      Elegí de qué sucursales sale la gente. Solo aparecen las que tienen personal evaluable:
-      los super administradores y las cuentas inactivas nunca entran al padrón.
-    </p>
-
-    <div class="filtro-filas">
-      <button type="button" class="mini" (click)="todas()">Seleccionar todas</button>
-      <button type="button" class="mini" (click)="ninguna()">Ninguna</button>
+    <div class="cabecera-bloque">
+      <span class="icono-bloque" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 21h18M4 21V8l8-5 8 5v13" />
+          <path d="M10 21v-6h4v6" />
+        </svg>
+      </span>
+      <div>
+        <h2>¿Quiénes participan?</h2>
+        <p>
+          Elegí de qué sucursales sale la gente. Solo aparecen las que tienen personal evaluable:
+          los super administradores y las cuentas inactivas nunca entran al padrón.
+        </p>
+      </div>
     </div>
 
     @if (disponibles().length === 0) {
@@ -22,35 +34,133 @@
         No hay sucursales con personal. Cargá la nómina desde Directorio → Importar nómina.
       </p>
     } @else {
-      <ul class="sucursales">
-        @for (s of disponibles(); track s.id) {
-          <li>
-            <label class="sucursal" [class.elegida]="estaElegida(s.id)">
-              <input type="checkbox" [checked]="estaElegida(s.id)" (change)="alternar(s.id)" />
-              <span class="datos">
-                <b>{{ s.name }}</b>
-                <em>{{ s.staff_count }} {{ s.staff_count === 1 ? 'persona' : 'personas' }}</em>
-              </span>
-            </label>
-          </li>
-        }
-      </ul>
+      <!--
+        Buscador y orden. Con tres sucursales sobran; con cien, sin ellos hay
+        que recorrer una pared de casillas para encontrar una.
+      -->
+      <div class="fila-controles mb-4">
+        <div class="field min-w-56 flex-1">
+          <label for="buscar-sucursal">Buscar</label>
+          <input
+            id="buscar-sucursal"
+            type="search"
+            placeholder="Nombre de la sucursal"
+            [ngModel]="busqueda()"
+            (ngModelChange)="busqueda.set($event)"
+          />
+        </div>
 
-      <p class="resumen-seleccion">
-        <b>{{ totalPersonas() }}</b>
-        {{ totalPersonas() === 1 ? 'persona entraría' : 'personas entrarían' }} al padrón.
-      </p>
+        <div class="field">
+          <label for="orden-sucursal">Ordenar por</label>
+          <select id="orden-sucursal" [ngModel]="orden()" (ngModelChange)="orden.set($event)">
+            <option value="personal">Más personal primero</option>
+            <option value="nombre">Nombre</option>
+          </select>
+        </div>
+
+        <label class="tarjeta-opcion">
+          <input
+            type="checkbox"
+            [checked]="soloElegidas()"
+            (change)="soloElegidas.set(!soloElegidas())"
+          />
+          <span class="marca-opcion" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m5 13 4 4L19 7" />
+            </svg>
+          </span>
+          <span>Solo las elegidas</span>
+        </label>
+      </div>
+
+      <!--
+        Las acciones masivas dicen sobre cuántas actúan. Con un filtro puesto,
+        «todas» sobre el total entero elegiría sucursales fuera de pantalla.
+      -->
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="mini"
+          [disabled]="visibles().length === 0 || visiblesElegidas() === visibles().length"
+          (click)="elegirVisibles()"
+        >
+          Elegir {{ filtrando() ? 'las ' + visibles().length + ' visibles' : 'todas' }}
+        </button>
+        <button
+          type="button"
+          class="mini"
+          [disabled]="visiblesElegidas() === 0"
+          (click)="quitarVisibles()"
+        >
+          Quitar {{ filtrando() ? 'las visibles' : 'todas' }}
+        </button>
+
+        <span class="ml-auto text-xs text-ink-3">
+          @if (filtrando()) {
+            {{ visibles().length }} de {{ disponibles().length }} sucursales
+            <button type="button" class="mini ml-2" (click)="limpiarFiltros()">Limpiar</button>
+          } @else {
+            {{ disponibles().length }}
+            {{ disponibles().length === 1 ? 'sucursal' : 'sucursales' }}
+          }
+        </span>
+      </div>
+
+      @if (visibles().length === 0) {
+        <p class="vacio">
+          Ninguna sucursal coincide con el filtro.
+          <button type="button" class="mini" (click)="limpiarFiltros()">Limpiar filtros</button>
+        </p>
+      } @else {
+        <!--
+          La lista se desplaza dentro de su propio marco. Con cien sucursales,
+          dejarla crecer empuja el resumen y el botón fuera de la pantalla, que
+          es justo lo que hay que mirar antes de armar el padrón.
+        -->
+        <div class="max-h-[26rem] overflow-y-auto rounded-card border border-rule p-3">
+          <ul class="sucursales !mb-0">
+            @for (s of visibles(); track s.id) {
+              <li>
+                <label class="sucursal" [class.elegida]="estaElegida(s.id)">
+                  <input type="checkbox" [checked]="estaElegida(s.id)" (change)="alternar(s.id)" />
+                  <span class="datos">
+                    <b>{{ s.name }}</b>
+                    <em>{{ s.staff_count }} {{ s.staff_count === 1 ? 'persona' : 'personas' }}</em>
+                  </span>
+                </label>
+              </li>
+            }
+          </ul>
+        </div>
+      }
+
+      <div class="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-rule pt-5">
+        <p class="m-0 text-sm text-ink-2">
+          @if (elegidas().size === 0) {
+            Todavía no elegiste ninguna sucursal.
+          } @else {
+            <b class="text-ink">{{ elegidas().size }}</b>
+            {{ elegidas().size === 1 ? 'sucursal elegida' : 'sucursales elegidas' }} ·
+            <b class="text-ink">{{ totalPersonas() }}</b>
+            {{ totalPersonas() === 1 ? 'persona entraría' : 'personas entrarían' }} al padrón
+          }
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="guardando() || elegidas().size === 0"
+          (click)="continuar()"
+        >
+          {{ guardando() ? 'Armando el padrón…' : 'Armar padrón y continuar' }}
+        </button>
+      </div>
     }
   </section>
-
-  <div class="acciones-paso">
-    <button
-      type="button"
-      class="btn btn-primary"
-      [disabled]="guardando() || elegidas().size === 0"
-      (click)="continuar()"
-    >
-      {{ guardando() ? 'Armando el padrón…' : 'Armar padrón y continuar' }}
-    </button>
-  </div>
 }

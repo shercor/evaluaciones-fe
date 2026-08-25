@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, OnDestroy, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { debounceTime } from 'rxjs';
@@ -39,6 +39,16 @@ export class EvaluationsList implements OnDestroy {
   private readonly fb = inject(FormBuilder);
 
   protected readonly evaluaciones = signal<Evaluacion[]>([]);
+
+  /**
+   * Procesos con edición a medias.
+   *
+   * Se muestran arriba con enlace directo a terminarlos: un botón «Abrir»
+   * deshabilitado sin explicación deja a la persona adivinando por qué.
+   */
+  protected readonly conCambiosPendientes = computed(() =>
+    this.evaluaciones().filter((e) => e.cambios_pendientes > 0),
+  );
   protected readonly estados = signal<EstadoEvaluacion[]>([]);
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -227,9 +237,7 @@ export class EvaluationsList implements OnDestroy {
       this.api.estado(pendiente.id).subscribe({
         next: (r) => {
           // Se reemplaza solo esa fila, sin tocar el scroll ni el resto.
-          this.evaluaciones.update((filas) =>
-            filas.map((f) => (f.id === r.data.id ? r.data : f)),
-          );
+          this.evaluaciones.update((filas) => filas.map((f) => (f.id === r.data.id ? r.data : f)));
           this.ajustarConsulta();
         },
         // Un fallo puntual de la consulta no merece molestar: se reintenta

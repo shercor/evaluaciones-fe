@@ -1,17 +1,24 @@
 @if (aviso()) {
   <p class="alert alert-ok" role="status">
     {{ aviso() }}
-    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">×</button>
+    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">
+      ×
+    </button>
   </p>
 }
 @if (error()) {
   <p class="alert alert-error" role="alert">{{ error() }}</p>
 }
 @if (cambiosPendientes() > 0) {
-  <p class="alert alert-error">
-    Hay <b>{{ cambiosPendientes() }}</b> cambios sin enviar. Hasta que los envíes, este proceso
-    queda marcado y no se puede abrir ni cerrar.
-  </p>
+  <div class="alert alert-error flex flex-wrap items-center justify-between gap-3">
+    <span>
+      Hay <b>{{ cambiosPendientes() }}</b> cambios sin enviar. Hasta que los envíes, este proceso
+      queda marcado y no se puede abrir ni cerrar.
+    </span>
+    <button type="button" class="mini peligro" (click)="deshacerCambios()">
+      Deshacer los cambios
+    </button>
+  </div>
 }
 
 <section class="bloque">
@@ -30,14 +37,27 @@
       <label for="p-sucursal">Sucursal</label>
       <select id="p-sucursal" formControlName="branch_office_id">
         <option value="">Todas</option>
-        @for (s of sucursales(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+        @for (s of sucursales(); track s.id) {
+          <option [value]="s.id">{{ s.name }}</option>
+        }
       </select>
     </div>
     <div class="field">
       <label for="p-cargo">Cargo</label>
       <select id="p-cargo" formControlName="job_position_id">
         <option value="">Todos</option>
-        @for (c of cargos(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+        @for (c of cargos(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label for="p-supervisor">Supervisor</label>
+      <select id="p-supervisor" formControlName="supervisor_id">
+        <option value="">Todos</option>
+        @for (s of supervisoresDelPadron(); track s.id) {
+          <option [value]="s.id">{{ s.nombre }}</option>
+        }
       </select>
     </div>
     <div class="field">
@@ -60,12 +80,32 @@
       <table class="tabla">
         <thead>
           <tr>
-            <th style="width:5rem">Participa</th>
-            <th>Persona</th>
-            <th>Cargo</th>
-            <th>Sucursal</th>
-            <th>Supervisor</th>
-            <th class="num">A cargo</th>
+            <th style="width: 5rem">
+              <button type="button" class="orden" (click)="ordenarPor('participa')">
+                Participa<span class="flecha-orden">{{ senal('participa') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="orden" (click)="ordenarPor('nombre')">
+                Persona<span class="flecha-orden">{{ senal('nombre') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="orden" (click)="ordenarPor('cargo')">
+                Cargo<span class="flecha-orden">{{ senal('cargo') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="orden" (click)="ordenarPor('sucursal')">
+                Sucursal<span class="flecha-orden">{{ senal('sucursal') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="orden" (click)="ordenarPor('supervisor')">
+                Supervisor<span class="flecha-orden">{{ senal('supervisor') }}</span>
+              </button>
+            </th>
+            <th class="num" title="Directos e indirectos, contando toda la cadena">A cargo</th>
             <th class="acciones"></th>
           </tr>
         </thead>
@@ -73,18 +113,26 @@
           @for (p of participantes(); track p.user_id) {
             <tr [class.excluido]="!p.participate" [class.ocupada]="ocupado() === p.user_id">
               <td>
-                <label class="interruptor">
-                  <input
-                    type="checkbox"
-                    [checked]="p.participate"
+                <span class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="interruptor"
+                    role="switch"
+                    [attr.aria-checked]="p.participate"
+                    [attr.aria-label]="(p.participate ? 'Excluir a ' : 'Incluir a ') + p.nombre"
                     [disabled]="ocupado() !== null"
-                    (change)="alternarParticipacion(p)"
-                  />
-                </label>
+                    (click)="alternarParticipacion(p)"
+                  ></button>
+                  @if (ocupado() === p.user_id) {
+                    <span class="girito" role="status" aria-label="Guardando"></span>
+                  }
+                </span>
               </td>
               <td>
                 <div class="persona-celda">
-                  <span class="avatar-mini avatar-tenue !size-8" aria-hidden="true">{{ p.iniciales }}</span>
+                  <span class="avatar-mini avatar-tenue !size-8" aria-hidden="true">{{
+                    p.iniciales
+                  }}</span>
                   <b>{{ p.nombre }}</b>
                 </div>
               </td>
@@ -103,12 +151,26 @@
 
     @if (meta(); as m) {
       <nav class="paginacion">
-        <button type="button" class="btn btn-quiet" [disabled]="m.current_page <= 1" (click)="irAPagina(m.current_page - 1)">Anterior</button>
+        <button
+          type="button"
+          class="btn btn-quiet"
+          [disabled]="m.current_page <= 1"
+          (click)="irAPagina(m.current_page - 1)"
+        >
+          Anterior
+        </button>
         <span>
           Página {{ m.current_page }} de {{ m.last_page }} · <b>{{ m.participando }}</b> de
           {{ m.total }} participan
         </span>
-        <button type="button" class="btn btn-quiet" [disabled]="m.current_page >= m.last_page" (click)="irAPagina(m.current_page + 1)">Siguiente</button>
+        <button
+          type="button"
+          class="btn btn-quiet"
+          [disabled]="m.current_page >= m.last_page"
+          (click)="irAPagina(m.current_page + 1)"
+        >
+          Siguiente
+        </button>
       </nav>
     }
   }
@@ -124,20 +186,23 @@
     <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
       <h2>{{ p.nombre }} tiene gente a cargo</h2>
       <p>
-        Dependen de esta persona <b>{{ p.supervisados }}</b> participantes, contando toda la
-        cadena.
+        Dependen de esta persona <b>{{ p.supervisados }}</b> participantes, contando toda la cadena.
       </p>
       <p class="nota">
-        Si la excluís sola, sus supervisados quedan sin jefe dentro del proceso y puede que
-        terminen sueltos en el paso siguiente.
+        @if (p.participate) {
+          Si la excluís sola, sus supervisados quedan sin jefe dentro del proceso y puede que
+          terminen sueltos en el paso siguiente.
+        } @else {
+          Si la incluís sola, su equipo sigue fuera del proceso: habría que devolverlos uno por uno.
+        }
       </p>
       <div class="acciones-modal">
         <button type="button" class="btn btn-quiet" (click)="cancelarCascada()">Cancelar</button>
         <button type="button" class="btn btn-quiet" (click)="confirmarCascada(false)">
-          Excluir solo a {{ p.nombre.split(' ')[0] }}
+          {{ p.participate ? 'Excluir' : 'Incluir' }} solo a {{ p.nombre.split(' ')[0] }}
         </button>
         <button type="button" class="btn btn-primary" (click)="confirmarCascada(true)">
-          Excluir con su cadena
+          {{ p.participate ? 'Excluir' : 'Incluir' }} con su cadena
         </button>
       </div>
     </div>
@@ -159,7 +224,9 @@
           <label for="e-sucursal">Sucursal</label>
           <select id="e-sucursal" formControlName="branch_office_id">
             <option value="">Sin sucursal</option>
-            @for (s of sucursales(); track s.id) { <option [value]="s.id">{{ s.name }}</option> }
+            @for (s of sucursales(); track s.id) {
+              <option [value]="s.id">{{ s.name }}</option>
+            }
           </select>
         </div>
 
@@ -167,13 +234,20 @@
           <label for="e-cargo">Cargo</label>
           <select id="e-cargo" formControlName="job_position_id">
             <option value="">Sin cargo</option>
-            @for (c of cargos(); track c.id) { <option [value]="c.id">{{ c.name }}</option> }
+            @for (c of cargos(); track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
           </select>
         </div>
 
         <div class="field">
           <label for="e-buscar-sup">Buscar supervisor</label>
-          <input id="e-buscar-sup" type="search" (input)="alBuscarSupervisor($event)" placeholder="Escribí un nombre" />
+          <input
+            id="e-buscar-sup"
+            type="search"
+            (input)="alBuscarSupervisor($event)"
+            placeholder="Escribí un nombre"
+          />
         </div>
 
         <div class="field">

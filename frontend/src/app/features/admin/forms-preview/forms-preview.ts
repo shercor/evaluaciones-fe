@@ -59,6 +59,40 @@ export class FormsPreview {
     this.router.navigate(['/admin/evaluaciones']);
   }
 
+  /**
+   * Salto desde el índice a una categoría.
+   *
+   * El destello es lo que hace legible el salto: sin él, la pantalla cambia y
+   * no queda claro a cuál de las siete secciones se llegó.
+   */
+  protected readonly resaltada = signal(-1);
+
+  protected irACategoria(indice: number): void {
+    document
+      .getElementById('cat-' + indice)
+      ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    this.resaltada.set(indice);
+    setTimeout(() => this.resaltada.set(-1), 1600);
+  }
+
+  /** a, b, c… como en la intranet; números si alguna vez pasan de 26. */
+  protected letra(indice: number): string {
+    return indice < 26 ? String.fromCharCode(97 + indice) : String(indice + 1);
+  }
+
+  /** ¿Este formulario usa alguno de los distintivos? Si no, sobra la leyenda. */
+  protected tieneMarcas(f: FormularioPrevisualizado): boolean {
+    return this.tieneCondicionales(f) || this.tieneExcluidas(f);
+  }
+
+  protected tieneCondicionales(f: FormularioPrevisualizado): boolean {
+    return f.categorias.some((c) => c.condicional);
+  }
+
+  protected tieneExcluidas(f: FormularioPrevisualizado): boolean {
+    return f.categorias.some((c) => !c.en_promedio);
+  }
+
   protected totalPreguntas(): number {
     return this.formularios().reduce((n, f) => n + f.total_preguntas, 0);
   }

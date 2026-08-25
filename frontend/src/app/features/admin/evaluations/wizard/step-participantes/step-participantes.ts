@@ -28,7 +28,12 @@ export class StepParticipantes {
   private readonly id = Number(this.ruta.snapshot.paramMap.get('id'));
 
   protected readonly participantes = signal<Participante[]>([]);
-  protected readonly meta = signal<{ current_page: number; last_page: number; total: number; participando: number } | null>(null);
+  protected readonly meta = signal<{
+    current_page: number;
+    last_page: number;
+    total: number;
+    participando: number;
+  } | null>(null);
   protected readonly cambiosPendientes = signal(0);
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);
@@ -50,8 +55,46 @@ export class StepParticipantes {
     search: [''],
     branch_office_id: [''],
     job_position_id: [''],
+    supervisor_id: [''],
     participate: [''],
   });
+
+  /** Supervisores que figuran en este padrón, para el filtro. */
+  protected readonly supervisoresDelPadron = signal<{ id: number; nombre: string }[]>([]);
+
+  /** Columna y sentido del orden. */
+  protected readonly orden = signal<{ campo: string; desc: boolean }>({
+    campo: 'nombre',
+    desc: false,
+  });
+
+  protected ordenarPor(campo: string): void {
+    // Volver a pulsar la misma columna invierte; cambiar de columna arranca
+    // ascendente, que es lo que se espera al ordenar por primera vez.
+    this.orden.update((a) =>
+      a.campo === campo ? { campo, desc: !a.desc } : { campo, desc: false },
+    );
+    this.pagina = 1;
+    this.buscar();
+  }
+
+  /** Flecha de la cabecera: solo la columna activa la muestra. */
+  protected senal(campo: string): string {
+    const a = this.orden();
+    return a.campo === campo ? (a.desc ? ' ↓' : ' ↑') : '';
+  }
+
+  protected deshacerCambios(): void {
+    this.error.set(null);
+
+    this.api.deshacerCambios(this.id).subscribe({
+      next: (r) => {
+        this.aviso.set(r.message);
+        this.buscar(true);
+      },
+      error: (e) => this.error.set(mensajeDeError(e, 'No se pudieron deshacer los cambios.')),
+    });
+  }
 
   protected readonly formulario = this.fb.nonNullable.group({
     branch_office_id: [''],
@@ -71,17 +114,30 @@ export class StepParticipantes {
     });
   }
 
-  protected buscar(): void {
-    this.cargando.set(true);
+  /**
+   * @param  silencioso  no vacía la tabla mientras llega la respuesta. Se usa
+   *   después de editar a alguien, donde la lista ya está en pantalla y
+   *   parpadear se siente como una recarga.
+   */
+  protected buscar(silencioso = false): void {
+    if (!silencioso) {
+      this.cargando.set(true);
+    }
     this.error.set(null);
 
     this.api
-      .participantes(this.id, { ...this.filtros.getRawValue(), page: this.pagina })
+      .participantes(this.id, {
+        ...this.filtros.getRawValue(),
+        page: this.pagina,
+        sort: this.orden().campo,
+        direction: this.orden().desc ? 'desc' : 'asc',
+      })
       .subscribe({
         next: (r) => {
           this.participantes.set(r.data);
           this.meta.set(r.meta);
           this.cambiosPendientes.set(r.cambios_pendientes);
+          this.supervisoresDelPadron.set(r.supervisores ?? []);
           this.cargando.set(false);
         },
         error: (e) => {
@@ -97,17 +153,26 @@ export class StepParticipantes {
   }
 
   protected limpiarFiltros(): void {
-    this.filtros.reset({ search: '', branch_office_id: '', job_position_id: '', participate: '' });
+    this.filtros.reset({
+      search: '',
+      branch_office_id: '',
+      job_position_id: '',
+      supervisor_id: '',
+      participate: '',
+    });
   }
 
   // -- Participación ------------------------------------------------
 
   /**
-   * Al desactivar a alguien con gente a cargo hay que preguntar: dejar a sus
-   * supervisados sin jefe dentro del proceso los volvería huérfanos.
+   * Con gente a cargo siempre se pregunta, en los dos sentidos.
+   *
+   * Al excluir, porque sus supervisados quedarían sin jefe dentro del proceso.
+   * Al incluir, porque si se los sacó en cascada hay que poder devolverlos
+   * igual de rápido: uno por uno son tantos clics como personas tenga.
    */
   protected alternarParticipacion(p: Participante): void {
-    if (p.participate && p.supervisados > 0) {
+    if (p.supervisados > 0) {
       this.confirmandoCascada.set(p);
       return;
     }
@@ -120,23 +185,41 @@ export class StepParticipantes {
     if (!p) return;
 
     this.confirmandoCascada.set(null);
-    this.aplicarParticipacion(p, false, conSupervisados);
+    this.aplicarParticipacion(p, !p.participate, conSupervisados);
   }
 
   protected cancelarCascada(): void {
     this.confirmandoCascada.set(null);
   }
 
-  private aplicarParticipacion(p: Participante, participar: boolean, conSupervisados: boolean): void {
+  /**
+   * Aplica el cambio y **parchea la tabla en el lugar**.
+   *
+   * Antes se volvía a pedir el listado entero, lo que vaciaba la tabla y se
+   * sentía como una recarga de página. La respuesta ya trae todo lo necesario
+   * —a quiénes alcanzó y el total recalculado—, así que no hay motivo para
+   * volver al servidor: la fila cambia sola cuando termina el guardado.
+   */
+  private aplicarParticipacion(
+    p: Participante,
+    participar: boolean,
+    conSupervisados: boolean,
+  ): void {
     this.ocupado.set(p.user_id);
     this.error.set(null);
 
     this.api.cambiarParticipacion(this.id, p.user_id, participar, conSupervisados).subscribe({
       next: (r) => {
-        this.ocupado.set(null);
-        this.aviso.set(r.message);
+        const alcanzados = new Set(r.afectados);
+
+        this.participantes.update((filas) =>
+          filas.map((f) => (alcanzados.has(f.user_id) ? { ...f, participate: participar } : f)),
+        );
+
+        this.meta.update((m) => (m ? { ...m, participando: r.participando } : m));
         this.cambiosPendientes.set(r.cambios_pendientes);
-        this.buscar();
+        this.aviso.set(r.message);
+        this.ocupado.set(null);
       },
       error: (e) => {
         this.ocupado.set(null);
@@ -198,7 +281,9 @@ export class StepParticipantes {
           this.editando.set(null);
           this.aviso.set(r.message);
           this.cambiosPendientes.set(r.cambios_pendientes);
-          this.buscar();
+          // Cambiar el supervisor de alguien altera los conteos «a cargo» de
+          // otras filas, así que acá sí hace falta releer; en silencio.
+          this.buscar(true);
         },
         error: (e) => {
           this.guardando.set(false);
@@ -222,7 +307,9 @@ export class StepParticipantes {
   }
 
   private cargarCatalogos(): void {
-    this.directorio.listarCatalogo('sucursales').subscribe({ next: (r) => this.sucursales.set(r.data) });
+    this.directorio
+      .listarCatalogo('sucursales')
+      .subscribe({ next: (r) => this.sucursales.set(r.data) });
     this.directorio.listarCatalogo('cargos').subscribe({ next: (r) => this.cargos.set(r.data) });
   }
 }

@@ -40,10 +40,9 @@ export class WizardShell {
     { initialValue: null },
   );
 
-  protected readonly actual = toSignal(
-    this.router.events.pipe(map(() => this.rutaActual())),
-    { initialValue: this.rutaActual() },
-  );
+  protected readonly actual = toSignal(this.router.events.pipe(map(() => this.rutaActual())), {
+    initialValue: this.rutaActual(),
+  });
 
   protected readonly numeroActual = computed(() => {
     const ruta = this.actual();
@@ -52,7 +51,35 @@ export class WizardShell {
 
   protected enlaceDe(paso: Paso): string[] {
     const id = this.evaluacionId();
-    return id ? ['/admin/evaluaciones/asistente', String(id), paso.ruta] : ['/admin/evaluaciones/asistente'];
+    return id
+      ? ['/admin/evaluaciones/asistente', String(id), paso.ruta]
+      : ['/admin/evaluaciones/asistente'];
+  }
+
+  /**
+   * Estado del hito, para la línea de tiempo.
+   *
+   * `es-recorrido` pinta sólido el hilo que llega hasta acá: se cumple para
+   * el paso actual y para todos los anteriores, que es exactamente el tramo
+   * por el que ya se pasó.
+   */
+  protected claseDe(paso: { numero: number }): string {
+    const actual = this.numeroActual();
+    const clases: string[] = [];
+
+    if (paso.numero <= actual) {
+      clases.push('es-recorrido');
+    }
+
+    if (paso.numero === actual) {
+      clases.push('es-actual');
+    } else if (paso.numero < actual) {
+      clases.push('es-cumplido');
+    } else {
+      clases.push(this.estaHabilitado(paso as never) ? 'es-disponible' : 'es-bloqueado');
+    }
+
+    return clases.join(' ');
   }
 
   protected estaHabilitado(paso: Paso): boolean {

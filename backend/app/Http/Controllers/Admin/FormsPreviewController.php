@@ -76,7 +76,10 @@ class FormsPreviewController extends Controller
                     // verlo al revisar qué se va a preguntar.
                     'en_promedio' => (bool) ($categoria->incluida_en_promedio ?? true),
                     'condicional' => (bool) ($categoria->es_condicional ?? false),
-                    'condicion' => $categoria->condicion ?? null,
+                    // `condicion` viene como objeto {codigo, descripcion}. Lo
+                    // que sirve para explicarle a alguien por qué una
+                    // categoría puede no aparecerle es la descripción.
+                    'condicion' => $categoria->condicion->descripcion ?? null,
                     'preguntas' => $preguntas,
                 ];
             }

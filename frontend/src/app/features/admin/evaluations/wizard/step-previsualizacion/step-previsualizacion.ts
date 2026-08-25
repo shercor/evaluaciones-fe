@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Previsualizacion, WizardService } from '../../../../../core/api/wizard.service';
 import { mensajeDeError } from '../../../../../core/http/api-error';
@@ -52,17 +52,75 @@ export class StepPrevisualizacion {
     });
   }
 
-  protected excluirHuerfanos(): void {
-    const huerfanos = this.datos()?.huerfanos ?? [];
-    if (huerfanos.length === 0) return;
+  /**
+   * ¿Hay algo que enviar?
+   *
+   * Con huérfanos no se envía: son personas que no evalúan a nadie y a las que
+   * nadie evalúa, así que el proceso saldría con tareas vacías. La intranet
+   * también deshabilita el botón en ese caso.
+   *
+   * Corrigiendo un proceso ya creado, además hace falta que haya cambios: sin
+   * ellos se reenviaría un padrón idéntico al que la API ya tiene.
+   */
+  protected readonly motivoBloqueo = computed<string | null>(() => {
+    const d = this.datos();
 
-    this.api.excluirHuerfanos(this.id, huerfanos.map((h) => h.user_id)).subscribe({
+    if (!d) {
+      return null;
+    }
+
+    if (!d.permite_editar) {
+      // Sin la etiqueta entre paréntesis habría que concordar en género con
+      // el estado («finalizada», «cancelado»), y no siempre coincide.
+      return `Este proceso ya no admite cambios en el padrón (estado: ${d.estado?.toLocaleLowerCase('es')}).`;
+    }
+
+    if (d.grupos.length === 0) {
+      return 'No se formó ningún grupo. Volvé al paso anterior y revisá que los participantes tengan supervisores dentro del proceso.';
+    }
+
+    if (d.huerfanos.length > 0) {
+      return 'Hay participantes sin ninguna relación de evaluación. Resolvelos arriba antes de enviar.';
+    }
+
+    if (!d.es_alta && d.cambios_pendientes === 0) {
+      return 'No hay cambios que enviar: el padrón está igual que la última vez.';
+    }
+
+    return null;
+  });
+
+  protected readonly textoEnvio = computed(() => {
+    const d = this.datos();
+    return d?.es_alta ? 'Enviar y crear el proceso' : 'Guardar los cambios';
+  });
+
+  protected deshacerCambios(): void {
+    this.api.deshacerCambios(this.id).subscribe({
       next: (r) => {
         this.aviso.set(r.message);
         this.cargar();
       },
-      error: (e) => this.error.set(mensajeDeError(e)),
+      error: (e) => this.error.set(mensajeDeError(e, 'No se pudieron deshacer los cambios.')),
     });
+  }
+
+  protected excluirHuerfanos(): void {
+    const huerfanos = this.datos()?.huerfanos ?? [];
+    if (huerfanos.length === 0) return;
+
+    this.api
+      .excluirHuerfanos(
+        this.id,
+        huerfanos.map((h) => h.user_id),
+      )
+      .subscribe({
+        next: (r) => {
+          this.aviso.set(r.message);
+          this.cargar();
+        },
+        error: (e) => this.error.set(mensajeDeError(e)),
+      });
   }
 
   protected pedirEnvio(): void {

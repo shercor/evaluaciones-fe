@@ -2,8 +2,8 @@
   <div>
     <h1 class="pagina-titulo">Evaluaciones</h1>
     <p class="pagina-intro">
-      Los procesos de evaluación de la organización. Desde acá se abren, se cierran y se
-      publican sus resultados.
+      Los procesos de evaluación de la organización. Desde acá se abren, se cierran y se publican
+      sus resultados.
     </p>
   </div>
   <div class="acciones-encabezado">
@@ -14,11 +14,41 @@
 @if (aviso()) {
   <p class="alert alert-ok" role="status">
     {{ aviso() }}
-    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">×</button>
+    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">
+      ×
+    </button>
   </p>
 }
 @if (error()) {
   <p class="alert alert-error" role="alert">{{ error() }}</p>
+}
+
+<!--
+  Un proceso editado a medias no puede abrirse: el padrón que tiene la API no
+  coincide con el de acá. Se avisa arriba y con enlace directo a resolverlo,
+  en vez de dejar que se descubra al toparse con un botón deshabilitado.
+-->
+@if (conCambiosPendientes().length > 0) {
+  <div class="alert alert-error" role="alert">
+    <b>
+      Hay
+      {{
+        conCambiosPendientes().length === 1
+          ? 'un proceso'
+          : conCambiosPendientes().length + ' procesos'
+      }}
+      con cambios sin enviar.
+    </b>
+    Mientras queden a medias no se pueden abrir ni cerrar, porque el padrón que tiene Evaluación 360
+    no coincide con el de acá.
+    <span class="mt-2 flex flex-wrap gap-2">
+      @for (p of conCambiosPendientes(); track p.id) {
+        <a class="mini" [routerLink]="['/admin/evaluaciones/asistente', p.id, 'participantes']">
+          {{ p.titulo }} · {{ p.cambios_pendientes }} cambios
+        </a>
+      }
+    </span>
+  </div>
 }
 
 <form class="filtros" [formGroup]="filtros">
@@ -53,7 +83,22 @@
 @if (cargando()) {
   <app-skeleton tipo="tabla" [cantidad]="4" />
 } @else if (evaluaciones().length === 0) {
-  <div class="vacio"><svg class="size-10 text-ink-3/50" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="17" cy="17" r="11"/><path d="m25.5 25.5 7 7"/></svg><p class="m-0">No hay procesos de evaluación que coincidan con el filtro.</p></div>
+  <div class="vacio">
+    <svg
+      class="size-10 text-ink-3/50"
+      viewBox="0 0 40 40"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="17" cy="17" r="11" />
+      <path d="m25.5 25.5 7 7" />
+    </svg>
+    <p class="m-0">No hay procesos de evaluación que coincidan con el filtro.</p>
+  </div>
 } @else {
   <div class="tabla-scroll">
     <table class="tabla">
@@ -84,14 +129,27 @@
             <td>
               <span
                 class="estado"
+                [class.sirena]="e.cambios_pendientes > 0"
                 [style.background-color]="e.estado_color ?? '#6c757d'"
-                [title]="e.estado_descripcion ?? ''"
+                [title]="
+                  e.cambios_pendientes > 0
+                    ? e.cambios_pendientes + ' cambios en los participantes sin enviar'
+                    : (e.estado_descripcion ?? '')
+                "
               >
                 {{ e.estado_label ?? e.estado }}
+                @if (e.cambios_pendientes > 0) {
+                  <span aria-hidden="true">⚠</span>
+                }
                 @if (e.en_transicion) {
                   <span class="latido" aria-hidden="true"></span>
                 }
               </span>
+              @if (e.cambios_pendientes > 0) {
+                <span class="sr-only">
+                  {{ e.cambios_pendientes }} cambios en los participantes sin enviar
+                </span>
+              }
               @if (!e.activo) {
                 <span class="chip chip-error">Desactivada</span>
               }
@@ -105,7 +163,19 @@
                 <span class="sin-acciones">—</span>
               } @else {
                 @if (puede(e, 'open')) {
-                  <button type="button" class="mini" (click)="pedirAbrir(e)">Abrir</button>
+                  <button
+                    type="button"
+                    class="mini"
+                    [disabled]="e.cambios_pendientes > 0"
+                    [title]="
+                      e.cambios_pendientes > 0
+                        ? 'Tiene cambios en los participantes sin enviar. Terminá o deshacé esa edición antes de abrir el proceso.'
+                        : 'Abrir el proceso para que empiecen a responder'
+                    "
+                    (click)="pedirAbrir(e)"
+                  >
+                    Abrir
+                  </button>
                 }
                 @if (puede(e, 'close')) {
                   <button type="button" class="mini" (click)="pedirCerrar(e)">Cerrar</button>
@@ -114,19 +184,33 @@
                   <button type="button" class="mini" (click)="pedirPublicar(e)">Publicar</button>
                 }
                 @if (puede(e, 'continue_creation')) {
-                  <a class="mini" [routerLink]="['/admin/evaluaciones/asistente', e.id, 'sucursales']">Continuar</a>
+                  <a
+                    class="mini"
+                    [routerLink]="['/admin/evaluaciones/asistente', e.id, 'sucursales']"
+                    >Continuar</a
+                  >
                 }
                 @if (puede(e, 'participants')) {
-                  <a class="mini" [routerLink]="['/admin/evaluaciones/asistente', e.id, 'participantes']">Participantes</a>
+                  <a
+                    class="mini"
+                    [routerLink]="['/admin/evaluaciones/asistente', e.id, 'participantes']"
+                    >Participantes</a
+                  >
                 }
                 @if (puede(e, 'preview_forms')) {
-                  <a class="mini" [routerLink]="['/admin/evaluaciones', e.id, 'formularios']">Formularios</a>
+                  <a class="mini" [routerLink]="['/admin/evaluaciones', e.id, 'formularios']"
+                    >Formularios</a
+                  >
                 }
                 @if (puede(e, 'monitor')) {
-                  <a class="mini" [routerLink]="['/admin/evaluaciones', e.id, 'monitoreo']">Monitorear</a>
+                  <a class="mini" [routerLink]="['/admin/evaluaciones', e.id, 'monitoreo']"
+                    >Monitorear</a
+                  >
                 }
                 @if (puede(e, 'dashboard')) {
-                  <a class="mini" [routerLink]="['/admin/evaluaciones', e.id, 'tablero']">Resultados</a>
+                  <a class="mini" [routerLink]="['/admin/evaluaciones', e.id, 'tablero']"
+                    >Resultados</a
+                  >
                 }
                 @if (puede(e, 'restore')) {
                   <button type="button" class="mini" (click)="pedirReactivar(e)">Reactivar</button>

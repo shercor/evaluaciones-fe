@@ -1,119 +1,354 @@
 @if (cargando()) {
-  <p class="vacio">Cargando plantillas y grupos…</p>
+  <app-skeleton tipo="texto" [cantidad]="6" />
 } @else {
   @if (error()) {
     <p class="alert alert-error" role="alert">{{ error() }}</p>
   }
 
   <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
-    <section class="bloque">
-      <h2>Datos del proceso</h2>
+    <section class="bloque con-hilo entra">
+      <div class="cabecera-bloque">
+        <span class="icono-bloque" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+            <path d="M14 3v5h5M9 13h6M9 17h4" />
+          </svg>
+        </span>
+        <div>
+          <h2>Datos del proceso</h2>
+          <p>Cómo se llama, a qué grupo alcanza y a qué momento del año corresponde.</p>
+        </div>
+      </div>
 
       <div class="grilla-form">
         <div class="field ancho-doble">
           <label for="titulo">Título</label>
-          <input id="titulo" type="text" formControlName="titulo" placeholder="Evaluación anual de desempeño" />
+          <input
+            id="titulo"
+            type="text"
+            formControlName="titulo"
+            placeholder="Evaluación anual de desempeño"
+          />
           @if (formulario.controls.titulo.touched && formulario.controls.titulo.invalid) {
             <span class="error">El título es obligatorio.</span>
+          } @else {
+            <span class="pista">Es el nombre con que van a ver el proceso los participantes.</span>
           }
         </div>
 
         <div class="field ancho-doble">
           <label for="descripcion">Descripción</label>
-          <input id="descripcion" type="text" formControlName="descripcion" placeholder="Para qué es este proceso" />
+          <input
+            id="descripcion"
+            type="text"
+            formControlName="descripcion"
+            placeholder="Este proceso corresponde al período entre enero y junio"
+          />
           @if (formulario.controls.descripcion.touched && formulario.controls.descripcion.invalid) {
             <span class="error">La descripción es obligatoria.</span>
+          } @else {
+            <span class="pista">
+              Acompaña a cada formulario en la lista de pendientes de los participantes.
+            </span>
           }
         </div>
+      </div>
 
+      <!--
+        Grupo, año y período van juntos y en ese orden porque el período es
+        consecuencia de los otros dos: leerlos en fila explica por qué el
+        último no se elige.
+      -->
+      <div class="grid gap-x-5 sm:grid-cols-3">
         <div class="field">
           <label for="grupo">Grupo</label>
           <select id="grupo" formControlName="group_id">
-            <option [value]="0" disabled>Elegí un grupo</option>
+            <option [ngValue]="0" disabled>Elegí un grupo</option>
             @for (g of opciones()!.groups; track g.id) {
-              <option [value]="g.id">{{ g.nombre }}</option>
+              <option [ngValue]="g.id">{{ g.nombre }}</option>
             }
           </select>
+          <span class="pista">A quiénes alcanza el proceso.</span>
         </div>
 
         <div class="field">
           <label for="year">Año</label>
           <select id="year" formControlName="year">
             @for (y of opciones()!.years; track y) {
-              <option [value]="y">{{ y }}</option>
+              <option [ngValue]="y">{{ y }}</option>
             }
           </select>
-          <span class="pista">La API solo admite el año actual o el anterior.</span>
+          <span class="pista">Solo el actual o el anterior.</span>
         </div>
 
-        <div class="field">
-          <label for="periodo">Período</label>
-          <input id="periodo" type="number" min="1" formControlName="periodo" />
-          <span class="pista">Se sugiere el siguiente al último usado en este grupo y año.</span>
+        <div class="field" [class.campo-impuesto]="periodoForzado()">
+          <label for="periodo" class="flex items-center gap-1.5">
+            Período
+            @if (periodoForzado() && !errorPeriodo()) {
+              <svg
+                class="size-3.5 text-ink-3"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="4" y="11" width="16" height="10" rx="2" />
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+              </svg>
+            }
+          </label>
+          <input
+            id="periodo"
+            type="number"
+            min="1"
+            max="12"
+            formControlName="periodo"
+            [readOnly]="periodoForzado()"
+            aria-describedby="pista-periodo"
+          />
+          <span id="pista-periodo" class="pista" [class.!text-danger]="errorPeriodo()">
+            @if (errorPeriodo()) {
+              {{ errorPeriodo() }}
+            } @else if (formulario.controls.periodo.value === null) {
+              Elegí un grupo y un año para saber cuál corresponde.
+            } @else if (periodoForzado()) {
+              Lo determinan las evaluaciones que ya existen.
+            } @else {
+              Este grupo no tiene evaluaciones: elegí el número.
+            }
+          </span>
+          @if (formulario.controls.periodo.touched && formulario.controls.periodo.invalid) {
+            <span class="error">El período es un número del 1 al 12.</span>
+          }
         </div>
       </div>
     </section>
 
-    <section class="bloque">
-      <h2>Plantilla</h2>
-      <p class="explica">
-        Define qué preguntas se hacen y desde qué perspectivas se evalúa a cada persona.
-      </p>
+    <section class="bloque entra" style="animation-delay: 60ms">
+      <div class="cabecera-bloque">
+        <span class="icono-bloque icono-bloque--indigo" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+            <rect x="9" y="3" width="6" height="4" rx="1" />
+            <path d="m9 13 2 2 4-4" />
+          </svg>
+        </span>
+        <div>
+          <h2>Plantilla</h2>
+          <p>Define qué preguntas se hacen y desde qué perspectivas se evalúa a cada persona.</p>
+        </div>
+      </div>
 
-      <div class="plantillas">
-        @for (t of opciones()!.templates; track t.id) {
+      <!--
+        Carril en vez de rejilla: con dos o tres plantillas la rejilla dejaba
+        filas huérfanas y medio bloque vacío, y con muchas estiraba la vista.
+      -->
+      <div class="relative">
+        @if (hayCarril()) {
           <button
             type="button"
-            class="plantilla"
-            [class.elegida]="formulario.controls.template_id.value === t.id"
-            (click)="elegirPlantilla(t.id)"
+            class="flecha-carril flecha-carril--izq"
+            [disabled]="!hayIzquierda()"
+            (click)="desplazarCarril(-1)"
+            aria-label="Ver plantillas anteriores"
           >
-            <b>{{ t.nombre }}</b>
-            <em>{{ t.formularios.length }} formularios</em>
-            <span
-              class="mini mt-2 self-start"
-              role="button"
-              tabindex="0"
-              (click)="verPreguntas(t, $event)"
-              (keydown.enter)="verPreguntas(t, $event)"
-              >Ver preguntas</span
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
             >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+        }
+
+        @if (hayIzquierda()) {
+          <span class="velo-carril velo-carril--izq" aria-hidden="true"></span>
+        }
+        @if (hayDerecha()) {
+          <span class="velo-carril velo-carril--der" aria-hidden="true"></span>
+        }
+
+        <div
+          #carril
+          class="carril-plantillas"
+          (scroll)="revisarCarril()"
+          role="radiogroup"
+          aria-label="Plantillas disponibles"
+        >
+          @for (t of opciones()!.templates; track t.id) {
+            <button
+              type="button"
+              class="plantilla relative"
+              [class.elegida]="formulario.controls.template_id.value === t.id"
+              role="radio"
+              [attr.aria-checked]="formulario.controls.template_id.value === t.id"
+              (click)="elegirPlantilla(t.id)"
+            >
+              @if (formulario.controls.template_id.value === t.id) {
+                <span
+                  class="absolute right-3 top-3 grid size-5 place-items-center rounded-full bg-accent text-accent-ink"
+                  aria-hidden="true"
+                >
+                  <svg
+                    class="size-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m5 13 4 4L19 7" />
+                  </svg>
+                </span>
+              }
+              <b>{{ t.nombre }}</b>
+              <em>{{ t.formularios.length }} formularios</em>
+              <span
+                class="mini mt-2 inline-flex items-center gap-1.5 self-start"
+                role="button"
+                tabindex="0"
+                (click)="verPreguntas(t, $event)"
+                (keydown.enter)="verPreguntas(t, $event)"
+              >
+                <svg
+                  class="size-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                Ver preguntas
+              </span>
+            </button>
+          }
+        </div>
+
+        @if (hayCarril()) {
+          <button
+            type="button"
+            class="flecha-carril flecha-carril--der"
+            [disabled]="!hayDerecha()"
+            (click)="desplazarCarril(1)"
+            aria-label="Ver más plantillas"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
           </button>
         }
       </div>
 
       @if (plantillaElegida(); as plantilla) {
-        <h3 class="sub">Formularios incluidos</h3>
-        <p class="explica">
-          Cada uno es una perspectiva desde la que se evalúa. Podés dejar fuera los que no
-          apliquen a este proceso.
+        <h3 class="sub flex flex-wrap items-center gap-2">
+          Formularios incluidos
+          <span class="chip chip-indigo">
+            {{ formulariosElegidos().size }} de {{ plantilla.formularios.length }}
+          </span>
+        </h3>
+        <p class="explica mb-3">
+          Cada uno es una perspectiva desde la que se evalúa. Podés dejar fuera los que no apliquen
+          a este proceso.
         </p>
 
         <ul class="formularios">
           @for (f of plantilla.formularios; track f.id) {
             <li>
-              <label class="recordar">
-                <input type="checkbox" [checked]="estaElegido(f.id)" (change)="alternarFormulario(f.id)" />
+              <label class="tarjeta-opcion">
+                <input
+                  type="checkbox"
+                  [checked]="estaElegido(f.id)"
+                  (change)="alternarFormulario(f.id)"
+                />
+                <span class="marca-opcion" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="m5 13 4 4L19 7" />
+                  </svg>
+                </span>
                 <span>{{ f.nombre }}</span>
               </label>
             </li>
           }
         </ul>
-      }
-    </section>
 
-    <div class="acciones-paso">
-      <button type="submit" class="btn btn-primary" [disabled]="guardando()">
-        {{ guardando() ? 'Creando…' : 'Crear y continuar' }}
-      </button>
-    </div>
+        @if (formulariosElegidos().size === 0) {
+          <p class="alert alert-error mt-4" role="alert">
+            Elegí al menos un formulario: sin ninguno no hay nada que responder.
+          </p>
+        }
+      }
+
+      <!--
+        La acción cierra la última sección en vez de flotar en su propia caja:
+        es el final del formulario, no un elemento aparte. El resumen va al
+        lado porque el grupo y el período ya quedaron fuera de vista.
+      -->
+      <div class="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-rule pt-5">
+        <p class="m-0 text-sm text-ink-2">
+          @if (resumen(); as r) {
+            Se va a crear <b class="text-ink">{{ r }}</b>
+          } @else {
+            Completá el título para crear el proceso.
+          }
+        </p>
+        <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+          {{ guardando() ? 'Creando…' : 'Crear y continuar' }}
+        </button>
+      </div>
+    </section>
   </form>
 }
 
 <!-- Preguntas de la plantilla, sin salir del asistente -->
 @if (viendoPlantilla(); as plantilla) {
   <div class="modal-fondo" (click)="cerrarPreguntas()">
-    <div class="modal !max-w-3xl" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div
+      class="modal !max-w-4xl"
+      (click)="$event.stopPropagation()"
+      role="dialog"
+      aria-modal="true"
+    >
       <h2>{{ plantilla.nombre }}</h2>
 
       @if (cargandoPreview()) {
@@ -139,28 +374,119 @@
         </nav>
 
         @if (formulariosPlantilla()[formularioActivo()]; as f) {
-          @for (c of f.categorias; track c.nombre) {
-            <div class="categoria-detalle">
-              <h3 class="sub">
-                {{ c.nombre }}
-                @if (!c.en_promedio) {
-                  <span class="chip chip-pendiente">No cuenta para el promedio</span>
-                }
+          <!--
+            Índice de categorías. Con siete secciones y veinte preguntas, sin
+            esto hay que recorrer todo el modal para saber qué se pregunta.
+          -->
+          <div class="mb-4 rounded-card border border-rule bg-surface-2 p-4">
+            <p
+              class="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-2"
+            >
+              Categorías de este formulario
+              <span class="cuenta-suave">{{ f.categorias.length }}</span>
+            </p>
+            <div class="flex flex-wrap gap-2">
+              @for (c of f.categorias; track c.nombre; let i = $index) {
+                <a
+                  href="javascript:void(0)"
+                  class="flex items-center gap-2 rounded-full border border-rule bg-surface px-3 py-1.5 text-xs transition hover:border-accent hover:text-accent"
+                  (click)="irACategoria(i)"
+                >
+                  <span
+                    class="grid size-5 place-items-center rounded-full bg-surface-2 text-[0.65rem] font-semibold text-ink-2"
+                    >{{ letra(i) }}</span
+                  >
+                  <span>{{ c.nombre }}</span>
+                  @if (c.condicional) {
+                    <span class="chip chip-pendiente !px-1.5 !py-0 !text-[0.6rem]"
+                      >Condicional</span
+                    >
+                  }
+                  @if (!c.en_promedio) {
+                    <span
+                      class="chip !px-1.5 !py-0 !text-[0.6rem] bg-surface-2 text-ink-3 ring-1 ring-rule"
+                      >No promedia</span
+                    >
+                  }
+                </a>
+              }
+            </div>
+          </div>
+
+          <!--
+            Leyenda de los distintivos. Va arriba y no al pie: si alguien se
+            topa con «Condicional» sin saber qué significa, ya es tarde.
+          -->
+          @if (tieneMarcas(f)) {
+            <div
+              class="mb-5 flex flex-wrap gap-x-6 gap-y-2 rounded-md bg-surface-2 px-4 py-3 text-xs text-ink-2"
+            >
+              @if (tieneCondicionales(f)) {
+                <span class="flex items-center gap-2">
+                  <span class="chip chip-pendiente">Condicional</span>
+                  Aparece solo si la persona evaluada cumple una condición
+                </span>
+              }
+              @if (tieneExcluidas(f)) {
+                <span class="flex items-center gap-2">
+                  <span class="chip bg-surface-2 text-ink-3 ring-1 ring-rule">No promedia</span>
+                  Se responde igual, pero no entra en el cálculo de notas
+                </span>
+              }
+            </div>
+          }
+
+          @for (c of f.categorias; track c.nombre; let i = $index) {
+            <section
+              [id]="'cat-' + i"
+              class="con-margen-scroll mb-4 overflow-hidden rounded-card border border-rule"
+              [class.destella]="resaltada() === i"
+            >
+              <header
+                class="flex flex-wrap items-center gap-2 border-b border-rule bg-surface-2 px-4 py-3"
+              >
+                <h3 class="font-display text-[0.95rem] font-semibold">{{ c.nombre }}</h3>
+
                 @if (c.condicional) {
-                  <span class="chip chip-pendiente">Solo si aplica</span>
+                  <span class="chip chip-pendiente">Condicional</span>
                 }
-              </h3>
-              <ol class="preguntas">
-                @for (p of c.preguntas; track p.texto) {
-                  <li>
-                    <p class="enunciado">{{ p.texto }}</p>
-                    <p class="leyenda">
-                      {{ p.tipo === 'selection' ? 'Escala numérica' : 'Respuesta escrita' }}
-                    </p>
+                @if (!c.en_promedio) {
+                  <span class="chip bg-surface-2 text-ink-3 ring-1 ring-rule">No promedia</span>
+                }
+
+                <span class="ml-auto text-xs text-ink-3">
+                  {{ c.preguntas.length }}
+                  {{ c.preguntas.length === 1 ? 'pregunta' : 'preguntas' }}
+                </span>
+              </header>
+
+              @if (c.condicion) {
+                <p class="border-b border-rule bg-warn-soft/40 px-4 py-2.5 text-xs text-ink-2">
+                  Esta sección solo le aparece a quien cumpla:
+                  <b class="text-warn">{{ c.condicion }}</b>
+                </p>
+              }
+              @if (c.descripcion) {
+                <p class="border-b border-rule px-4 py-2.5 text-xs text-ink-2">
+                  {{ c.descripcion }}
+                </p>
+              }
+
+              <ol class="m-0 list-none p-0">
+                @for (p of c.preguntas; track p.texto; let i = $index) {
+                  <li class="flex gap-3 border-b border-rule px-4 py-3 last:border-b-0">
+                    <span class="w-5 shrink-0 text-xs text-ink-3 tabular-nums">{{ i + 1 }}</span>
+                    <span class="min-w-0 flex-1 text-sm">{{ p.texto }}</span>
+                    <span
+                      class="shrink-0 text-[0.68rem] uppercase tracking-wide"
+                      [class]="p.tipo === 'selection' ? 'text-accent' : 'text-indigo'"
+                    >
+                      {{ p.tipo === 'selection' ? 'Escala' : 'Texto' }}
+                    </span>
                   </li>
                 }
               </ol>
-            </div>
+            </section>
           }
         }
       }

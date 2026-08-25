@@ -10,42 +10,54 @@
   </div>
 </header>
 
-<ol class="mb-7 flex list-none flex-wrap gap-2 p-0">
+<!--
+  Línea de tiempo de los cuatro pasos. Cada hito dice su estado por forma y
+  no solo por color: tilde el cumplido, halo el actual, número el disponible
+  y candado el bloqueado.
+-->
+<ol class="linea-tiempo" aria-label="Pasos del asistente">
   @for (paso of pasos; track paso.numero) {
-    <li>
+    <li class="hito" [class]="claseDe(paso)">
       @if (estaHabilitado(paso)) {
         <a
+          class="hito-enlace"
           [routerLink]="enlaceDe(paso)"
-          class="flex items-center gap-2.5 rounded-md border bg-surface px-3.5 py-2.5
-                 text-sm no-underline transition-colors duration-150"
-          [class]="
-            paso.numero === numeroActual()
-              ? 'border-indigo !text-indigo font-semibold shadow-suave'
-              : 'border-rule !text-ink-2 hover:border-accent'
-          "
+          [attr.aria-current]="paso.numero === numeroActual() ? 'step' : null"
         >
-          <span
-            class="grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold"
-            [class]="
-              paso.numero === numeroActual()
-                ? 'bg-indigo text-indigo-ink'
-                : paso.numero < numeroActual()
-                  ? 'bg-accent-soft text-accent'
-                  : 'bg-surface-2 text-ink-3'
-            "
-            >{{ paso.numero }}</span
-          >
-          {{ paso.etiqueta }}
+          <span class="hito-punto" aria-hidden="true">
+            @if (paso.numero < numeroActual()) {
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m5 13 4 4L19 7" />
+              </svg>
+            } @else {
+              {{ paso.numero }}
+            }
+          </span>
+          <span class="hito-etiqueta">{{ paso.etiqueta }}</span>
         </a>
       } @else {
-        <span
-          class="flex cursor-not-allowed items-center gap-2.5 rounded-md border
-                 border-dashed border-rule bg-surface px-3.5 py-2.5 text-sm
-                 text-ink-3 opacity-60"
-        >
-          <span class="grid size-6 shrink-0 place-items-center rounded-full
-                       bg-surface-2 text-xs font-bold text-ink-3">{{ paso.numero }}</span>
-          {{ paso.etiqueta }}
+        <span class="hito-enlace" aria-disabled="true">
+          <span class="hito-punto" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V7.5a4 4 0 0 1 8 0V11" />
+            </svg>
+          </span>
+          <span class="hito-etiqueta">{{ paso.etiqueta }}</span>
         </span>
       }
     </li>

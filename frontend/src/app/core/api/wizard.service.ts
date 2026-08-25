@@ -38,10 +38,21 @@ export interface Participante {
   supervisados: number;
 }
 
+export interface CambioParticipacion {
+  message: string;
+  /** Ids que quedaron en el nuevo estado, incluida la cadena si se arrastró. */
+  afectados: number[];
+  cambios_pendientes: number;
+  /** Total del padrón ya recalculado: evita recargar el listado. */
+  participando: number;
+}
+
 export interface ListadoParticipantes {
   data: Participante[];
   meta: { current_page: number; last_page: number; total: number; participando: number };
   cambios_pendientes: number;
+  /** Quiénes figuran como supervisor en este padrón, para filtrar. */
+  supervisores: { id: number; nombre: string }[];
 }
 
 export interface IntegranteGrupo {
@@ -53,7 +64,8 @@ export interface IntegranteGrupo {
 }
 
 export interface GrupoSupervisor {
-  supervisor: IntegranteGrupo;
+  /** El jefe puede encabezar el equipo sin participar: se muestra atenuado. */
+  supervisor: IntegranteGrupo & { participa: boolean };
   integrantes: IntegranteGrupo[];
 }
 
@@ -61,6 +73,14 @@ export interface Previsualizacion {
   grupos: GrupoSupervisor[];
   huerfanos: IntegranteGrupo[];
   total_participantes: number;
+  /** Jefes que encabezan un equipo sin participar ellos mismos. */
+  jefes_excluidos: number;
+  /** true si es el alta del proceso; false si se corrige uno ya creado. */
+  es_alta: boolean;
+  estado: string | null;
+  /** false cuando el estado ya no admite tocar el padrón. */
+  permite_editar: boolean;
+  cambios_pendientes: number;
 }
 
 /**
@@ -69,6 +89,13 @@ export interface Previsualizacion {
  * Cada paso persiste apenas se completa: se puede abandonar y retomar sin
  * perder lo hecho.
  */
+export interface PeriodoSugerido {
+  /** `null` cuando el grupo nunca tuvo evaluaciones. */
+  periodo: number | null;
+  /** Si es true el número lo determinan las evaluaciones que ya existen. */
+  forzado: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class WizardService {
   private readonly http = inject(HttpClient);
@@ -80,12 +107,17 @@ export class WizardService {
     return this.http.get<OpcionesAsistente>(`${this.base}/opciones`);
   }
 
-  periodoSugerido(year: number, groupId: number): Observable<{ periodo: number | null }> {
-    const params = new HttpParams()
-      .set('year', String(year))
-      .set('group_id', String(groupId));
+  /**
+   * Período que le toca a este año y grupo.
+   *
+   * `periodo` ya es el **siguiente** al último usado: no hay que sumarle nada.
+   * Viene `null` solo cuando el grupo nunca tuvo evaluaciones, y ahí `forzado`
+   * queda en false, que es el único caso en que se puede elegir el número.
+   */
+  periodoSugerido(year: number, groupId: number): Observable<PeriodoSugerido> {
+    const params = new HttpParams().set('year', String(year)).set('group_id', String(groupId));
 
-    return this.http.get<{ periodo: number | null }>(`${this.base}/periodo`, { params });
+    return this.http.get<PeriodoSugerido>(`${this.base}/periodo`, { params });
   }
 
   crear(datos: {
@@ -125,7 +157,10 @@ export class WizardService {
 
   // -- Paso 4 -------------------------------------------------------
 
-  participantes(id: number, filtros: Record<string, unknown> = {}): Observable<ListadoParticipantes> {
+  participantes(
+    id: number,
+    filtros: Record<string, unknown> = {},
+  ): Observable<ListadoParticipantes> {
     let params = new HttpParams();
 
     for (const [clave, valor] of Object.entries(filtros)) {
@@ -142,11 +177,12 @@ export class WizardService {
     userId: number,
     participate: boolean,
     withSupervisees: boolean,
-  ): Observable<{ message: string; afectados: number[]; cambios_pendientes: number }> {
-    return this.http.post<{ message: string; afectados: number[]; cambios_pendientes: number }>(
-      `${this.base}/${id}/participantes/participacion`,
-      { user_id: userId, participate, with_supervisees: withSupervisees },
-    );
+  ): Observable<CambioParticipacion> {
+    return this.http.post<CambioParticipacion>(`${this.base}/${id}/participantes/participacion`, {
+      user_id: userId,
+      participate,
+      with_supervisees: withSupervisees,
+    });
   }
 
   editarParticipante(

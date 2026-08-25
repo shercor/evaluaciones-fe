@@ -18,6 +18,7 @@ use App\Support\E360\Resources\GroupsApi;
 use App\Support\E360\Resources\TemplatesApi;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -76,7 +77,14 @@ class EvaluationWizardController extends Controller
     }
 
     /**
-     * Período sugerido para un año y grupo.
+     * Período que le toca a este año y grupo.
+     *
+     * Ojo con el nombre: la API ya devuelve el período **siguiente** al último
+     * usado, no el último. Sumarle uno lo corre de lugar.
+     *
+     * Devuelve `null` cuando el grupo nunca tuvo una evaluación. Es el único
+     * caso en que la persona puede elegir el número: en cualquier otro el
+     * período viene dado por los que ya existen y se impone.
      */
     public function period(Request $request): JsonResponse
     {
@@ -85,8 +93,20 @@ class EvaluationWizardController extends Controller
             $request->integer('group_id'),
         );
 
+        // Un fallo de la API no puede devolver `null`: se confundiría con
+        // «grupo nuevo» y dejaría editar un período que en realidad no se
+        // pudo consultar.
+        if ($respuesta->failed()) {
+            return response()->json([
+                'message' => $respuesta->message ?? 'No se pudo consultar el período.',
+            ], $respuesta->errorKind === 'connection' ? 503 : 502);
+        }
+
+        $periodo = $respuesta->data->periodo ?? null;
+
         return response()->json([
-            'periodo' => $respuesta->ok ? ($respuesta->data->periodo ?? null) : null,
+            'periodo' => $periodo,
+            'forzado' => $periodo !== null,
         ]);
     }
 
@@ -95,8 +115,10 @@ class EvaluationWizardController extends Controller
         $datos = $request->validate([
             'titulo' => ['required', 'string', 'max:255'],
             'descripcion' => ['required', 'string', 'max:255'],
-            'year' => ['required', 'integer'],
-            'periodo' => ['required', 'integer', 'min:1'],
+            // Los mismos límites que la intranet: la API solo acepta el año
+            // actual o el anterior, y el período es un mes del 1 al 12.
+            'year' => ['required', 'integer', Rule::in([(int) date('Y'), (int) date('Y') - 1])],
+            'periodo' => ['required', 'integer', 'min:1', 'max:12'],
             'group_id' => ['required', 'integer'],
             'template_id' => ['required', 'integer'],
             'formularios' => ['required', 'array', 'min:1'],
@@ -152,7 +174,7 @@ class EvaluationWizardController extends Controller
             'branch_offices.*' => ['nullable', 'integer', 'exists:branch_offices,id'],
         ]);
 
-        $evaluation = $this->localFor($id);
+        $evaluation = $this->editableFor($id);
         $sucursales = $request->input('branch_offices', []);
 
         if ($sucursales === []) {
@@ -207,8 +229,27 @@ class EvaluationWizardController extends Controller
             $query->where('participate', $request->boolean('participate'));
         }
 
+        // Orden por columna, como en la intranet. La lista blanca evita que
+        // llegue un nombre de columna cualquiera desde la URL.
+        $columnas = [
+            'nombre' => 'users.name',
+            'cargo' => 'job_positions.name',
+            'sucursal' => 'branch_offices.name',
+            'supervisor' => 'supervisores.name',
+            'participa' => 'evaluation_users.participate',
+        ];
+
+        $orden = $columnas[$request->string('sort')->toString()] ?? 'users.name';
+        $sentido = $request->string('direction')->lower()->toString() === 'desc' ? 'desc' : 'asc';
+
         $pagina = $query
             ->join('users', 'users.id', '=', 'evaluation_users.user_id')
+            ->leftJoin('job_positions', 'job_positions.id', '=', 'evaluation_users.job_position_id')
+            ->leftJoin('branch_offices', 'branch_offices.id', '=', 'evaluation_users.branch_office_id')
+            ->leftJoin('users as supervisores', 'supervisores.id', '=', 'evaluation_users.supervisor_id')
+            ->orderBy($orden, $sentido)
+            // Desempate estable: sin esto, dos filas con el mismo cargo pueden
+            // cambiar de orden entre páginas y una persona aparecer dos veces.
             ->orderBy('users.name')
             ->select('evaluation_users.*')
             ->paginate(min($request->integer('per_page', 25), 100));
@@ -236,7 +277,31 @@ class EvaluationWizardController extends Controller
                 'participando' => $this->submission->countParticipating($evaluation),
             ],
             'cambios_pendientes' => $this->changes->count($evaluation),
+            // Quiénes figuran como supervisor en este padrón. Es la lista para
+            // filtrar: ofrecer a todo el padrón daría opciones sin resultados.
+            'supervisores' => $this->supervisorsInRoster($evaluation),
         ]);
+    }
+
+    /**
+     * Supervisores que realmente aparecen en el padrón, sin repetir.
+     *
+     * @return array<int, array{id: int, nombre: string}>
+     */
+    private function supervisorsInRoster(Evaluation $evaluation): array
+    {
+        return EvaluationUser::query()
+            ->where('evaluation_id', $evaluation->id)
+            ->whereNotNull('supervisor_id')
+            ->with('supervisor:id,name,lastname')
+            ->get()
+            ->pluck('supervisor')
+            ->filter()
+            ->unique('id')
+            ->sortBy('name')
+            ->map(fn ($u) => ['id' => $u->id, 'nombre' => $u->fullName()])
+            ->values()
+            ->all();
     }
 
     public function setParticipation(Request $request, int $id): JsonResponse
@@ -247,7 +312,7 @@ class EvaluationWizardController extends Controller
             'with_supervisees' => ['sometimes', 'boolean'],
         ]);
 
-        $evaluation = $this->localFor($id);
+        $evaluation = $this->editableFor($id);
 
         $afectados = $this->editor->setParticipation(
             $evaluation,
@@ -262,6 +327,11 @@ class EvaluationWizardController extends Controller
                 : sprintf('Se actualizaron %d personas de la cadena.', count($afectados)),
             'afectados' => $afectados,
             'cambios_pendientes' => $this->changes->count($evaluation),
+            // El nuevo total sale de acá y no de sumar los afectados: en una
+            // cascada algunos ya podían estar en ese estado, así que contarlos
+            // desde el cliente daría un número equivocado. Con esto la pantalla
+            // se actualiza sola, sin recargar el listado.
+            'participando' => $this->submission->countParticipating($evaluation),
         ]);
     }
 
@@ -274,7 +344,7 @@ class EvaluationWizardController extends Controller
             'supervisor_id' => ['nullable', 'integer'],
         ]);
 
-        $evaluation = $this->localFor($id);
+        $evaluation = $this->editableFor($id);
 
         $this->editor->updateDetails(
             $evaluation,
@@ -328,7 +398,18 @@ class EvaluationWizardController extends Controller
     {
         $evaluation = $this->localFor($id);
 
-        return response()->json($this->groups->build($evaluation));
+        // La pantalla necesita saber si esto es el alta del proceso o una
+        // corrección de uno ya creado: cambia el texto del botón y, sobre
+        // todo, si hay algo que enviar.
+        return response()->json($this->groups->build($evaluation) + [
+            'es_alta' => $evaluation->status === EvaluationStatus::CREATING,
+            'estado' => $evaluation->status?->label(),
+            // Sin esto el bloqueo salía por carambola («no hay cambios») en vez
+            // de por el motivo real, y un proceso terminado con cambios
+            // pendientes habría dejado pulsar Enviar para fallar con un 422.
+            'permite_editar' => (bool) $evaluation->status?->allowsRosterEditing(),
+            'cambios_pendientes' => $this->changes->count($evaluation),
+        ]);
     }
 
     public function excludeOrphans(Request $request, int $id): JsonResponse
@@ -338,7 +419,7 @@ class EvaluationWizardController extends Controller
             'user_ids.*' => ['integer'],
         ]);
 
-        $evaluation = $this->localFor($id);
+        $evaluation = $this->editableFor($id);
         $total = $this->groups->excludeOrphans($evaluation, $request->input('user_ids'));
 
         return response()->json([
@@ -350,7 +431,7 @@ class EvaluationWizardController extends Controller
 
     public function submit(int $id): JsonResponse
     {
-        $evaluation = $this->localFor($id);
+        $evaluation = $this->editableFor($id);
 
         $grupos = $this->groups->build($evaluation);
 
@@ -395,7 +476,7 @@ class EvaluationWizardController extends Controller
      */
     public function undoChanges(int $id): JsonResponse
     {
-        $evaluation = $this->localFor($id);
+        $evaluation = $this->editableFor($id);
         $total = $this->changes->undo($evaluation);
 
         return response()->json([
@@ -413,6 +494,29 @@ class EvaluationWizardController extends Controller
      * Se sincroniza el estado desde la API en cada paso: de él dependen la
      * bitácora de cambios y si el envío es alta o corrección.
      */
+    /**
+     * Igual que `localFor`, pero además exige que el padrón se pueda tocar.
+     *
+     * Sin esto se podía cambiar la participación de una evaluación ya
+     * finalizada: guardaba sin protestar, sobre tareas ya respondidas y
+     * resultados ya calculados. La intranet lo bloquea en `selectParticipants`.
+     */
+    private function editableFor(int $e360Id): Evaluation
+    {
+        $evaluation = $this->localFor($e360Id);
+
+        if (! $evaluation->status?->allowsRosterEditing()) {
+            throw ValidationException::withMessages([
+                'estado' => sprintf(
+                    'No se puede modificar el padrón de una evaluación %s.',
+                    $evaluation->status?->label() ?? 'en este estado',
+                ),
+            ]);
+        }
+
+        return $evaluation;
+    }
+
     private function localFor(int $e360Id): Evaluation
     {
         $respuesta = $this->api->show($e360Id);

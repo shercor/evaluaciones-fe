@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SucursalDisponible, WizardService } from '../../../../../core/api/wizard.service';
 import { mensajeDeError } from '../../../../../core/http/api-error';
@@ -16,6 +17,7 @@ import { mensajeDeError } from '../../../../../core/http/api-error';
  */
 @Component({
   selector: 'app-step-sucursales',
+  imports: [FormsModule],
   templateUrl: './step-sucursales.html',
 })
 export class StepSucursales {
@@ -30,6 +32,47 @@ export class StepSucursales {
   protected readonly cargando = signal(true);
   protected readonly guardando = signal(false);
   protected readonly error = signal<string | null>(null);
+
+  /**
+   * Filtros de la lista.
+   *
+   * Con tres sucursales sobran; con cien, sin ellos hay que recorrer una
+   * pared de casillas para encontrar una. El orden por personal arranca
+   * primero porque es el criterio con que se decide a quién incluir.
+   */
+  protected readonly busqueda = signal('');
+  protected readonly orden = signal<'personal' | 'nombre'>('personal');
+  protected readonly soloElegidas = signal(false);
+
+  /** Las que se ven ahora mismo, ya filtradas y ordenadas. */
+  protected readonly visibles = computed<SucursalDisponible[]>(() => {
+    const texto = this.busqueda().trim().toLocaleLowerCase('es');
+    const elegidas = this.elegidas();
+    const orden = this.orden();
+
+    const lista = this.disponibles().filter((s) => {
+      if (this.soloElegidas() && !elegidas.has(s.id)) {
+        return false;
+      }
+      return !texto || s.name.toLocaleLowerCase('es').includes(texto);
+    });
+
+    // Copia antes de ordenar: `sort` muta, y la fuente es la señal original.
+    return [...lista].sort((a, b) =>
+      orden === 'nombre'
+        ? a.name.localeCompare(b.name, 'es')
+        : b.staff_count - a.staff_count || a.name.localeCompare(b.name, 'es'),
+    );
+  });
+
+  protected readonly filtrando = computed(
+    () => this.busqueda().trim().length > 0 || this.soloElegidas(),
+  );
+
+  /** Cuántas de las visibles están elegidas: decide qué acción masiva ofrecer. */
+  protected readonly visiblesElegidas = computed(
+    () => this.visibles().filter((s) => this.elegidas().has(s.id)).length,
+  );
 
   protected readonly totalPersonas = computed(() =>
     this.disponibles()
@@ -63,12 +106,32 @@ export class StepSucursales {
     return this.elegidas().has(id);
   }
 
-  protected todas(): void {
-    this.elegidas.set(new Set(this.disponibles().map((s) => s.id)));
+  /**
+   * Las acciones masivas actúan sobre lo que se ve, no sobre todo.
+   *
+   * Con un filtro puesto, «seleccionar todas» sobre el total entero elegiría
+   * sucursales que no están en pantalla: lo contrario de lo que se pidió.
+   * Por eso suman o restan sin pisar el resto de la selección.
+   */
+  protected elegirVisibles(): void {
+    this.elegidas.update((actuales) => {
+      const copia = new Set(actuales);
+      this.visibles().forEach((s) => copia.add(s.id));
+      return copia;
+    });
   }
 
-  protected ninguna(): void {
-    this.elegidas.set(new Set());
+  protected quitarVisibles(): void {
+    this.elegidas.update((actuales) => {
+      const copia = new Set(actuales);
+      this.visibles().forEach((s) => copia.delete(s.id));
+      return copia;
+    });
+  }
+
+  protected limpiarFiltros(): void {
+    this.busqueda.set('');
+    this.soloElegidas.set(false);
   }
 
   protected continuar(): void {
