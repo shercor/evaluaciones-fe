@@ -24,8 +24,12 @@
         @if (c.valor === null) {
           <p class="sin-dato">Sin datos</p>
         } @else {
-          <p class="numero">{{ c.valor.toFixed(1) }}<span class="de">/ {{ notaMaxima() }}</span></p>
-          <div class="medidor" aria-hidden="true"><span [style.width.%]="proporcion(c.valor)"></span></div>
+          <p class="numero">
+            {{ c.valor.toFixed(1) }}<span class="de">/ {{ notaMaxima() }}</span>
+          </p>
+          <div class="medidor" aria-hidden="true">
+            <span [style.width.%]="proporcion(c.valor)"></span>
+          </div>
         }
       </article>
     }
@@ -44,8 +48,8 @@
     <section class="bloque">
       <h2>{{ d.por_fuente.titulo }}</h2>
       <p class="explica">
-        Cómo puntúa el proceso según desde qué perspectiva se evaluó. Diferencias grandes entre
-        una fuente y otra suelen decir más que el promedio general.
+        Cómo puntúa el proceso según desde qué perspectiva se evaluó. Diferencias grandes entre una
+        fuente y otra suelen decir más que el promedio general.
       </p>
       <app-bar-chart
         [categorias]="fuentesCategorias()"
@@ -88,4 +92,106 @@
       />
     </section>
   }
+
+  <!--
+    Resultados por persona. Es la puerta al detalle de cada quien: sin esto,
+    la única forma de llegar era pasar por monitoreo, que responde otra
+    pregunta —quién respondió— y no quién sacó qué nota.
+  -->
+  <section class="bloque">
+    <div class="cabecera-bloque">
+      <span class="icono-bloque icono-bloque--realce" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        </svg>
+      </span>
+      <div>
+        <h2>Resultados por persona</h2>
+        <p>La nota de cada participante. Pulsá una fila para ver su detalle completo.</p>
+      </div>
+    </div>
+
+    <div class="fila-controles mb-4">
+      <div class="field min-w-56 flex-1">
+        <label for="buscar-persona">Buscar</label>
+        <input
+          id="buscar-persona"
+          type="search"
+          placeholder="Nombre"
+          [ngModel]="buscarPersona()"
+          (ngModelChange)="buscarPersona.set($event); paginaPersonasIr(1)"
+        />
+      </div>
+    </div>
+
+    @if (cargandoPersonas()) {
+      <app-skeleton tipo="tabla" [cantidad]="5" />
+    } @else if (personas().length === 0) {
+      <p class="vacio">Todavía no hay resultados individuales para mostrar.</p>
+    } @else {
+      <div class="tabla-scroll">
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Persona</th>
+              <th>Cargo</th>
+              <th>Sucursal</th>
+              <th class="num">Promedio</th>
+              <th class="acciones"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of personas(); track p.id) {
+              <tr>
+                <td>
+                  <b>{{ p.nombre }}</b>
+                </td>
+                <td>{{ p.cargo ?? '—' }}</td>
+                <td>{{ p.sucursal ?? '—' }}</td>
+                <td class="num">
+                  <b>{{ p.promedio_general ?? '—' }}</b>
+                </td>
+                <td class="acciones">
+                  <button type="button" class="mini" (click)="verPersona(p)">Ver detalle</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (metaPersonas(); as m) {
+        @if (m.last_page > 1) {
+          <nav class="paginacion">
+            <button
+              type="button"
+              class="btn btn-quiet"
+              [disabled]="m.current_page <= 1"
+              (click)="paginaPersonasIr(m.current_page - 1)"
+            >
+              Anterior
+            </button>
+            <span>Página {{ m.current_page }} de {{ m.last_page }}</span>
+            <button
+              type="button"
+              class="btn btn-quiet"
+              [disabled]="m.current_page >= m.last_page"
+              (click)="paginaPersonasIr(m.current_page + 1)"
+            >
+              Siguiente
+            </button>
+          </nav>
+        }
+      }
+    }
+  </section>
 }

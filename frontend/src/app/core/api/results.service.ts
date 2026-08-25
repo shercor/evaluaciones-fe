@@ -43,6 +43,19 @@ export interface PersonaMonitoreo {
  * `personaAdmin`, `misResultados` y `resultadosDeSupervisado` devuelven todos
  * `PanelResultados`.
  */
+export interface PersonaResultado {
+  id: number;
+  nombre: string;
+  cargo: string | null;
+  sucursal: string | null;
+  promedio_general: number | null;
+}
+
+export interface ListadoPersonas {
+  data: { resultado: PersonaResultado[] };
+  meta: Record<string, unknown>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ResultsService {
   private readonly http = inject(HttpClient);
@@ -54,14 +67,16 @@ export class ResultsService {
   }
 
   personaAdmin(id: number, userId: number): Observable<PanelResultados> {
-    return this.http.get<PanelResultados>(`/api/admin/evaluaciones/${id}/tablero/persona/${userId}`);
+    return this.http.get<PanelResultados>(
+      `/api/admin/evaluaciones/${id}/tablero/persona/${userId}`,
+    );
   }
 
-  personas(id: number, filtros: Record<string, unknown> = {}): Observable<{ data: unknown; meta: Record<string, unknown> }> {
-    return this.http.get<{ data: unknown; meta: Record<string, unknown> }>(
-      `/api/admin/evaluaciones/${id}/tablero/personas`,
-      { params: this.params(filtros) },
-    );
+  /** Resultados individuales de todos, para elegir a quién mirar. */
+  personas(id: number, filtros: Record<string, unknown> = {}): Observable<ListadoPersonas> {
+    return this.http.get<ListadoPersonas>(`/api/admin/evaluaciones/${id}/tablero/personas`, {
+      params: this.params(filtros),
+    });
   }
 
   monitoreo(id: number): Observable<{
@@ -90,7 +105,9 @@ export class ResultsService {
 
   misSupervisados(
     id: number,
-  ): Observable<{ data: { user_id: number; nombre: string; iniciales: string; cargo: string | null }[] }> {
+  ): Observable<{
+    data: { user_id: number; nombre: string; iniciales: string; cargo: string | null }[];
+  }> {
     return this.http.get<never>(`/api/portal/evaluaciones/${id}/supervisados`);
   }
 

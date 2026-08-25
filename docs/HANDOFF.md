@@ -301,6 +301,8 @@ queda en blanco— sin ningún error de compilación que lo delate.
 | Jefe excluido que igual encabeza equipo | Un supervisor apartado del proceso **sigue formando su grupo**, atenuado en pantalla, y viaja a la API como `activo: false`. Es lo que hace la intranet, y lo que ya hacía `ParticipationSubmission`: exigir que el jefe participara dejaba a su equipo entero como «suelto» y la pantalla proponía echar gente sana. | 2026-08-25 |
 | Cambios sin enviar, en el listado | El estado late en ámbar («sirena») con ⚠, «Abrir» queda deshabilitado con el motivo en el tooltip, y arriba hay un aviso con enlace directo a terminar la edición. La intranet usa un modal al cargar; acá es un aviso persistente, porque un modal se cierra y se olvida. | 2026-08-25 |
 | Estado deshabilitado visible | `.mini` no tenía estilo `:disabled`: un botón bloqueado se veía idéntico a uno activo y solo se descubría al pulsarlo. Ahora va con borde punteado, fondo apagado y `cursor: not-allowed`. Vale para toda la app. | 2026-08-25 |
+| Volver al paso 1 | El asistente ahora tiene ruta `definir` también bajo `:id`, así que se puede volver al primer hito desde cualquier otro. Antes no existía y caía en el comodín, que sacaba del asistente. El mismo paso sirve para crear y para corregir. | 2026-08-25 |
+| Qué se puede editar de la definición | Depende del estado: **en creación** y **nunca publicada**, todo; **en proceso**, solo título y descripción (la API recibe `PATCH` en vez de `PUT`); **preparando**, **finalizada** y **cancelada**, nada. El recorte se hace en la pantalla y **otra vez en el servidor**: que un campo esté deshabilitado no impide que llegue por la API. Es la regla de la intranet, que en `updateEvaluation` quitaba del payload año, grupo, período, plantilla y formularios. | 2026-08-25 |
 | Apariencia | Dos ejes independientes: `data-tema` (ocho paletas) y `data-theme` (claro/oscuro/sistema). Se eligen desde el botón de la barra superior y se guardan en `localStorage`. «Sistema» **quita** el atributo para que mande `prefers-color-scheme` en vivo, en vez de congelar el valor que hubiera al cargar. | 2026-08-25 |
 | Cómo se generan los temas | No a mano: `docs/temas.mjs` deriva los 14 tokens de cada tema desde un tono y un croma en OKLCH, y valida los 11 pares críticos contra WCAG AA en los dos modos. Agregar un tema es elegir un tono y volver a correr la validación. Elegir 176 colores a ojo garantiza que alguno quede fuera de contraste. | 2026-08-25 |
 | Colores de los gráficos | `chart-theme.ts` **lee las variables del tema activo**, no lleva hexadecimales fijos: con ocho paletas, un color escrito hace que el gráfico se vea ajeno en siete de las ocho. La paleta categórica de 5 series sí es fija, porque está validada para daltonismo y no debe seguir a la marca. | 2026-08-25 |
@@ -336,6 +338,28 @@ Para ver si hay algo atascado —ojo con el prefijo, no es `queues:`—:
 ```bash
 docker compose exec redis redis-cli LLEN evaluacion360_database_queues:heavy
 ```
+
+---
+
+## Código sin uso: cómo se busca
+
+Ya aparecieron cinco veces cadenas completas construidas sin pantalla que las
+llamara —«Deshacer cambios», el filtro por supervisor, `EvaluationsApi::update`,
+el listado de resultados por persona—. Vale la pena repetir el barrido cada
+tanto. Los tres cortes que lo encuentran:
+
+1. **Métodos de `app/Support/E360/Resources` que nadie invoca.** Buscar
+   `->metodo(` en todo `app/` menos su propia definición.
+2. **Endpoints implementados dos veces.** Normalizar la URL de cada método y
+   agrupar: dos métodos con la misma ruta son un duplicado esperando a que
+   alguien elija el equivocado.
+3. **Rutas del BFF que ningún servicio de Angular llama**, y métodos de
+   `core/api/*.service.ts` sin quien los llame. Ese último corte es el que
+   destapa las pantallas que faltan.
+
+Cuando aparezca uno, la pregunta no es «¿lo borro?» sino **qué hace su
+equivalente en la intranet**: la mitad de las veces es un duplicado y se quita,
+y la otra mitad es una pantalla que falta.
 
 ---
 

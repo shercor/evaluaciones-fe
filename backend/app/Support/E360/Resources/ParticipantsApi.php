@@ -35,24 +35,11 @@ class ParticipantsApi
         return $this->client->tenant('GET', "/api/participantes/{$participationId}");
     }
 
-    public function results(int $participationId): E360Response
-    {
-        return $this->client->tenant('GET', "/api/participantes/{$participationId}/resultados");
-    }
 
-    public function supervisees(int $participationId): E360Response
-    {
-        return $this->client->tenant('GET', "/api/participantes/{$participationId}/supervisados/");
-    }
 
     public function finishedEvaluations(int $userId): E360Response
     {
         return $this->client->tenant('GET', "/api/participantes/{$userId}/evaluaciones-finalizadas");
     }
 
-    /** Participantes de una evaluación, paginados. */
-    public function forEvaluation(int $evaluationId, array $query = []): E360Response
-    {
-        return $this->client->tenant('GET', "/api/evaluaciones/{$evaluationId}/participantes", $query);
-    }
 }

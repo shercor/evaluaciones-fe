@@ -94,16 +94,6 @@ class ResultsApi
         return $this->client->tenant('GET', "/api/evaluaciones/{$evaluationId}/preguntas/{$questionId}/detalles", $query);
     }
 
-    /**
-     * Preguntas abiertas de un tipo de formulario.
-     *
-     * En la intranet esto se llamaba siempre con el `5` escrito a mano, seis
-     * veces. Acá el tipo es configuración, con nombre.
-     */
-    public function openQuestions(int $evaluationId, int $formTypeId): E360Response
-    {
-        return $this->client->tenant('GET', "/api/evaluaciones/{$evaluationId}/formularios/{$formTypeId}/preguntas-abiertas");
-    }
 
     // -- Monitoreo ------------------------------------------------------
 

@@ -1,7 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BarChart, SerieBarra } from '../../../shared/charts/bar-chart';
-import { ResultsService, Tablero } from '../../../core/api/results.service';
+import { PersonaResultado, ResultsService, Tablero } from '../../../core/api/results.service';
 import { mensajeDeError } from '../../../core/http/api-error';
 import { Skeleton } from '../../../shared/skeleton/skeleton';
 
@@ -14,7 +15,7 @@ import { Skeleton } from '../../../shared/skeleton/skeleton';
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [BarChart, Skeleton],
+  imports: [BarChart, Skeleton, FormsModule],
   templateUrl: './dashboard.html',
 })
 export class Dashboard {
@@ -25,6 +26,22 @@ export class Dashboard {
   protected readonly id = Number(this.ruta.snapshot.paramMap.get('id'));
 
   protected readonly datos = signal<Tablero | null>(null);
+
+  /**
+   * Resultados por persona.
+   *
+   * El tablero resume el proceso entero; esto es la puerta a la nota de cada
+   * quien. Sin esta lista, la única forma de llegar al detalle de alguien era
+   * pasar por monitoreo, que responde otra pregunta —quién respondió— y no
+   * quién sacó qué.
+   */
+  protected readonly personas = signal<PersonaResultado[]>([]);
+  protected readonly buscarPersona = signal('');
+  protected readonly cargandoPersonas = signal(true);
+  private paginaPersonas = 1;
+  protected readonly metaPersonas = signal<{ current_page: number; last_page: number } | null>(
+    null,
+  );
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);
 
@@ -53,9 +70,7 @@ export class Dashboard {
 
   // -- Promedio por fuente: una sola serie, sin leyenda ---------------
 
-  protected readonly fuentesCategorias = computed(() =>
-    this.listaSimple().map((x) => x.titulo),
-  );
+  protected readonly fuentesCategorias = computed(() => this.listaSimple().map((x) => x.titulo));
 
   protected readonly fuentesSeries = computed<SerieBarra[]>(() => [
     { nombre: 'Promedio', valores: this.listaSimple().map((x) => x.valor) },
@@ -117,6 +132,8 @@ export class Dashboard {
   });
 
   constructor() {
+    this.cargarPersonas();
+
     this.api.tablero(this.id).subscribe({
       next: (d) => {
         this.datos.set(d);
@@ -154,5 +171,35 @@ export class Dashboard {
       titulo: String(x['titulo'] ?? ''),
       valor: typeof x['valor'] === 'number' ? x['valor'] : null,
     }));
+  }
+
+  protected cargarPersonas(): void {
+    this.cargandoPersonas.set(true);
+
+    this.api
+      .personas(this.id, { page: this.paginaPersonas, nombre: this.buscarPersona().trim() })
+      .subscribe({
+        next: (r) => {
+          this.personas.set(r.data?.resultado ?? []);
+          this.metaPersonas.set({
+            current_page: Number(r.meta?.['current_page'] ?? 1),
+            last_page: Number(r.meta?.['last_page'] ?? 1),
+          });
+          this.cargandoPersonas.set(false);
+        },
+        error: () => {
+          this.personas.set([]);
+          this.cargandoPersonas.set(false);
+        },
+      });
+  }
+
+  protected paginaPersonasIr(n: number): void {
+    this.paginaPersonas = n;
+    this.cargarPersonas();
+  }
+
+  protected verPersona(p: PersonaResultado): void {
+    this.router.navigate(['/admin/evaluaciones', this.id, 'persona', p.id]);
   }
 }

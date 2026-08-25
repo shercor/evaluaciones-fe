@@ -116,10 +116,6 @@ class EvaluationsApi
         return $this->client->tenant('GET', '/api/evaluaciones/estados');
     }
 
-    public function ongoing(): E360Response
-    {
-        return $this->client->tenant('GET', '/api/evaluaciones/en-curso');
-    }
 
     public function forms(int $id): E360Response
     {
