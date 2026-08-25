@@ -43,7 +43,7 @@
         o dejarlas fuera.
       </p>
 
-      <ul class="huerfanos">
+      <ul class="huerfanos max-h-64 overflow-y-auto pr-1">
         @for (h of d.huerfanos; track h.user_id) {
           <li>
             <span class="avatar-mini" aria-hidden="true">{{ h.iniciales }}</span>
@@ -84,33 +84,116 @@
         supervisores que también participen.
       </p>
     } @else {
-      <div class="grupos">
-        @for (g of d.grupos; track g.supervisor.user_id) {
-          <article class="grupo">
-            <header [class.opacity-50]="!g.supervisor.participa">
-              <span class="avatar-mini" aria-hidden="true">{{ g.supervisor.iniciales }}</span>
-              <span>
-                <b>{{ g.supervisor.nombre }}</b>
-                <em>
-                  {{ g.supervisor.cargo ?? 'Sin cargo' }}
-                  @if (!g.supervisor.participa) {
-                    · no participa
-                  }
-                </em>
-              </span>
-              <span class="cuenta">{{ g.integrantes.length }}</span>
-            </header>
-            <ul>
-              @for (i of g.integrantes; track i.user_id) {
-                <li>
-                  <b>{{ i.nombre }}</b>
-                  <em>{{ i.cargo ?? 'Sin cargo' }}</em>
-                </li>
-              }
-            </ul>
-          </article>
-        }
+      <!--
+        Maestro-detalle, y no todas las tarjetas a la vez.
+
+        Con 527 equipos y 7.000 personas, pintar todo dejaba una página de
+        decenas de miles de nodos por la que había que desplazarse a ciegas.
+        Acá se elige un equipo de la lista y solo se pinta ése; ninguna de las
+        dos columnas crece más allá de su marco.
+      -->
+      <div class="fila-controles mb-3">
+        <div class="field min-w-56 flex-1">
+          <label for="buscar-equipo">Buscar equipo</label>
+          <input
+            id="buscar-equipo"
+            type="search"
+            placeholder="Nombre de la jefatura"
+            [ngModel]="busquedaEquipo()"
+            (ngModelChange)="busquedaEquipo.set($event)"
+          />
+        </div>
+        <div class="field">
+          <label for="orden-equipos">Ordenar por</label>
+          <select
+            id="orden-equipos"
+            [ngModel]="ordenEquipos()"
+            (ngModelChange)="ordenEquipos.set($event)"
+          >
+            <option value="tamano">Equipos más grandes</option>
+            <option value="nombre">Nombre de la jefatura</option>
+          </select>
+        </div>
+        <span class="self-center text-xs text-ink-3">
+          {{ equiposVisibles().length }} de {{ d.grupos.length }} equipos
+        </span>
       </div>
+
+      @if (equiposVisibles().length === 0) {
+        <p class="vacio">
+          Ninguna jefatura coincide.
+          <button type="button" class="mini" (click)="busquedaEquipo.set('')">Limpiar</button>
+        </p>
+      } @else {
+        <div class="tablero-equipos">
+          <!-- Columna maestra: las jefaturas -->
+          <ul class="lista-equipos" role="tablist" aria-label="Equipos">
+            @for (g of equiposVisibles(); track g.supervisor.user_id) {
+              <li>
+                <button
+                  type="button"
+                  role="tab"
+                  class="fila-equipo"
+                  [class.elegido]="equipoElegido()?.supervisor?.user_id === g.supervisor.user_id"
+                  [attr.aria-selected]="
+                    equipoElegido()?.supervisor?.user_id === g.supervisor.user_id
+                  "
+                  (click)="elegirEquipo(g)"
+                >
+                  <span class="avatar-mini avatar-tenue !size-7" aria-hidden="true">
+                    {{ g.supervisor.iniciales }}
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <b class="block truncate text-[0.82rem]">{{ g.supervisor.nombre }}</b>
+                    @if (!g.supervisor.participa) {
+                      <em class="text-[0.68rem] not-italic text-warn">no participa</em>
+                    }
+                  </span>
+                  <span class="cuenta">{{ g.integrantes.length }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+
+          <!-- Columna de detalle: el equipo elegido -->
+          @if (equipoElegido(); as g) {
+            <div class="detalle-equipo">
+              <header [class.opacity-60]="!g.supervisor.participa">
+                <span class="avatar-mini" aria-hidden="true">{{ g.supervisor.iniciales }}</span>
+                <span class="min-w-0">
+                  <b class="block truncate">{{ g.supervisor.nombre }}</b>
+                  <em class="not-italic text-xs text-ink-3">
+                    {{ g.supervisor.cargo ?? 'Sin cargo' }}
+                    @if (!g.supervisor.participa) {
+                      · no participa, pero encabeza el equipo
+                    }
+                  </em>
+                </span>
+                <span class="ml-auto shrink-0 text-xs text-ink-3">
+                  {{ g.integrantes.length }}
+                  {{ g.integrantes.length === 1 ? 'integrante' : 'integrantes' }}
+                </span>
+              </header>
+
+              <ul>
+                @for (i of g.integrantes; track i.user_id) {
+                  <li>
+                    <span class="avatar-mini avatar-tenue !size-7" aria-hidden="true">
+                      {{ i.iniciales }}
+                    </span>
+                    <span class="min-w-0">
+                      <b class="block truncate text-sm">{{ i.nombre }}</b>
+                      <em class="not-italic text-xs text-ink-3">
+                        {{ i.cargo ?? 'Sin cargo' }} · {{ i.sucursal ?? 'Sin sucursal' }}
+                      </em>
+                    </span>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        </div>
+      }
     }
   </section>
 

@@ -159,9 +159,18 @@
         >
           Anterior
         </button>
+        <!--
+          Tres hechos distintos, y hay que decirlos por separado: cuántas
+          coincidencias trajo el filtro, y cuántas personas participan sobre
+          el padrón entero. Mezclarlos daba frases como «22 de 1 participan».
+        -->
         <span>
-          Página {{ m.current_page }} de {{ m.last_page }} · <b>{{ m.participando }}</b> de
-          {{ m.total }} participan
+          Página {{ m.current_page }} de {{ m.last_page }}
+          @if (m.total !== m.total_padron) {
+            · <b>{{ m.total }}</b>
+            {{ m.total === 1 ? 'coincidencia' : 'coincidencias' }}
+          }
+          · <b>{{ m.participando }}</b> de {{ m.total_padron }} participan
         </span>
         <button
           type="button"

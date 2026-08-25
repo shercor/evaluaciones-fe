@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Previsualizacion, WizardService } from '../../../../../core/api/wizard.service';
 import { mensajeDeError } from '../../../../../core/http/api-error';
@@ -16,6 +17,7 @@ import { mensajeDeError } from '../../../../../core/http/api-error';
  */
 @Component({
   selector: 'app-step-previsualizacion',
+  imports: [FormsModule],
   templateUrl: './step-previsualizacion.html',
 })
 export class StepPrevisualizacion {
@@ -62,6 +64,45 @@ export class StepPrevisualizacion {
    * Corrigiendo un proceso ya creado, además hace falta que haya cambios: sin
    * ellos se reenviaría un padrón idéntico al que la API ya tiene.
    */
+  /**
+   * Estado del tablero de equipos.
+   *
+   * `equipoElegido` no guarda el equipo sino su jefatura: la lista se
+   * reordena y se filtra, y un índice apuntaría a otro equipo en cuanto eso
+   * pasa.
+   */
+  protected readonly busquedaEquipo = signal('');
+  protected readonly ordenEquipos = signal<'tamano' | 'nombre'>('tamano');
+  private readonly jefeElegido = signal<number | null>(null);
+
+  protected readonly equiposVisibles = computed(() => {
+    const texto = this.busquedaEquipo().trim().toLocaleLowerCase('es');
+    const orden = this.ordenEquipos();
+
+    const lista = (this.datos()?.grupos ?? []).filter(
+      (g) => !texto || g.supervisor.nombre.toLocaleLowerCase('es').includes(texto),
+    );
+
+    return [...lista].sort((a, b) =>
+      orden === 'nombre'
+        ? a.supervisor.nombre.localeCompare(b.supervisor.nombre, 'es')
+        : b.integrantes.length - a.integrantes.length ||
+          a.supervisor.nombre.localeCompare(b.supervisor.nombre, 'es'),
+    );
+  });
+
+  /** El elegido, o el primero visible si el anterior quedó fuera del filtro. */
+  protected readonly equipoElegido = computed(() => {
+    const visibles = this.equiposVisibles();
+    const jefe = this.jefeElegido();
+
+    return visibles.find((g) => g.supervisor.user_id === jefe) ?? visibles[0] ?? null;
+  });
+
+  protected elegirEquipo(g: { supervisor: { user_id: number } }): void {
+    this.jefeElegido.set(g.supervisor.user_id);
+  }
+
   protected readonly motivoBloqueo = computed<string | null>(() => {
     const d = this.datos();
 

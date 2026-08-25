@@ -49,7 +49,15 @@ export interface CambioParticipacion {
 
 export interface ListadoParticipantes {
   data: Participante[];
-  meta: { current_page: number; last_page: number; total: number; participando: number };
+  meta: {
+    current_page: number;
+    last_page: number;
+    /** Cuántas filas devolvió el filtro. */
+    total: number;
+    /** Cuántas personas hay en el padrón, sin filtrar. */
+    total_padron: number;
+    participando: number;
+  };
   cambios_pendientes: number;
   /** Quiénes figuran como supervisor en este padrón, para filtrar. */
   supervisores: { id: number; nombre: string }[];

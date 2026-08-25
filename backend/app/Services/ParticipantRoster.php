@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\DB;
  */
 class ParticipantRoster
 {
+    /** Cuántas filas por `INSERT`. Más alto revienta el paquete de MySQL. */
+    private const LOTE = 500;
+
     /**
      * Copia al padrón las personas de las sucursales elegidas.
      *
@@ -71,8 +74,11 @@ class ParticipantRoster
             $evaluation, $elegibles, $idsElegiblesIndex, &$creados, &$actualizados
         ) {
             $existentes = EvaluationUser::where('evaluation_id', $evaluation->id)
-                ->get()
-                ->keyBy('user_id');
+                ->pluck('user_id')
+                ->flip();
+
+            $ahora = now();
+            $filas = [];
 
             foreach ($elegibles as $persona) {
                 $supervisorId = $persona->supervisor_id;
@@ -81,25 +87,30 @@ class ParticipantRoster
                     $supervisorId = null;
                 }
 
-                $datos = [
+                $filas[] = [
+                    'evaluation_id' => $evaluation->id,
+                    'user_id' => $persona->id,
                     'participate' => true,
                     'branch_office_id' => $persona->branch_office_id,
                     'job_position_id' => $persona->job_position_id,
                     'supervisor_id' => $supervisorId,
+                    'created_at' => $ahora,
+                    'updated_at' => $ahora,
                 ];
 
-                $fila = $existentes->get($persona->id);
+                $existentes->has($persona->id) ? $actualizados++ : $creados++;
+            }
 
-                if ($fila) {
-                    $fila->update($datos);
-                    $actualizados++;
-                } else {
-                    EvaluationUser::create($datos + [
-                        'evaluation_id' => $evaluation->id,
-                        'user_id' => $persona->id,
-                    ]);
-                    $creados++;
-                }
+            // Por lotes y no fila por fila. Con un padrón de 7.000 personas,
+            // una consulta por cabeza son 7.000 viajes a la base: acá se
+            // midió en 3 segundos con la base en la misma máquina, y con la
+            // base en otro servidor cada viaje suma latencia de red.
+            foreach (array_chunk($filas, self::LOTE) as $lote) {
+                EvaluationUser::upsert(
+                    $lote,
+                    ['evaluation_id', 'user_id'],
+                    ['participate', 'branch_office_id', 'job_position_id', 'supervisor_id', 'updated_at'],
+                );
             }
 
             // Quien ya no corresponde queda excluido, no borrado.

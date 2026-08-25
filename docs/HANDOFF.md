@@ -24,6 +24,25 @@ negocio. Conviene tenerla abierta al construir cada hito.
 
 ---
 
+## Dónde quedó (25 de agosto de 2026)
+
+Los ocho hitos están cerrados. Lo que vino después fue **auditar contra la
+intranet y endurecer**, no agregar funcionalidad:
+
+- Se repasaron paso a paso el asistente de creación, la depuración de
+  participantes y la revisión final contra el módulo de la intranet. Salieron
+  una docena de diferencias de comportamiento —el período corrido en uno, el
+  padrón editable con el proceso terminado, «Deshacer cambios» sin botón que
+  lo llamara— y están todas corregidas y anotadas en *Decisiones tomadas*.
+- Se pasó el sistema a **ocho temas elegibles** con modo claro/oscuro
+  (`docs/TEMAS.md`).
+- Se sembró una **empresa de 7.245 personas** para medir bajo carga. El
+  resultado está más abajo, en *Qué aguanta y qué no*.
+
+Lo que sigue sin hacerse está en *Deuda y pendientes conocidos*.
+
+---
+
 ## Avance
 
 | # | Hito | Estado |
@@ -320,6 +339,32 @@ docker compose exec redis redis-cli LLEN evaluacion360_database_queues:heavy
 
 ---
 
+## Qué aguanta y qué no
+
+Medido sobre 7.245 personas en 124 sucursales, con la base en la misma
+máquina. Los números son de la aplicación, no estimaciones:
+
+| Operación | Tiempo |
+|---|---|
+| Sembrar 7.245 personas | 0,9 s |
+| Armar el padrón (7.092) | 0,41 s · 18 consultas |
+| Listar participantes paginado | 31 ms |
+| Cascada de supervisados del gerente general (7.070) | 879 ms |
+| Consulta recursiva de toda la cadena | 19 ms |
+| Previsualización de 527 equipos | 1,0 s · 3.792 nodos |
+| Payload del envío a E360 | 0,92 MB |
+
+Dos cosas que hubo que cambiar para llegar a esos números, y que conviene no
+deshacer sin querer:
+
+- **El padrón se arma por lotes.** Antes era una consulta por persona: 7.095
+  viajes a la base. Con la base en otro servidor, cada viaje suma latencia.
+- **La previsualización es maestro-detalle.** Antes pintaba todos los equipos
+  con toda su gente: 25.611 nodos y una página que crecía sin fin. Ahora se
+  elige un equipo y solo se pinta ése.
+
+---
+
 ## Deuda y pendientes conocidos
 
 - **Laravel 13 vs 12** — decisión abierta.
@@ -353,8 +398,51 @@ paralelo, no una modificación.
 ```bash
 cd ~/Escritorio/proyectos/evaluacion-persona-frontend
 docker compose up -d
+docker compose exec php php artisan migrate --seed   # solo la primera vez
 ```
 
 Frontend en <http://localhost:4200>, API en <http://localhost:8081>.
 Las cuentas de prueba y su organigrama están en el `README.md` de la raíz —
 todas con la contraseña `password`.
+
+### Lo que hace falta además del repositorio
+
+Nada de esto viaja en git y sin ello la aplicación arranca pero no sirve:
+
+1. **La API de Evaluación 360 levantada**, en el proyecto vecino
+   `ideauno-evaluacion360-backend-laravel`. El BFF le consulta en cada
+   petición del asistente.
+2. **Un worker de colas de E360**, o los procesos se quedan en «preparando»
+   para siempre. Ojo con la cola: es `heavy`, no `default` — está explicado
+   más arriba en *Trampa del entorno*.
+3. **El archivo `.env` del BFF**, con el token del tenant. Sin él el asistente
+   responde 502 en todo.
+
+### Estado de los datos de prueba
+
+| Evaluación | Estado | Padrón |
+|---|---|---|
+| 1 | en creación | vacía |
+| 2 | finalizada | 7 de 10 participan, resultados publicados |
+| 3 | en creación | 10 personas, las 3 sucursales originales |
+| 4 | nunca publicada | 7092 personas (siembra de carga) |
+
+El directorio tiene **7256 personas**: las 11 del proyecto más 7245 de
+`LargeCompanySeeder`. Para volver al tamaño chico:
+
+```sql
+DELETE FROM users WHERE email LIKE '%@corp.test';
+DELETE FROM branch_offices WHERE external_code LIKE 'X-%';
+```
+
+### Herramientas que conviene conocer
+
+| Comando | Para qué |
+|---|---|
+| `node docs/recorrido.mjs` | Pulsa cada control de cada pantalla y reporta los que no hacen nada. Necesita `npm i puppeteer`. |
+| `node docs/temas.mjs validar` | Comprueba el contraste de los 8 temas. Ver `docs/TEMAS.md`. |
+| `php artisan db:seed --class=LargeCompanySeeder` | Siembra la empresa de 7.245 personas. |
+
+**Cuidado con `recorrido.mjs`**: no está pensado para pantallas con cientos de
+controles. Sobre una previsualización de 527 equipos re-navega 527 veces y no
+termina. Usalo contra las evaluaciones chicas.

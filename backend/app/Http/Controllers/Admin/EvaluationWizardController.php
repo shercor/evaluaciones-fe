@@ -273,7 +273,11 @@ class EvaluationWizardController extends Controller
             'meta' => [
                 'current_page' => $pagina->currentPage(),
                 'last_page' => $pagina->lastPage(),
+                // Ojo: `total` es lo que devuelve el **filtro**, no el padrón.
+                // Sin `total_padron` la pantalla mezclaba los dos números y
+                // decía cosas como «22 de 1 participan».
                 'total' => $pagina->total(),
+                'total_padron' => EvaluationUser::where('evaluation_id', $evaluation->id)->count(),
                 'participando' => $this->submission->countParticipating($evaluation),
             ],
             'cambios_pendientes' => $this->changes->count($evaluation),

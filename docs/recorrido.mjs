@@ -110,12 +110,20 @@ for (const [correo, rutas] of Object.entries(PANTALLAS)) {
             e.classList.contains('activa') ||
             e.classList.contains('activo') ||
             e.classList.contains('elegida') ||
+            e.classList.contains('elegido') ||
+            e.getAttribute('aria-selected') === 'true' ||
+            e.getAttribute('aria-pressed') === 'true' ||
             e.getAttribute('aria-current') === 'step' ||
             e.getAttribute('aria-current') === 'page' ||
             (e.tagName === 'A' && new URL(e.href, location.origin).pathname === location.pathname);
           return { t, saltar: !t || re.test(t) || inerte || yaActivo };
         })
-        .map((c, i) => ({ ...c, i }));
+        .map((c, i, arr) => {
+          // Puede haber varios «Editar» o dos jefaturas homónimas: se guarda
+          // cuál de ellos es, para pulsar exactamente ese.
+          const vistos = arr.slice(0, i).filter((o) => o.t === c.t).length;
+          return { ...c, i, orden: vistos };
+        });
     }, NO_TOCAR.source);
 
     const activos = controles.filter((c) => !c.saltar);
@@ -133,18 +141,36 @@ for (const [correo, rutas] of Object.entries(PANTALLAS)) {
       const antes = await p.evaluate(() => ({
         url: location.pathname + location.search,
         texto: document.body.innerText.length,
-        firma: document.body.innerText.slice(0, 4000),
+        // Huella de **todo** el texto. Con un prefijo de 4.000 caracteres,
+        // en una página larga el resumen del pie quedaba fuera y un botón
+        // que sí funcionaba se reportaba como muerto.
+        firma: (() => {
+          const t = document.body.innerText;
+          let h = 0;
+          for (let i = 0; i < t.length; i++) {
+            h = (h * 31 + t.charCodeAt(i)) | 0;
+          }
+          return `${t.length}:${h}`;
+        })(),
         modales: document.querySelectorAll('.modal-fondo').length,
         scroll: [...document.querySelectorAll('*')]
           .reduce((n, e) => n + e.scrollTop, window.scrollY),
       }));
 
-      const seClickeo = await p.evaluate((i) => {
-        const e = [...document.querySelectorAll('button:not([disabled]), a[href], .mini, [role=button]')][i];
+      // Se busca por **etiqueta**, no por posición. Una pantalla que se
+      // dibuja por partes —primero el marco, después una lista larga— corre
+      // los índices entre que se toma la lista y se pulsa, y entonces se
+      // pulsa un control y se reporta el nombre de otro.
+      const seClickeo = await p.evaluate(({ etiqueta, orden }) => {
+        const iguales = [...document.querySelectorAll('button:not([disabled]), a[href], .mini, [role=button]')]
+          .filter((e) => (e.innerText || e.getAttribute('aria-label') || '')
+            .trim().replace(/\s+/g, ' ') === etiqueta);
+
+        const e = iguales[orden];
         if (!e) return false;
         e.click();
         return true;
-      }, ctrl.i);
+      }, { etiqueta: ctrl.t, orden: ctrl.orden });
 
       await new Promise((r) => setTimeout(r, 1800));
       p.off('request', contar);
@@ -154,7 +180,17 @@ for (const [correo, rutas] of Object.entries(PANTALLAS)) {
       const despues = await p.evaluate(() => ({
         url: location.pathname + location.search,
         texto: document.body.innerText.length,
-        firma: document.body.innerText.slice(0, 4000),
+        // Huella de **todo** el texto. Con un prefijo de 4.000 caracteres,
+        // en una página larga el resumen del pie quedaba fuera y un botón
+        // que sí funcionaba se reportaba como muerto.
+        firma: (() => {
+          const t = document.body.innerText;
+          let h = 0;
+          for (let i = 0; i < t.length; i++) {
+            h = (h * 31 + t.charCodeAt(i)) | 0;
+          }
+          return `${t.length}:${h}`;
+        })(),
         modales: document.querySelectorAll('.modal-fondo').length,
         scroll: [...document.querySelectorAll('*')]
           .reduce((n, e) => n + e.scrollTop, window.scrollY),

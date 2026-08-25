@@ -3,7 +3,11 @@ import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { debounceTime } from 'rxjs';
 import { DirectoryService, ElementoCatalogo } from '../../../../../core/api/directory.service';
-import { Participante, WizardService } from '../../../../../core/api/wizard.service';
+import {
+  ListadoParticipantes,
+  Participante,
+  WizardService,
+} from '../../../../../core/api/wizard.service';
 import { mensajeDeError } from '../../../../../core/http/api-error';
 
 /**
@@ -28,12 +32,8 @@ export class StepParticipantes {
   private readonly id = Number(this.ruta.snapshot.paramMap.get('id'));
 
   protected readonly participantes = signal<Participante[]>([]);
-  protected readonly meta = signal<{
-    current_page: number;
-    last_page: number;
-    total: number;
-    participando: number;
-  } | null>(null);
+  /** El mismo tipo que devuelve el servicio; no conviene repetirlo a mano. */
+  protected readonly meta = signal<ListadoParticipantes['meta'] | null>(null);
   protected readonly cambiosPendientes = signal(0);
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);

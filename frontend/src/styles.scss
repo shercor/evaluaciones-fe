@@ -912,15 +912,62 @@
   .formularios { @apply flex list-none flex-wrap gap-2 p-0; }
 
   .sucursales { @apply mb-4 grid list-none gap-3 p-0; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+
+  /*
+    El `<li>` se estira solo, pero la tarjeta de adentro no lo hacía: con un
+    nombre de dos líneas, esa fila quedaba con una tarjeta alta y el resto
+    flotando arriba. `h-full` en la tarjeta las empareja.
+  */
+  .sucursales > li { @apply flex; }
   .sucursal {
-    @apply flex cursor-pointer items-center gap-3 rounded-md border border-rule
-           bg-surface p-4 transition-colors duration-150 hover:border-accent;
+    @apply flex h-full w-full cursor-pointer items-center gap-3 rounded-md
+           border border-rule bg-surface p-4 transition-colors duration-150
+           hover:border-accent;
   }
   .sucursal.elegida { @apply border-accent bg-accent-soft; }
   .sucursal input { accent-color: var(--color-accent); }
   .sucursal .datos { @apply flex flex-col leading-snug; }
   .sucursal em { @apply text-xs not-italic text-ink-3; }
   .resumen-seleccion { @apply mt-4 border-t border-rule pt-4 text-[0.92rem] text-ink-2; }
+
+  /*
+    Tablero de equipos: jefaturas a la izquierda, integrantes a la derecha.
+
+    Alto fijo y cada columna con su propio desplazamiento. Que los listados
+    crecieran hacia abajo sin tope fue un error: con 527 equipos la página
+    medía decenas de miles de nodos y no había forma de orientarse.
+  */
+  .tablero-equipos {
+    @apply grid overflow-hidden rounded-card border border-rule;
+    grid-template-columns: minmax(13rem, 20rem) 1fr;
+    height: 26rem;
+  }
+
+  .lista-equipos {
+    @apply m-0 list-none overflow-y-auto border-r border-rule bg-surface-2 p-0;
+  }
+  .fila-equipo {
+    @apply flex w-full cursor-pointer items-center gap-2.5 border-0 border-b
+           border-rule bg-transparent px-3 py-2.5 text-left transition-colors
+           duration-150 hover:bg-surface;
+  }
+  .fila-equipo.elegido {
+    @apply bg-surface font-semibold;
+    box-shadow: inset 3px 0 0 var(--color-accent);
+  }
+  .fila-equipo .cuenta {
+    @apply shrink-0 rounded-full bg-surface px-2 py-0.5 text-[0.7rem] font-bold text-ink-2;
+  }
+  .fila-equipo.elegido .cuenta { @apply bg-accent-soft text-accent; }
+
+  .detalle-equipo { @apply flex min-w-0 flex-col overflow-hidden bg-surface; }
+  .detalle-equipo > header {
+    @apply flex shrink-0 items-center gap-3 border-b border-rule px-4 py-3;
+  }
+  .detalle-equipo > ul { @apply m-0 flex-1 list-none overflow-y-auto p-0; }
+  .detalle-equipo > ul > li {
+    @apply flex items-center gap-3 border-b border-rule px-4 py-2.5 last:border-b-0;
+  }
 
   .grupos { @apply grid gap-4; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
   .grupo { @apply overflow-hidden rounded-card border border-rule bg-surface shadow-suave; }
