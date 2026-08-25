@@ -201,6 +201,102 @@ class EvaluationWizardController extends Controller
         ]);
     }
 
+    /**
+     * La definición de un proceso ya creado, para volver al paso 1.
+     *
+     * Devuelve además qué se puede tocar: con la evaluación andando, cambiar
+     * el grupo o la plantilla dejaría las respuestas colgando de una
+     * configuración que ya no existe.
+     */
+    public function definition(int $id): JsonResponse
+    {
+        $evaluation = $this->localFor($id);
+        $respuesta = $this->api->show($evaluation->e360_id);
+
+        if ($respuesta->failed()) {
+            return $this->errorDeApi($respuesta);
+        }
+
+        $remota = $respuesta->get('evaluacion');
+        $formularios = $this->api->forms($evaluation->e360_id);
+
+        return response()->json([
+            'titulo' => $remota->titulo ?? '',
+            'descripcion' => $remota->descripcion ?? '',
+            'year' => (int) ($remota->year ?? date('Y')),
+            'periodo' => (int) ($remota->periodo ?? 1),
+            'group_id' => (int) ($remota->group_id ?? ($remota->grupo->id ?? 0)),
+            'template_id' => (int) ($remota->template_id ?? ($remota->template->id ?? 0)),
+            'formularios' => $formularios->ok
+                ? array_map(static fn ($f) => (int) ($f->id_tipo_formulario ?? $f->id),
+                    $formularios->collect('formularios'))
+                : [],
+            'estado' => $evaluation->status?->label(),
+            'editable' => (bool) $evaluation->status?->allowsDefinitionEditing(),
+            // Cuando es true, solo viajan título y descripción.
+            'solo_textos' => (bool) $evaluation->status?->allowsOnlyTextEditing(),
+        ]);
+    }
+
+    /**
+     * Guarda los cambios del paso 1 sobre un proceso que ya existe.
+     */
+    public function updateDefinition(Request $request, int $id): JsonResponse
+    {
+        $evaluation = $this->localFor($id);
+
+        if (! $evaluation->status?->allowsDefinitionEditing()) {
+            throw ValidationException::withMessages([
+                'estado' => sprintf(
+                    'No se puede modificar la definición de una evaluación %s.',
+                    $evaluation->status?->label() ?? 'en este estado',
+                ),
+            ]);
+        }
+
+        $soloTextos = $evaluation->status->allowsOnlyTextEditing();
+
+        $reglas = [
+            'titulo' => ['required', 'string', 'max:255'],
+            'descripcion' => ['required', 'string', 'max:255'],
+        ];
+
+        if (! $soloTextos) {
+            $reglas += [
+                'year' => ['required', 'integer', Rule::in([(int) date('Y'), (int) date('Y') - 1])],
+                'periodo' => ['required', 'integer', 'min:1', 'max:12'],
+                'group_id' => ['required', 'integer'],
+                'template_id' => ['required', 'integer'],
+                'formularios' => ['required', 'array', 'min:1'],
+                'formularios.*' => ['integer'],
+            ];
+        }
+
+        $datos = $request->validate($reglas);
+
+        // El recorte también se hace del lado del servidor: que la pantalla
+        // deshabilite un campo no impide que llegue por la API.
+        $respuesta = $this->api->update($evaluation->e360_id, $datos, $soloTextos);
+
+        if ($respuesta->failed()) {
+            return $this->errorDeApi($respuesta);
+        }
+
+        return response()->json([
+            'message' => $soloTextos
+                ? 'Se actualizaron el título y la descripción.'
+                : 'Definición del proceso actualizada.',
+        ]);
+    }
+
+    private function errorDeApi(\App\Support\E360\E360Response $respuesta): JsonResponse
+    {
+        return response()->json(
+            ['message' => $respuesta->message ?? 'No se pudo consultar la evaluación.'],
+            $respuesta->errorKind === 'connection' ? 503 : 502,
+        );
+    }
+
     // -- Paso 4 · Depurar participantes -------------------------------
 
     public function participants(Request $request, int $id): JsonResponse

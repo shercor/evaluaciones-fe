@@ -94,6 +94,16 @@ export const routes: Routes = [
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'sucursales' },
           {
+            // El paso 1 sobre un proceso que ya existe. Sin esta ruta, volver
+            // al primer hito desde cualquier otro caía en el comodín y te
+            // sacaba del asistente.
+            path: 'definir',
+            loadComponent: () =>
+              import('./features/admin/evaluations/wizard/step-definir/step-definir').then(
+                (m) => m.StepDefinir,
+              ),
+          },
+          {
             path: 'sucursales',
             loadComponent: () =>
               import('./features/admin/evaluations/wizard/step-sucursales/step-sucursales').then(
@@ -103,16 +113,16 @@ export const routes: Routes = [
           {
             path: 'participantes',
             loadComponent: () =>
-              import(
-                './features/admin/evaluations/wizard/step-participantes/step-participantes'
-              ).then((m) => m.StepParticipantes),
+              import('./features/admin/evaluations/wizard/step-participantes/step-participantes').then(
+                (m) => m.StepParticipantes,
+              ),
           },
           {
             path: 'previsualizacion',
             loadComponent: () =>
-              import(
-                './features/admin/evaluations/wizard/step-previsualizacion/step-previsualizacion'
-              ).then((m) => m.StepPrevisualizacion),
+              import('./features/admin/evaluations/wizard/step-previsualizacion/step-previsualizacion').then(
+                (m) => m.StepPrevisualizacion,
+              ),
           },
         ],
       },
@@ -183,13 +193,11 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        loadComponent: () =>
-          import('./features/portal/home/portal-home').then((m) => m.PortalHome),
+        loadComponent: () => import('./features/portal/home/portal-home').then((m) => m.PortalHome),
       },
       {
         path: 'evaluacion/:id',
-        loadComponent: () =>
-          import('./features/portal/tareas/tareas').then((m) => m.PortalTareas),
+        loadComponent: () => import('./features/portal/tareas/tareas').then((m) => m.PortalTareas),
       },
       {
         path: 'evaluacion/:id/resultados',

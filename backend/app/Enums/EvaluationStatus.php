@@ -41,6 +41,33 @@ enum EvaluationStatus: string
         };
     }
 
+    /**
+     * ¿Se puede tocar la definición del proceso —título, grupo, plantilla?
+     *
+     * Terminado o cancelado, no: el proceso ya rindió sus resultados.
+     * «Preparando» tampoco, porque la API está generando tareas justo sobre
+     * esa definición.
+     */
+    public function allowsDefinitionEditing(): bool
+    {
+        return match ($this) {
+            self::CREATING, self::NEVER_PUBLISHED, self::IN_PROCESS => true,
+            self::PREPARING, self::FINISHED, self::CANCELED => false,
+        };
+    }
+
+    /**
+     * Con el proceso andando solo se admiten título y descripción.
+     *
+     * Cambiar el grupo, el año o la plantilla con la gente respondiendo
+     * dejaría las respuestas colgando de una configuración que ya no existe.
+     * Es la misma regla de la intranet, que mandaba PATCH en vez de PUT.
+     */
+    public function allowsOnlyTextEditing(): bool
+    {
+        return $this === self::IN_PROCESS;
+    }
+
     public function label(): string
     {
         return match ($this) {

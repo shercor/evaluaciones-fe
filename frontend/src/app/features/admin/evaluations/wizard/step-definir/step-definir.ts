@@ -12,9 +12,10 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { Subject, switchMap } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Injector } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormularioPrevisualizado, GroupsService } from '../../../../../core/api/groups.service';
 import {
+  DefinicionProceso,
   OpcionesAsistente,
   Plantilla,
   WizardService,
@@ -40,6 +41,21 @@ export class StepDefinir {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly inyector = inject(Injector);
+  private readonly ruta = inject(ActivatedRoute);
+
+  /**
+   * El mismo paso sirve para crear y para corregir.
+   *
+   * Con id en la ruta se está editando un proceso que ya existe: los campos
+   * se rellenan con lo que hay y, según el estado, algunos se bloquean. Sin
+   * id, es un alta.
+   */
+  protected readonly id = Number(this.ruta.snapshot.paramMap.get('id')) || null;
+  protected readonly editando = this.id !== null;
+  protected readonly definicion = signal<DefinicionProceso | null>(null);
+
+  /** Con el proceso andando solo se admiten título y descripción. */
+  protected readonly soloTextos = computed(() => this.definicion()?.solo_textos ?? false);
 
   protected readonly opciones = signal<OpcionesAsistente | null>(null);
   protected readonly cargando = signal(true);
@@ -150,6 +166,10 @@ export class StepDefinir {
 
   constructor() {
     this.escucharPeriodo();
+
+    if (this.editando) {
+      this.cargarDefinicion();
+    }
 
     this.api.opciones().subscribe({
       next: (o) => {
@@ -290,8 +310,17 @@ export class StepDefinir {
       return;
     }
 
-    if (this.formulariosElegidos().size === 0) {
+    if (!this.soloTextos() && this.formulariosElegidos().size === 0) {
       this.error.set('Elegí al menos un formulario para la evaluación.');
+      return;
+    }
+
+    if (this.editando) {
+      if (this.definicion()?.editable === false) {
+        return;
+      }
+
+      this.actualizar();
       return;
     }
 
@@ -318,6 +347,67 @@ export class StepDefinir {
       });
   }
 
+  private cargarDefinicion(): void {
+    this.api.definicion(this.id!).subscribe({
+      next: (d) => {
+        this.definicion.set(d);
+
+        this.formulario.patchValue({
+          titulo: d.titulo,
+          descripcion: d.descripcion,
+          year: d.year,
+          periodo: d.periodo,
+          group_id: d.group_id,
+          template_id: d.template_id,
+        });
+
+        this.formulariosElegidos.set(new Set(d.formularios));
+
+        // El período viene dado por el proceso: no se vuelve a consultar.
+        this.periodoForzado.set(true);
+
+        if (!d.editable) {
+          this.formulario.disable();
+        } else if (d.solo_textos) {
+          // Con el proceso andando, cambiar el grupo, el año o la plantilla
+          // dejaría las respuestas colgando de una configuración que ya no
+          // existe. Es la misma regla de la intranet.
+          this.formulario.controls.year.disable();
+          this.formulario.controls.periodo.disable();
+          this.formulario.controls.group_id.disable();
+          this.formulario.controls.template_id.disable();
+        }
+      },
+      error: (e) => this.error.set(mensajeDeError(e, 'No se pudo cargar la definición.')),
+    });
+  }
+
+  private actualizar(): void {
+    this.guardando.set(true);
+    this.error.set(null);
+
+    const v = this.formulario.getRawValue();
+
+    // Con el proceso andando solo viajan los textos. El servidor lo vuelve a
+    // recortar: que un campo esté deshabilitado no impide que llegue.
+    const datos = this.soloTextos()
+      ? { titulo: v.titulo, descripcion: v.descripcion }
+      : { ...v, periodo: v.periodo!, formularios: [...this.formulariosElegidos()] };
+
+    this.api.guardarDefinicion(this.id!, datos).subscribe({
+      next: (r) => {
+        this.guardando.set(false);
+        this.router.navigate(['/admin/evaluaciones/asistente', this.id, 'sucursales'], {
+          state: { mensaje: r.message },
+        });
+      },
+      error: (e) => {
+        this.guardando.set(false);
+        this.error.set(mensajeDeError(e, 'No se pudieron guardar los cambios.'));
+      },
+    });
+  }
+
   /**
    * Consulta el período que le toca a este año y grupo.
    *
@@ -326,6 +416,12 @@ export class StepDefinir {
    * cancela la anterior para que no gane una respuesta vieja.
    */
   private consultarPeriodo(): void {
+    // Editando, el período ya está fijado por el proceso; volver a pedirlo
+    // lo pisaría con el «siguiente disponible», que no es el suyo.
+    if (this.editando) {
+      return;
+    }
+
     const { year, group_id } = this.formulario.getRawValue();
 
     if (!year || !group_id) {

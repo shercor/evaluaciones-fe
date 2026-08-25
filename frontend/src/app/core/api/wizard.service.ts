@@ -97,6 +97,21 @@ export interface Previsualizacion {
  * Cada paso persiste apenas se completa: se puede abandonar y retomar sin
  * perder lo hecho.
  */
+export interface DefinicionProceso {
+  titulo: string;
+  descripcion: string;
+  year: number;
+  periodo: number;
+  group_id: number;
+  template_id: number;
+  formularios: number[];
+  estado: string | null;
+  /** false cuando el estado ya no admite tocar la definición. */
+  editable: boolean;
+  /** true cuando solo se admiten título y descripción. */
+  solo_textos: boolean;
+}
+
 export interface PeriodoSugerido {
   /** `null` cuando el grupo nunca tuvo evaluaciones. */
   periodo: number | null;
@@ -126,6 +141,15 @@ export class WizardService {
     const params = new HttpParams().set('year', String(year)).set('group_id', String(groupId));
 
     return this.http.get<PeriodoSugerido>(`${this.base}/periodo`, { params });
+  }
+
+  /** La definición de un proceso ya creado, y qué se puede tocar de ella. */
+  definicion(id: number): Observable<DefinicionProceso> {
+    return this.http.get<DefinicionProceso>(`${this.base}/${id}/definicion`);
+  }
+
+  guardarDefinicion(id: number, datos: Record<string, unknown>): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.base}/${id}/definicion`, datos);
   }
 
   crear(datos: {

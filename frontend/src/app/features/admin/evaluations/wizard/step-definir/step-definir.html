@@ -5,6 +5,21 @@
     <p class="alert alert-error" role="alert">{{ error() }}</p>
   }
 
+  @if (definicion(); as d) {
+    @if (!d.editable) {
+      <p class="alert alert-error" role="alert">
+        Este proceso ya no admite cambios en su definición (estado:
+        {{ d.estado?.toLowerCase() }}).
+      </p>
+    } @else if (d.solo_textos) {
+      <p class="alert alert-ok" role="status">
+        El proceso está en marcha, así que solo se pueden corregir el <b>título</b> y la
+        <b>descripción</b>. Cambiar el grupo, el año o la plantilla dejaría las respuestas ya
+        enviadas colgando de una configuración que no existe.
+      </p>
+    }
+  }
+
   <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
     <section class="bloque con-hilo entra">
       <div class="cabecera-bloque">
@@ -327,13 +342,25 @@
       <div class="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-rule pt-5">
         <p class="m-0 text-sm text-ink-2">
           @if (resumen(); as r) {
-            Se va a crear <b class="text-ink">{{ r }}</b>
+            {{ editando ? 'Queda como' : 'Se va a crear' }} <b class="text-ink">{{ r }}</b>
           } @else {
-            Completá el título para crear el proceso.
+            {{
+              editando
+                ? 'Corregí lo que necesites y guardá.'
+                : 'Completá el título para crear el proceso.'
+            }}
           }
         </p>
-        <button type="submit" class="btn btn-primary" [disabled]="guardando()">
-          {{ guardando() ? 'Creando…' : 'Crear y continuar' }}
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="guardando() || definicion()?.editable === false"
+        >
+          @if (guardando()) {
+            {{ editando ? 'Guardando…' : 'Creando…' }}
+          } @else {
+            {{ editando ? 'Guardar y continuar' : 'Crear y continuar' }}
+          }
         </button>
       </div>
     </section>

@@ -133,6 +133,10 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('evaluaciones', [EvaluationWizardController::class, 'store']);
 
                 Route::prefix('{id}')->whereNumber('id')->group(function () {
+                    // Paso 1 sobre un proceso ya creado: volver y corregir.
+                    Route::get('definicion', [EvaluationWizardController::class, 'definition']);
+                    Route::post('definicion', [EvaluationWizardController::class, 'updateDefinition']);
+
                     Route::get('sucursales', [EvaluationWizardController::class, 'branchOffices']);
                     Route::post('sucursales', [EvaluationWizardController::class, 'saveBranchOffices']);
 
