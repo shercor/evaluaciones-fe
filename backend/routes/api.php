@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\CatalogController;
 use App\Http\Controllers\Admin\EvaluationController;
+use App\Http\Controllers\Admin\FormsPreviewController;
+use App\Http\Controllers\Admin\GroupController;
+use App\Http\Controllers\Admin\ResultsController;
 use App\Http\Controllers\Admin\EvaluationWizardController;
 use App\Http\Controllers\Admin\ImportController;
 use App\Http\Controllers\Admin\UserController;
@@ -71,10 +74,16 @@ Route::middleware('auth:sanctum')->group(function () {
      * la sesión, nunca de un parámetro.
      */
     Route::prefix('portal')->group(function () {
+        Route::get('aviso', [PortalController::class, 'pendingNotice']);
         Route::get('evaluaciones', [PortalController::class, 'myEvaluations']);
         Route::get('evaluaciones/{evaluationId}/tareas', [PortalController::class, 'tasks'])->whereNumber('evaluationId');
         Route::get('tareas/{taskId}', [PortalController::class, 'questions'])->whereNumber('taskId');
         Route::post('tareas/{taskId}/respuestas', [PortalController::class, 'answer'])->whereNumber('taskId');
+
+        // Resultados propios y de las personas a cargo.
+        Route::get('evaluaciones/{id}/resultados', [PortalController::class, 'myResults'])->whereNumber('id');
+        Route::get('evaluaciones/{id}/supervisados', [PortalController::class, 'mySupervisees'])->whereNumber('id');
+        Route::get('evaluaciones/{id}/supervisados/{userId}', [PortalController::class, 'superviseeResults'])->whereNumber(['id', 'userId']);
     });
 
     /*
@@ -139,6 +148,27 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::post('deshacer', [EvaluationWizardController::class, 'undoChanges']);
                 });
             });
+
+            // -- Resultados, tableros y monitoreo --------------------
+            Route::prefix('evaluaciones/{id}')->whereNumber('id')->group(function () {
+                Route::get('tablero', [ResultsController::class, 'dashboard']);
+                Route::get('tablero/personas', [ResultsController::class, 'people']);
+                Route::get('tablero/persona/{userId}', [ResultsController::class, 'person'])->whereNumber('userId');
+                Route::get('categorias', [ResultsController::class, 'categories']);
+                Route::get('preguntas/{questionId}', [ResultsController::class, 'question'])->whereNumber('questionId');
+                Route::get('monitoreo', [ResultsController::class, 'monitor']);
+                Route::get('monitoreo/personas', [ResultsController::class, 'monitorPeople']);
+            });
+
+            // -- Grupos de evaluación --------------------------------
+            Route::get('grupos', [GroupController::class, 'index']);
+            Route::post('grupos', [GroupController::class, 'store']);
+            Route::put('grupos/{id}', [GroupController::class, 'update'])->whereNumber('id');
+            Route::post('grupos/{id}/estado', [GroupController::class, 'toggleActive'])->whereNumber('id');
+
+            // -- Previsualización de formularios ---------------------
+            Route::get('previsualizacion/evaluacion/{id}', [FormsPreviewController::class, 'forEvaluation'])->whereNumber('id');
+            Route::get('previsualizacion/plantilla/{id}', [FormsPreviewController::class, 'forTemplate'])->whereNumber('id');
 
             // -- Importación de nómina -------------------------------
             Route::get('importaciones', [ImportController::class, 'index']);

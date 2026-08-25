@@ -1,0 +1,96 @@
+<header class="encabezado">
+  <div>
+    <h1 class="pagina-titulo">Grupos de evaluación</h1>
+    <p class="pagina-intro">
+      Un grupo define a qué conjunto de personas apunta un proceso. También separa la
+      numeración de períodos: el período 2 de un grupo no tiene relación con el de otro.
+    </p>
+  </div>
+  <div class="acciones-encabezado">
+    <button type="button" class="btn btn-primary" (click)="abrirNuevo()">Agregar grupo</button>
+  </div>
+</header>
+
+@if (aviso()) {
+  <p class="alert alert-ok" role="status">
+    {{ aviso() }}
+    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">×</button>
+  </p>
+}
+@if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+}
+
+@if (cargando()) {
+  <p class="vacio">Cargando…</p>
+} @else if (grupos().length === 0) {
+  <p class="vacio">Todavía no hay grupos.</p>
+} @else {
+  <div class="tabla-scroll">
+    <table class="tabla">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Descripción</th>
+          <th>Estado</th>
+          <th class="acciones">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (g of grupos(); track g.id) {
+          <tr>
+            <td><b>{{ g.nombre }}</b></td>
+            <td>{{ g.descripcion ?? '—' }}</td>
+            <td>
+              @if (g.activo) {
+                <span class="chip chip-ok">Activo</span>
+              } @else {
+                <span class="chip chip-error">Inactivo</span>
+              }
+            </td>
+            <td class="acciones">
+              <button type="button" class="mini" (click)="abrirEdicion(g)">Editar</button>
+              <button type="button" class="mini" (click)="alternar(g)">
+                {{ g.activo ? 'Desactivar' : 'Activar' }}
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+}
+
+@if (editando(); as g) {
+  <div class="modal-fondo" (click)="cerrar()">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>{{ g.id === 0 ? 'Agregar grupo' : 'Editar grupo' }}</h2>
+
+      @if (errorFormulario()) {
+        <p class="alert alert-error" role="alert">{{ errorFormulario() }}</p>
+      }
+
+      <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+        <div class="field">
+          <label for="g-nombre">Nombre</label>
+          <input id="g-nombre" type="text" formControlName="nombre" placeholder="Jefaturas" />
+          @if (formulario.controls.nombre.touched && formulario.controls.nombre.invalid) {
+            <span class="error">El nombre es obligatorio.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="g-descripcion">Descripción</label>
+          <input id="g-descripcion" type="text" formControlName="descripcion" placeholder="Opcional" />
+        </div>
+
+        <div class="acciones-modal">
+          <button type="button" class="btn btn-quiet" (click)="cerrar()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+            {{ guardando() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}

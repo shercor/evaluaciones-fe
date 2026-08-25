@@ -1,0 +1,46 @@
+<header class="encabezado">
+  <div>
+    <h1 class="pagina-titulo">Resultados de mi equipo</h1>
+    <p class="pagina-intro">
+      Las personas que te reportan directamente en este proceso.
+    </p>
+  </div>
+  <div class="acciones-encabezado">
+    <a class="btn btn-quiet" routerLink="/portal">Volver</a>
+  </div>
+</header>
+
+@if (cargando()) {
+  <p class="vacio">Cargando…</p>
+} @else if (equipo().length === 0) {
+  <p class="vacio">No tenés personas a cargo en este proceso.</p>
+} @else {
+  <nav class="equipo">
+    @for (s of equipo(); track s.user_id) {
+      <button
+        type="button"
+        class="miembro"
+        [class.elegido]="elegido()?.user_id === s.user_id"
+        (click)="elegir(s)"
+      >
+        <span class="avatar-mini" aria-hidden="true">{{ s.iniciales }}</span>
+        <span class="datos">
+          <b>{{ s.nombre }}</b>
+          <em>{{ s.cargo ?? 'Sin cargo' }}</em>
+        </span>
+      </button>
+    }
+  </nav>
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (cargandoPanel()) {
+    <p class="vacio">Cargando resultados…</p>
+  } @else if (datos(); as d) {
+    <app-results-panel [datos]="d" />
+  } @else if (!error()) {
+    <p class="vacio">Elegí a alguien de tu equipo para ver sus resultados.</p>
+  }
+}

@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { PendingNotice } from '../../shared/pending-notice/pending-notice';
 import { AuthService } from '../../core/auth/auth.service';
 
 interface ItemMenu {
@@ -18,7 +19,7 @@ interface ItemMenu {
  */
 @Component({
   selector: 'app-admin-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, PendingNotice],
   templateUrl: './admin-layout.html',
   styleUrl: './admin-layout.scss',
 })
@@ -33,7 +34,7 @@ export class AdminLayout {
     { ruta: '/admin', etiqueta: 'Inicio' },
     { ruta: '/admin/evaluaciones', etiqueta: 'Evaluaciones' },
     { ruta: '/admin/directorio', etiqueta: 'Directorio' },
-    { ruta: '/admin/grupos', etiqueta: 'Grupos', proximamente: true },
+    { ruta: '/admin/grupos', etiqueta: 'Grupos' },
   ];
 
   protected salir(): void {

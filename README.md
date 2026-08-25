@@ -192,7 +192,7 @@ que ningún llamador arme rutas a mano.
 
 ## Estado
 
-**Hitos 1 a 6 de 8 terminados.**
+**Los 8 hitos terminados.**
 
 *Hito 1 — andamiaje.* Levantan los cinco servicios, el backend conecta con
 MySQL y el cliente de Evaluación 360 está portado con su comando de
@@ -216,6 +216,12 @@ supervisor y enviar.
 *Hito 6 — portal del colaborador.* Ver mis evaluaciones, mis tareas y
 responderlas. Con esto el ciclo es utilizable de punta a punta.
 
+*Hito 7 — resultados y tableros.* El panel de resultados en sus tres modos, el
+tablero de administración, el monitoreo del avance y los gráficos con ECharts.
+
+*Hito 8 — cierre.* Grupos de evaluación, previsualización de formularios y el
+aviso de tareas pendientes en los dos portales.
+
 Al entrar a <http://localhost:4200> te manda al login; después de entrar, cada
 rol aterriza en su portal.
 
@@ -230,8 +236,11 @@ docker compose exec php php artisan e360:ping              # solo lectura
 `register-tenant` no vuelve a registrar un tenant que ya existe: hacerlo
 recrearía su base y perdería sus datos.
 
-Lo que sigue es el **hito 7**: resultados y tableros — el panel de resultados
-en sus tres modos, los tableros de administración y el monitoreo del avance.
+El módulo está completo de punta a punta: crear un proceso, responderlo y ver
+sus resultados.
+
+Lo que queda es lo que dejamos fuera a propósito — los tres avisos de negocio
+por correo — y la deuda anotada en [`docs/HANDOFF.md`](docs/HANDOFF.md).
 
 El avance detallado, las decisiones y la deuda conocida están en
 [`docs/HANDOFF.md`](docs/HANDOFF.md).

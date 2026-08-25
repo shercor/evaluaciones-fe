@@ -121,11 +121,14 @@
                 @if (puede(e, 'participants')) {
                   <a class="mini" [routerLink]="['/admin/evaluaciones/asistente', e.id, 'participantes']">Participantes</a>
                 }
+                @if (puede(e, 'preview_forms')) {
+                  <a class="mini" [routerLink]="['/admin/evaluaciones', e.id, 'formularios']">Formularios</a>
+                }
                 @if (puede(e, 'monitor')) {
-                  <span class="mini apagado" title="Llega con el hito 7">Monitorear</span>
+                  <a class="mini" [routerLink]="['/admin/evaluaciones', e.id, 'monitoreo']">Monitorear</a>
                 }
                 @if (puede(e, 'dashboard')) {
-                  <span class="mini apagado" title="Llega con el hito 7">Resultados</span>
+                  <a class="mini" [routerLink]="['/admin/evaluaciones', e.id, 'tablero']">Resultados</a>
                 }
                 @if (puede(e, 'restore')) {
                   <button type="button" class="mini" (click)="pedirReactivar(e)">Reactivar</button>

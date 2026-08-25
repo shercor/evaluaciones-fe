@@ -8,6 +8,7 @@ use App\Support\E360\E360Client;
 use App\Support\E360\Resources\EvaluationsApi;
 use App\Support\E360\Resources\GroupsApi;
 use App\Support\E360\Resources\ParticipantsApi;
+use App\Support\E360\Resources\ResultsApi;
 use App\Support\E360\Resources\TasksApi;
 use App\Support\E360\Resources\TemplatesApi;
 use App\Support\E360\Resources\TenantsApi;
@@ -27,5 +28,6 @@ class E360ServiceProvider extends ServiceProvider
         $this->app->singleton(TemplatesApi::class);
         $this->app->singleton(GroupsApi::class);
         $this->app->singleton(TasksApi::class);
+        $this->app->singleton(ResultsApi::class);
     }
 }

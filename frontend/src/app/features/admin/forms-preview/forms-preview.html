@@ -1,0 +1,67 @@
+<header class="encabezado">
+  <div>
+    <h1 class="pagina-titulo">{{ titulo }}</h1>
+    <p class="pagina-intro">
+      Esto es exactamente lo que va a ver cada participante. Son varios formularios: uno por
+      cada perspectiva desde la que se evalúa.
+    </p>
+  </div>
+  <div class="acciones-encabezado">
+    <button type="button" class="btn btn-quiet" (click)="volver()">Volver</button>
+  </div>
+</header>
+
+@if (cargando()) {
+  <p class="vacio">Cargando…</p>
+} @else if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+} @else if (formularios().length === 0) {
+  <p class="vacio">No hay formularios configurados.</p>
+} @else {
+  <p class="explica">
+    <b>{{ formularios().length }}</b> formularios · <b>{{ totalPreguntas() }}</b> preguntas en total
+  </p>
+
+  <nav class="pestanas">
+    @for (f of formularios(); track f.nombre; let i = $index) {
+      <a
+        href="javascript:void(0)"
+        [class.activa]="activo() === i"
+        (click)="elegir(i)"
+      >{{ f.nombre }} <span class="cuenta-suave">{{ f.total_preguntas }}</span></a>
+    }
+  </nav>
+
+  @if (formularios()[activo()]; as f) {
+    @for (c of f.categorias; track c.nombre) {
+      <section class="bloque">
+        <h2>
+          {{ c.nombre }}
+          @if (!c.en_promedio) {
+            <span class="chip chip-pendiente">No cuenta para el promedio</span>
+          }
+          @if (c.condicional) {
+            <span class="chip chip-pendiente">Solo si aplica</span>
+          }
+        </h2>
+
+        @if (c.descripcion) {
+          <p class="explica">{{ c.descripcion }}</p>
+        }
+
+        <ol class="preguntas">
+          @for (p of c.preguntas; track p.texto) {
+            <li>
+              <p class="enunciado">{{ p.texto }}</p>
+              @if (p.tipo === 'selection') {
+                <p class="leyenda">Se responde con una escala numérica</p>
+              } @else {
+                <p class="leyenda">Se responde escribiendo</p>
+              }
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  }
+}

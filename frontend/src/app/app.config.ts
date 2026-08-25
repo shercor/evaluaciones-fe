@@ -11,6 +11,7 @@ import {
   withXsrfConfiguration,
 } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
+import { provideEchartsCore } from 'ngx-echarts';
 import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
 import { authInterceptor } from './core/http/auth.interceptor';
@@ -31,6 +32,10 @@ export const appConfig: ApplicationConfig = {
         headerName: 'X-XSRF-TOKEN',
       }),
     ),
+
+    // ECharts se carga bajo demanda: solo las pantallas con gráficos pagan
+    // su peso, no toda la aplicación.
+    provideEchartsCore({ echarts: () => import('./shared/charts/echarts') }),
 
     // Se pregunta al backend si hay sesión ANTES de resolver la primera ruta.
     // Sin esto, recargar dentro del portal rebotaría al login: los guards

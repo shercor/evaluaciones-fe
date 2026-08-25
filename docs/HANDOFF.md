@@ -3,7 +3,7 @@
 Bitácora viva del avance. Se actualiza al cerrar cada hito, para que el estado
 no dependa de la memoria de nadie.
 
-**Última actualización:** 2026-08-24 · hito 6 cerrado (portal del colaborador).
+**Última actualización:** 2026-08-25 · **los 8 hitos terminados.**
 
 ---
 
@@ -34,8 +34,8 @@ negocio. Conviene tenerla abierta al construir cada hito.
 | 4 | Listado de evaluaciones | 🔨 Listado y transiciones hechos |
 | 5 | Asistente de creación | ✅ Terminado |
 | 6 | Portal del colaborador | ✅ Terminado |
-| 7 | Resultados y tableros | ⬅️ Siguiente |
-| 8 | Cierre | ⬜ Pendiente |
+| 7 | Resultados y tableros | ✅ Terminado |
+| 8 | Cierre | ✅ Terminado |
 
 ### Hito 1 — Andamiaje ✅
 
@@ -242,8 +242,6 @@ real en vez de prometer que se puede deshacer.
 - **Los tres avisos de negocio por correo** y el botón de recordatorio, junto
   con la opción «abrir y notificar» del listado. La infraestructura de colas ya
   está levantada: es agregar los jobs.
-- **Crear y editar evaluaciones** llega con el hito 5; hoy el listado solo opera
-  procesos que ya existen.
 - **Sin tests automatizados** todavía. La verificación ha sido manual por HTTP.
 - **El selector de supervisor** en el formulario de personas solo ofrece a quienes
   están en la página actual del listado. Sirve para el volumen de prueba, pero con

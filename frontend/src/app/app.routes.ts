@@ -117,6 +117,38 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'evaluaciones/:id/tablero',
+        loadComponent: () =>
+          import('./features/admin/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+      {
+        path: 'evaluaciones/:id/monitoreo',
+        loadComponent: () =>
+          import('./features/admin/monitoring/monitoring').then((m) => m.Monitoring),
+      },
+      {
+        path: 'evaluaciones/:id/persona/:userId',
+        loadComponent: () =>
+          import('./features/admin/person-results/person-results').then((m) => m.PersonResults),
+      },
+      {
+        path: 'grupos',
+        loadComponent: () => import('./features/admin/groups/groups').then((m) => m.Groups),
+      },
+      {
+        // Previsualización: misma pantalla para plantilla y evaluación.
+        path: 'evaluaciones/:id/formularios',
+        data: { tipo: 'evaluacion' },
+        loadComponent: () =>
+          import('./features/admin/forms-preview/forms-preview').then((m) => m.FormsPreview),
+      },
+      {
+        path: 'plantillas/:id/formularios',
+        data: { tipo: 'plantilla' },
+        loadComponent: () =>
+          import('./features/admin/forms-preview/forms-preview').then((m) => m.FormsPreview),
+      },
+      {
         path: 'directorio',
         loadComponent: () =>
           import('./features/admin/directory/people/people').then((m) => m.People),
@@ -158,6 +190,16 @@ export const routes: Routes = [
         path: 'evaluacion/:id',
         loadComponent: () =>
           import('./features/portal/tareas/tareas').then((m) => m.PortalTareas),
+      },
+      {
+        path: 'evaluacion/:id/resultados',
+        loadComponent: () =>
+          import('./features/portal/resultados/mis-resultados').then((m) => m.MisResultados),
+      },
+      {
+        path: 'evaluacion/:id/equipo',
+        loadComponent: () =>
+          import('./features/portal/supervisados/supervisados').then((m) => m.Supervisados),
       },
       {
         path: 'tarea/:id',

@@ -1,0 +1,95 @@
+@if (cargando()) {
+  <p class="vacio">Cargando el tablero…</p>
+} @else if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+  <button type="button" class="btn btn-quiet" (click)="volver()">Volver</button>
+} @else if (datos(); as d) {
+  <header class="encabezado">
+    <div>
+      <h1 class="pagina-titulo">{{ d.contexto.evaluacion }}</h1>
+      <p class="pagina-intro">
+        Resultados del proceso · grupo {{ d.contexto.grupo }} · escala de 0 a
+        {{ d.contexto.nota_maxima }}
+      </p>
+    </div>
+    <div class="acciones-encabezado">
+      <button type="button" class="btn btn-quiet" (click)="volver()">Volver</button>
+    </div>
+  </header>
+
+  <section class="cifras">
+    @for (c of cifras(); track c.titulo) {
+      <article class="cifra" [title]="c.descripcion ?? ''">
+        <p class="rotulo">{{ c.titulo }}</p>
+        @if (c.valor === null) {
+          <p class="sin-dato">Sin datos</p>
+        } @else {
+          <p class="numero">{{ c.valor.toFixed(1) }}<span class="de">/ {{ notaMaxima() }}</span></p>
+          <div class="medidor" aria-hidden="true"><span [style.width.%]="proporcion(c.valor)"></span></div>
+        }
+      </article>
+    }
+
+    @if (participacion(); as p) {
+      <article class="cifra">
+        <p class="rotulo">Participación</p>
+        <p class="numero">{{ p.porcentaje }}<span class="de">%</span></p>
+        <div class="medidor" aria-hidden="true"><span [style.width.%]="p.porcentaje"></span></div>
+        <p class="pie-cifra">{{ p.respondieron }} de {{ p.participantes }} personas</p>
+      </article>
+    }
+  </section>
+
+  @if (fuentesCategorias().length > 0) {
+    <section class="bloque">
+      <h2>{{ d.por_fuente.titulo }}</h2>
+      <p class="explica">
+        Cómo puntúa el proceso según desde qué perspectiva se evaluó. Diferencias grandes entre
+        una fuente y otra suelen decir más que el promedio general.
+      </p>
+      <app-bar-chart
+        [categorias]="fuentesCategorias()"
+        [series]="fuentesSeries()"
+        [maximo]="notaMaxima()"
+        [titulo]="d.por_fuente.titulo ?? 'Promedio por fuente'"
+      />
+    </section>
+  }
+
+  @if (categorias().length > 0) {
+    <section class="bloque">
+      <h2>{{ d.por_categoria.titulo }}</h2>
+      <p class="explica">
+        Cada categoría cruzada con quién la evaluó. Las barras llevan su cifra escrita.
+      </p>
+      <app-bar-chart
+        [categorias]="categorias()"
+        [series]="seriesCategorias()"
+        [maximo]="notaMaxima()"
+        [titulo]="d.por_categoria.titulo ?? 'Promedio por categoría'"
+      />
+    </section>
+  }
+
+  @if (abiertas().length > 0) {
+    <section class="bloque">
+      <h2>{{ d.respuestas_abiertas.titulo }}</h2>
+      <p class="explica">Respuestas escritas, anónimas.</p>
+
+      @for (p of abiertas(); track p.pregunta) {
+        <div class="pregunta-abierta">
+          <h3 class="sub">{{ p.pregunta }}</h3>
+          @if (p.respuestas.length === 0) {
+            <p class="sin-dato">Nadie respondió esta pregunta.</p>
+          } @else {
+            <ul class="comentarios">
+              @for (r of p.respuestas; track $index) {
+                <li><blockquote>{{ r }}</blockquote></li>
+              }
+            </ul>
+          }
+        </div>
+      }
+    </section>
+  }
+}

@@ -1134,3 +1134,100 @@ tr.excluido b { text-decoration: line-through; }
 }
 
 .faltantes { margin-right: auto; font-size: 0.87rem; color: var(--ink-3); align-self: center; }
+
+/* --- Previsualización de formularios --- */
+
+.cuenta-suave {
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  margin-left: 0.25rem;
+}
+
+.bloque h2 .chip { margin-left: 0.5rem; vertical-align: middle; }
+
+/* --- Tableros de resultados --- */
+
+.pie-cifra {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+
+.pregunta-abierta { padding: 0.9rem 0; border-bottom: 1px solid var(--rule); }
+.pregunta-abierta:last-child { border-bottom: 0; }
+.pregunta-abierta .sub { margin-top: 0; }
+
+/* --- Monitoreo --- */
+
+.medidores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 1.4rem;
+}
+
+.medida {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+}
+
+.medida.completa { border-color: var(--accent); }
+
+.numero-chico {
+  margin: 0 0 0.55rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rotulo-medida {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  color: var(--ink-3);
+  line-height: 1.4;
+}
+
+/* --- Equipo a cargo --- */
+
+.equipo {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.4rem;
+}
+
+.miembro {
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+
+.miembro:hover { border-color: var(--accent); }
+.miembro.elegido { border-color: var(--accent); background: var(--accent-soft); }
+.miembro .datos { display: flex; flex-direction: column; line-height: 1.25; }
+.miembro em { font-style: normal; font-size: 0.76rem; color: var(--ink-3); }
+
+/* --- Detalle pregunta por pregunta --- */
+
+.categoria-detalle { padding: 1rem 0; border-bottom: 1px solid var(--rule); }
+.categoria-detalle:last-child { border-bottom: 0; }
+.categoria-detalle .sub { margin-top: 0; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+
+.enunciado-celda { min-width: 20rem; white-space: normal; }
+
+td.destacado {
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+}

@@ -63,11 +63,20 @@
                 <td><b>{{ f.titulo }}</b></td>
                 <td class="num">{{ f.year }}</td>
                 <td class="num">{{ f.periodo }}</td>
-                <td>
+                <td class="acciones">
                   @if (f.publicado) {
-                    <span class="mini apagado" title="Llega con el hito 7">Ver resultados</span>
+                    <a class="mini" [routerLink]="['/portal/evaluacion', f.id, 'resultados']">
+                      Ver mis resultados
+                    </a>
+                    @if (f.tiene_supervisados) {
+                      <a class="mini" [routerLink]="['/portal/evaluacion', f.id, 'equipo']">
+                        Mi equipo
+                      </a>
+                    }
                   } @else {
-                    <span class="chip chip-pendiente">Sin publicar</span>
+                    <span class="chip chip-pendiente" title="Los resultados todavía no se publican">
+                      Sin publicar
+                    </span>
                   }
                 </td>
               </tr>

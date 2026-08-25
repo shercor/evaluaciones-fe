@@ -1,0 +1,131 @@
+@if (datos().participante; as p) {
+  <section class="ficha-persona">
+    <div>
+      <h2>{{ p.nombre }}</h2>
+      <p>{{ p.cargo ?? 'Sin cargo' }} · {{ p.sucursal ?? 'Sin sucursal' }}</p>
+    </div>
+    <p class="contexto">
+      {{ datos().contexto.evaluacion }} · grupo {{ datos().contexto.grupo }}
+    </p>
+  </section>
+}
+
+@if (datos().promedios.error) {
+  <p class="alert alert-error" role="alert">{{ datos().promedios.error }}</p>
+} @else if (cifras().length > 0) {
+  <section class="cifras">
+    @for (c of cifras(); track c.titulo) {
+      <article class="cifra" [title]="c.descripcion ?? ''">
+        <p class="rotulo">{{ c.titulo }}</p>
+        @if (c.valor === null) {
+          <p class="sin-dato">Sin datos</p>
+        } @else {
+          <p class="numero">
+            {{ c.valor.toFixed(1) }}<span class="de">/ {{ notaMaxima() }}</span>
+          </p>
+          <div class="medidor" aria-hidden="true">
+            <span [style.width.%]="proporcion(c.valor)"></span>
+          </div>
+        }
+      </article>
+    }
+  </section>
+}
+
+@if (categorias().length > 0) {
+  <section class="bloque">
+    <h2>Promedio por categoría</h2>
+    <p class="explica">
+      Cada categoría, vista desde las distintas perspectivas que la evaluaron. Las barras
+      llevan su cifra escrita para que no haya que estimarlas a ojo.
+    </p>
+
+    <app-bar-chart
+      [categorias]="categorias()"
+      [series]="series()"
+      [maximo]="notaMaxima()"
+      [titulo]="datos().categorias?.titulo ?? 'Promedio por categoría'"
+    />
+  </section>
+}
+
+@if (detalle().length > 0) {
+  <section class="bloque">
+    <h2>Detalle pregunta por pregunta</h2>
+    <p class="explica">
+      De dónde sale cada promedio. Cada fila es una pregunta y cada columna, quién la
+      respondió.
+    </p>
+
+    @for (categoria of detalle(); track categoria.nombre) {
+      <div class="categoria-detalle">
+        <h3 class="sub">
+          {{ categoria.nombre }}
+          @if (categoria.promedio_general) {
+            <span class="chip chip-ok">Promedio {{ categoria.promedio_general }}</span>
+          }
+        </h3>
+
+        @if (categoria.preguntas.length === 0) {
+          <p class="sin-dato">Sin preguntas respondidas en esta categoría.</p>
+        } @else {
+          <div class="tabla-scroll">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th>Pregunta</th>
+                  @for (col of columnasDe(categoria); track col) {
+                    <th class="num">{{ col }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of categoria.preguntas; track p.texto) {
+                  <tr>
+                    <td class="enunciado-celda">{{ p.texto }}</td>
+                    @for (col of columnasDe(categoria); track col) {
+                      <td class="num" [class.destacado]="esPromedioFinal(col)">
+                        {{ valorEn(p, col) }}
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  </section>
+}
+
+@for (grupo of comentariosRecibidos(); track grupo.formulario) {
+  <section class="bloque">
+    <h2>{{ grupo.formulario }}</h2>
+    <ul class="comentarios">
+      @for (c of grupo.comentarios; track $index) {
+        <li>
+          @if (c.pregunta) {
+            <p class="pregunta-comentario">{{ c.pregunta }}</p>
+          }
+          <blockquote>{{ c.texto }}</blockquote>
+        </li>
+      }
+    </ul>
+  </section>
+}
+
+@if (comentariosEnviados().length > 0) {
+  <section class="bloque">
+    <h2>Lo que escribiste sobre otras personas</h2>
+    <p class="explica">Solo vos ves esto. Quien lo recibió lo lee de forma anónima.</p>
+    @for (grupo of comentariosEnviados(); track grupo.formulario) {
+      <h3 class="sub">{{ grupo.formulario }}</h3>
+      <ul class="comentarios">
+        @for (c of grupo.comentarios; track $index) {
+          <li><blockquote>{{ c.texto }}</blockquote></li>
+        }
+      </ul>
+    }
+  </section>
+}
