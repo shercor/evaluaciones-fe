@@ -19,7 +19,6 @@ type Check = {
 @Component({
   selector: 'app-system-status',
   templateUrl: './system-status.html',
-  styleUrl: './system-status.scss',
 })
 export class SystemStatus {
   private readonly health = inject(HealthService);

@@ -1,44 +1,55 @@
 <h1 class="pagina-titulo">Hola, {{ user()?.name }}</h1>
 <p class="pagina-intro">
-  Estás en el portal de administración. Desde acá vas a crear y monitorear los procesos de
-  evaluación cuando lleguen los hitos siguientes.
+  Desde acá administrás los procesos de evaluación de la organización.
 </p>
 
-@if (permisoConfirmado() === true) {
-  <p class="alert alert-ok" role="status">
-    Permisos verificados contra el backend: tu rol
-    <b>{{ user()?.role_label }}</b> tiene acceso administrativo.
-  </p>
-} @else if (permisoConfirmado() === false) {
-  <p class="alert alert-error" role="alert">
+@if (permisoConfirmado() === false) {
+  <p class="alert alert-error mt-6" role="alert">
     El backend rechazó la comprobación de permisos. Revisá el middleware de rol.
   </p>
 }
 
-<section class="tarjetas">
-  <article class="tarjeta">
-    <h2>Directorio</h2>
-    <p>
-      Empleados, sucursales, cargos y el organigrama. La importación desde planilla llega con
-      el hito 3.
-    </p>
-    <span class="etiqueta">Hito 3</span>
-  </article>
+<section class="entra-escalonado mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+  <a routerLink="/admin/evaluaciones" class="atajo group">
+    <span class="atajo-titulo">Evaluaciones</span>
+    <span class="atajo-texto">
+      Crear un proceso, abrirlo, cerrarlo y publicar sus resultados.
+    </span>
+    <span class="atajo-flecha" aria-hidden="true">→</span>
+  </a>
 
-  <article class="tarjeta">
-    <h2>Evaluaciones</h2>
-    <p>
-      El listado con sus estados y las acciones de abrir, cerrar y publicar. Después, el
-      asistente de creación de seis pasos.
-    </p>
-    <span class="etiqueta">Hitos 4 y 5</span>
-  </article>
+  <a routerLink="/admin/directorio" class="atajo group">
+    <span class="atajo-titulo">Directorio</span>
+    <span class="atajo-texto">
+      Empleados, sucursales, cargos y el organigrama. Importación desde planilla.
+    </span>
+    <span class="atajo-flecha" aria-hidden="true">→</span>
+  </a>
 
-  <article class="tarjeta">
-    <h2>Resultados</h2>
-    <p>
-      Monitoreo del avance y los tableros de resultados, generales y por persona.
-    </p>
-    <span class="etiqueta">Hito 7</span>
-  </article>
+  <a routerLink="/admin/grupos" class="atajo group">
+    <span class="atajo-titulo">Grupos</span>
+    <span class="atajo-texto">
+      A qué conjunto de personas apunta cada proceso.
+    </span>
+    <span class="atajo-flecha" aria-hidden="true">→</span>
+  </a>
+</section>
+
+<section class="mt-10 rounded-card border border-rule bg-surface p-6 shadow-suave">
+  <h2 class="mb-2 text-base font-semibold">Cómo se arma una evaluación</h2>
+  <ol class="m-0 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
+    @for (paso of pasos; track paso.numero) {
+      <li class="flex gap-3">
+        <span
+          class="grid size-7 shrink-0 place-items-center rounded-full
+                 bg-accent-soft text-xs font-bold text-accent"
+          >{{ paso.numero }}</span
+        >
+        <span>
+          <b class="block text-sm">{{ paso.titulo }}</b>
+          <em class="text-xs not-italic text-ink-3">{{ paso.detalle }}</em>
+        </span>
+      </li>
+    }
+  </ol>
 </section>

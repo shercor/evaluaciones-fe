@@ -59,7 +59,6 @@ interface Cifra {
   selector: 'app-results-panel',
   imports: [BarChart],
   templateUrl: './results-panel.html',
-  styleUrl: './results-panel.scss',
 })
 export class ResultsPanel {
   readonly datos = input.required<PanelResultados>();
@@ -78,12 +77,27 @@ export class ResultsPanel {
     }));
   });
 
-  /** Nombres de las categorías evaluadas. */
-  protected readonly categorias = computed<string[]>(() => {
+  /**
+   * Categorías con al menos un dato.
+   *
+   * Una categoría que nadie evaluó —«Liderazgo» para quien no tiene gente a
+   * cargo— dejaría una banda vacía en el gráfico y una fila de guiones en la
+   * tabla. No aporta nada y confunde: se omite.
+   */
+  private readonly categoriasConDatos = computed<Record<string, unknown>[]>(() => {
     const r = this.datos().categorias?.resultado;
     if (!Array.isArray(r)) return [];
-    return r.map((c: Record<string, unknown>) => String(c['titulo'] ?? ''));
+
+    return (r as Record<string, unknown>[]).filter((c) =>
+      ((c['valores'] as Record<string, unknown>[]) ?? []).some(
+        (v) => typeof v['valor'] === 'number',
+      ),
+    );
   });
+
+  protected readonly categorias = computed<string[]>(() =>
+    this.categoriasConDatos().map((c) => String(c['titulo'] ?? '')),
+  );
 
   /**
    * Una serie por tipo de evaluador, con su valor en cada categoría.
@@ -94,12 +108,12 @@ export class ResultsPanel {
    * mejor que dibujar un cero, que se leería como «sacó cero».
    */
   protected readonly series = computed<SerieBarra[]>(() => {
-    const r = this.datos().categorias?.resultado;
-    if (!Array.isArray(r) || r.length === 0) return [];
+    const r = this.categoriasConDatos();
+    if (r.length === 0) return [];
 
     const nombres: string[] = [];
 
-    for (const categoria of r as Record<string, unknown>[]) {
+    for (const categoria of r) {
       for (const v of (categoria['valores'] as Record<string, unknown>[]) ?? []) {
         const nombre = String(v['titulo'] ?? '');
         if (nombre && !nombres.includes(nombre)) nombres.push(nombre);
@@ -108,7 +122,7 @@ export class ResultsPanel {
 
     return nombres.map((nombre) => ({
       nombre,
-      valores: (r as Record<string, unknown>[]).map((categoria) => {
+      valores: r.map((categoria) => {
         const encontrado = ((categoria['valores'] as Record<string, unknown>[]) ?? []).find(
           (v) => String(v['titulo'] ?? '') === nombre,
         );
@@ -117,10 +131,33 @@ export class ResultsPanel {
     }));
   });
 
-  /** Desglose pregunta por pregunta, agrupado por categoría. */
-  protected readonly detalle = computed<CategoriaDetalle[]>(
-    () => this.datos().detalle?.categorias ?? [],
+  /**
+   * Desglose pregunta por pregunta.
+   *
+   * Se omiten las categorías donde nadie respondió: mostrar una tabla entera
+   * de guiones no informa, solo alarga la página.
+   */
+  protected readonly detalle = computed<CategoriaDetalle[]>(() =>
+    (this.datos().detalle?.categorias ?? []).filter((c) =>
+      (c.preguntas ?? []).some((p) =>
+        (p.resultado ?? []).some((r) => r.valor !== null && r.valor !== undefined),
+      ),
+    ),
   );
+
+  /**
+   * El promedio de una categoría, solo si es un número que significa algo.
+   *
+   * La API devuelve «0.0» para las categorías de texto y para las que nadie
+   * evaluó; mostrarlo se leería como «sacó cero».
+   */
+  protected promedioDe(categoria: CategoriaDetalle): string | null {
+    if (categoria.solo_texto) return null;
+
+    const valor = Number(categoria.promedio_general);
+
+    return Number.isFinite(valor) && valor > 0 ? categoria.promedio_general : null;
+  }
 
   /**
    * Las columnas de la tabla de detalle: cada fuente que evaluó, más el

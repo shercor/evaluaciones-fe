@@ -10,23 +10,42 @@
   </div>
 </header>
 
-<ol class="pasos">
+<ol class="mb-7 flex list-none flex-wrap gap-2 p-0">
   @for (paso of pasos; track paso.numero) {
-    <li
-      class="paso"
-      [class.activo]="paso.numero === numeroActual()"
-      [class.completado]="paso.numero < numeroActual()"
-      [class.bloqueado]="!estaHabilitado(paso)"
-    >
+    <li>
       @if (estaHabilitado(paso)) {
-        <a [routerLink]="enlaceDe(paso)">
-          <span class="numero">{{ paso.numero }}</span>
-          <span class="etiqueta">{{ paso.etiqueta }}</span>
+        <a
+          [routerLink]="enlaceDe(paso)"
+          class="flex items-center gap-2.5 rounded-md border bg-surface px-3.5 py-2.5
+                 text-sm no-underline transition-colors duration-150"
+          [class]="
+            paso.numero === numeroActual()
+              ? 'border-indigo !text-indigo font-semibold shadow-suave'
+              : 'border-rule !text-ink-2 hover:border-accent'
+          "
+        >
+          <span
+            class="grid size-6 shrink-0 place-items-center rounded-full text-xs font-bold"
+            [class]="
+              paso.numero === numeroActual()
+                ? 'bg-indigo text-indigo-ink'
+                : paso.numero < numeroActual()
+                  ? 'bg-accent-soft text-accent'
+                  : 'bg-surface-2 text-ink-3'
+            "
+            >{{ paso.numero }}</span
+          >
+          {{ paso.etiqueta }}
         </a>
       } @else {
-        <span class="inerte">
-          <span class="numero">{{ paso.numero }}</span>
-          <span class="etiqueta">{{ paso.etiqueta }}</span>
+        <span
+          class="flex cursor-not-allowed items-center gap-2.5 rounded-md border
+                 border-dashed border-rule bg-surface px-3.5 py-2.5 text-sm
+                 text-ink-3 opacity-60"
+        >
+          <span class="grid size-6 shrink-0 place-items-center rounded-full
+                       bg-surface-2 text-xs font-bold text-ink-3">{{ paso.numero }}</span>
+          {{ paso.etiqueta }}
         </span>
       }
     </li>

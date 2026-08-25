@@ -21,6 +21,7 @@ export interface User {
   role: Role;
   role_label: string;
   is_administrative: boolean;
+  active: boolean;
   must_set_password: boolean;
   avatar_url: string | null;
   branch_office?: Named | null;

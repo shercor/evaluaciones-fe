@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 
@@ -12,6 +13,7 @@ import { AuthService } from '../../../core/auth/auth.service';
  */
 @Component({
   selector: 'app-admin-home',
+  imports: [RouterLink],
   templateUrl: './admin-home.html',
 })
 export class AdminHome {
@@ -20,6 +22,14 @@ export class AdminHome {
 
   protected readonly user = this.auth.user;
   protected readonly permisoConfirmado = signal<boolean | null>(null);
+
+  /** Los pasos del asistente, para quien entra por primera vez. */
+  protected readonly pasos = [
+    { numero: 1, titulo: 'Definir', detalle: 'Plantilla, grupo, año y período.' },
+    { numero: 2, titulo: 'Sucursales', detalle: 'De dónde sale la gente.' },
+    { numero: 3, titulo: 'Participantes', detalle: 'Depurar quién entra.' },
+    { numero: 4, titulo: 'Enviar', detalle: 'Revisar los grupos y crear.' },
+  ];
 
   constructor() {
     this.verificar();

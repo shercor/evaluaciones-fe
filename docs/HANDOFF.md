@@ -3,7 +3,7 @@
 Bitácora viva del avance. Se actualiza al cerrar cada hito, para que el estado
 no dependa de la memoria de nadie.
 
-**Última actualización:** 2026-08-25 · **los 8 hitos terminados.**
+**Última actualización:** 2026-08-25 · los 8 hitos terminados · estilos migrados a Tailwind.
 
 ---
 
@@ -216,6 +216,51 @@ Como acordamos **no modificar la API de E360**, este proyecto no lo corrige:
 solo avisa. El diálogo de confirmación de «Desactivar» explica la consecuencia
 real en vez de prometer que se puede deshacer.
 
+### Estilos: Tailwind v4 y sistema visual
+
+Todo el CSS propio se reemplazó por **Tailwind v4** (PostCSS). Los tokens de
+color no se tiraron: viven ahora como `@theme` de Tailwind, así que
+`bg-surface`, `text-ink-2` o `border-rule` significan lo mismo en toda la
+aplicación y el tema se cambia en un solo archivo.
+
+**El modo oscuro tiene tres estados, no dos** — elección explícita, elección
+clara y «seguir al sistema», que no marca nada. Eso no lo cubre el `dark:` que
+trae Tailwind por defecto, así que hay una `@custom-variant dark` propia que
+maneja los tres y deja que la elección del usuario gane sobre la del sistema.
+
+**Qué va en `@layer components` y qué en la plantilla:** lo que se repite en
+decenas de vistas —botones, tarjetas, tablas, campos, distintivos— se define
+una vez como clase; lo que aparece una o dos veces va como utilidades sueltas.
+Copiar quince clases en cada uso garantiza que se desincronicen.
+
+Se eliminaron los siete `.scss` por componente.
+
+**Tipografía.** Dos familias con trabajos distintos: *Bricolage Grotesque* para
+los títulos —una grotesca con carácter, de anchos variables— e *Instrument
+Sans* para el cuerpo y la interfaz, que abre bien en los tamaños chicos de las
+tablas. Se cargan desde Google Fonts en `index.html`.
+
+**Acento secundario.** Un índigo (`--color-indigo`) que hace contrapunto al
+verde. Está reservado para lo que merece una segunda voz —el paso activo del
+asistente, el degradado de los medidores y los avatares— y nunca para relleno.
+La distinción es deliberada: el acento principal marca *qué se puede tocar*, el
+secundario marca *dónde estoy*.
+
+**Movimiento.** Entrada de contenido, entrada escalonada en las grillas y
+esqueletos de carga en lugar de «Cargando…». Todo tiene un trabajo: guiar la
+mirada a lo que apareció o dar señal de que algo está en curso. El bloque de
+`prefers-reduced-motion` lo apaga entero.
+
+**Gráficos de una sola serie en color de marca.** La paleta categórica existe
+para distinguir series entre sí; con una sola no hay nada que distinguir, y
+usar el primer color de esa paleta solo lograba que el gráfico se viera ajeno
+al resto. Los de varias series siguen con la paleta validada.
+
+**Cuidado al borrar un `.scss`:** hay que quitar también su `styleUrl` del
+componente. Un `styleUrl` apuntando a un archivo inexistente hace que Angular
+falle con «JIT compilation failed» **en tiempo de ejecución** —la pantalla
+queda en blanco— sin ningún error de compilación que lo delate.
+
 ---
 
 ## Decisiones tomadas
@@ -226,6 +271,7 @@ real en vez de prometer que se puede deshacer.
 | Directorio | Propio, por importación CSV/Excel más ABM. Sin sincronizar con la intranet. | Hito 0 |
 | Autenticación | Usuarios propios del BFF. Ni SSO ni FusionAuth. | Hito 0 |
 | Gráficos | ECharts (`ngx-echarts`), no Highcharts, para no gestionar licencias. Los envoltorios van en `shared/charts/` para que la biblioteca sea reemplazable. | Hito 0 |
+| Estilos | Tailwind v4, con los tokens de color como `@theme`. Sin Bootstrap ni bibliotecas de componentes. | 2026-08-25 |
 | Correo transaccional | Sí, desde el hito 2: invitación y recuperación. | Hito 0 |
 | Avisos de negocio por correo | Diferidos: apertura, recordatorio y resultados. | Hito 0 |
 | Proveedor de correo | Sin definir. `MAIL_MAILER=log` por defecto; Mailtrap para pruebas, con credenciales propias del proyecto. | Hito 2 |

@@ -22,7 +22,7 @@
 }
 
 @if (cargando()) {
-  <p class="vacio">Cargando…</p>
+  <app-skeleton tipo="tabla" [cantidad]="3" />
 } @else if (grupos().length === 0) {
   <p class="vacio">Todavía no hay grupos.</p>
 } @else {

@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Grupo, GroupsService } from '../../../core/api/groups.service';
 import { mensajeDeError } from '../../../core/http/api-error';
+import { Skeleton } from '../../../shared/skeleton/skeleton';
 
 /**
  * Grupos de evaluación.
@@ -12,7 +13,7 @@ import { mensajeDeError } from '../../../core/http/api-error';
  */
 @Component({
   selector: 'app-groups',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, Skeleton],
   templateUrl: './groups.html',
 })
 export class Groups {

@@ -1,6 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import {
+  FormularioPrevisualizado,
+  GroupsService,
+} from '../../../../../core/api/groups.service';
 import { OpcionesAsistente, Plantilla, WizardService } from '../../../../../core/api/wizard.service';
 import { mensajeDeError } from '../../../../../core/http/api-error';
 
@@ -18,6 +22,7 @@ import { mensajeDeError } from '../../../../../core/http/api-error';
 })
 export class StepDefinir {
   private readonly api = inject(WizardService);
+  private readonly previsualizacion = inject(GroupsService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
@@ -69,6 +74,52 @@ export class StepDefinir {
     // cuando cambia cualquiera de los dos.
     this.formulario.controls.year.valueChanges.subscribe(() => this.sugerirPeriodo());
     this.formulario.controls.group_id.valueChanges.subscribe(() => this.sugerirPeriodo());
+  }
+
+  /**
+   * Previsualización de las preguntas de una plantilla.
+   *
+   * Va en un modal y no en otra pantalla a propósito: navegar fuera del
+   * asistente perdería lo que ya se escribió en el formulario.
+   */
+  protected readonly viendoPlantilla = signal<Plantilla | null>(null);
+  protected readonly formulariosPlantilla = signal<FormularioPrevisualizado[]>([]);
+  protected readonly cargandoPreview = signal(false);
+  protected readonly formularioActivo = signal(0);
+
+  protected verPreguntas(plantilla: Plantilla, evento: Event): void {
+    // El botón vive dentro de la tarjeta que elige la plantilla; sin esto,
+    // mirar las preguntas la seleccionaría de paso.
+    evento.stopPropagation();
+
+    this.viendoPlantilla.set(plantilla);
+    this.formulariosPlantilla.set([]);
+    this.formularioActivo.set(0);
+    this.cargandoPreview.set(true);
+
+    this.previsualizacion.previsualizarPlantilla(plantilla.id).subscribe({
+      next: (r) => {
+        this.formulariosPlantilla.set(r.formularios);
+        this.cargandoPreview.set(false);
+      },
+      error: (e) => {
+        this.error.set(mensajeDeError(e, 'No se pudieron cargar las preguntas.'));
+        this.cargandoPreview.set(false);
+        this.viendoPlantilla.set(null);
+      },
+    });
+  }
+
+  protected cerrarPreguntas(): void {
+    this.viendoPlantilla.set(null);
+  }
+
+  protected elegirFormulario(indice: number): void {
+    this.formularioActivo.set(indice);
+  }
+
+  protected totalPreguntas(): number {
+    return this.formulariosPlantilla().reduce((n, f) => n + f.total_preguntas, 0);
   }
 
   protected elegirPlantilla(id: number): void {

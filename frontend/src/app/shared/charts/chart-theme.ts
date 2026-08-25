@@ -26,6 +26,19 @@ export function paleta(): string[] {
   return esModoOscuro() ? SERIES_OSCURO : SERIES_CLARO;
 }
 
+/**
+ * El color de un gráfico de **una sola serie**.
+ *
+ * La paleta categórica existe para que dos series contiguas se distingan
+ * entre sí. Con una sola no hay nada de qué distinguirla, así que usar el
+ * primer color de esa paleta solo consigue que el gráfico se vea ajeno al
+ * resto de la aplicación. Acá va el acento de la marca, que además tiene
+ * contraste de sobra contra la superficie en los dos modos.
+ */
+export function colorSerieUnica(): string {
+  return esModoOscuro() ? '#4fd4c4' : '#0a6a60';
+}
+
 /** Tinta de los textos. Nunca se usa el color de la serie para escribir. */
 export function tinta(): { primaria: string; secundaria: string; retícula: string } {
   return esModoOscuro()

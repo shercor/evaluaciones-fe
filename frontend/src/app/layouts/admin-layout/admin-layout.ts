@@ -21,7 +21,6 @@ interface ItemMenu {
   selector: 'app-admin-layout',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, PendingNotice],
   templateUrl: './admin-layout.html',
-  styleUrl: './admin-layout.scss',
 })
 export class AdminLayout {
   private readonly auth = inject(AuthService);

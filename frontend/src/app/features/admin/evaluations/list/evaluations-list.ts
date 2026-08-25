@@ -10,6 +10,7 @@ import {
   EvaluationsService,
 } from '../../../../core/api/evaluations.service';
 import { mensajeDeError } from '../../../../core/http/api-error';
+import { Skeleton } from '../../../../shared/skeleton/skeleton';
 
 interface Confirmacion {
   titulo: string;
@@ -30,7 +31,7 @@ interface Confirmacion {
  */
 @Component({
   selector: 'app-evaluations-list',
-  imports: [ReactiveFormsModule, DatePipe, RouterLink],
+  imports: [ReactiveFormsModule, DatePipe, RouterLink, Skeleton],
   templateUrl: './evaluations-list.html',
 })
 export class EvaluationsList implements OnDestroy {

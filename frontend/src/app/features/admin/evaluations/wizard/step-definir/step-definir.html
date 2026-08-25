@@ -70,6 +70,14 @@
           >
             <b>{{ t.nombre }}</b>
             <em>{{ t.formularios.length }} formularios</em>
+            <span
+              class="mini mt-2 self-start"
+              role="button"
+              tabindex="0"
+              (click)="verPreguntas(t, $event)"
+              (keydown.enter)="verPreguntas(t, $event)"
+              >Ver preguntas</span
+            >
           </button>
         }
       </div>
@@ -100,4 +108,66 @@
       </button>
     </div>
   </form>
+}
+
+<!-- Preguntas de la plantilla, sin salir del asistente -->
+@if (viendoPlantilla(); as plantilla) {
+  <div class="modal-fondo" (click)="cerrarPreguntas()">
+    <div class="modal !max-w-3xl" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>{{ plantilla.nombre }}</h2>
+
+      @if (cargandoPreview()) {
+        <p class="vacio">Cargando las preguntas…</p>
+      } @else if (formulariosPlantilla().length === 0) {
+        <p class="vacio">Esta plantilla no tiene preguntas configuradas.</p>
+      } @else {
+        <p class="explica mb-4">
+          Esto es lo que va a ver cada participante:
+          <b>{{ formulariosPlantilla().length }}</b> formularios con
+          <b>{{ totalPreguntas() }}</b> preguntas en total.
+        </p>
+
+        <nav class="pestanas">
+          @for (f of formulariosPlantilla(); track f.nombre; let i = $index) {
+            <a
+              href="javascript:void(0)"
+              [class.activa]="formularioActivo() === i"
+              (click)="elegirFormulario(i)"
+              >{{ f.nombre }} <span class="cuenta-suave">{{ f.total_preguntas }}</span></a
+            >
+          }
+        </nav>
+
+        @if (formulariosPlantilla()[formularioActivo()]; as f) {
+          @for (c of f.categorias; track c.nombre) {
+            <div class="categoria-detalle">
+              <h3 class="sub">
+                {{ c.nombre }}
+                @if (!c.en_promedio) {
+                  <span class="chip chip-pendiente">No cuenta para el promedio</span>
+                }
+                @if (c.condicional) {
+                  <span class="chip chip-pendiente">Solo si aplica</span>
+                }
+              </h3>
+              <ol class="preguntas">
+                @for (p of c.preguntas; track p.texto) {
+                  <li>
+                    <p class="enunciado">{{ p.texto }}</p>
+                    <p class="leyenda">
+                      {{ p.tipo === 'selection' ? 'Escala numérica' : 'Respuesta escrita' }}
+                    </p>
+                  </li>
+                }
+              </ol>
+            </div>
+          }
+        }
+      }
+
+      <div class="acciones-modal">
+        <button type="button" class="btn btn-quiet" (click)="cerrarPreguntas()">Cerrar</button>
+      </div>
+    </div>
+  </div>
 }

@@ -1,12 +1,36 @@
-<div class="shell">
-  <main class="card">
-    <header class="brand">
-      <p class="eyebrow">Idea Uno</p>
-      <h1>Evaluación de Personal</h1>
-    </header>
+<!--
+  Fondo con dos resplandores muy tenues del acento y del índigo. Es lo único
+  decorativo de toda la aplicación, y va acá porque es la única pantalla sin
+  datos que mirar.
+-->
+<div class="relative min-h-screen overflow-hidden">
+  <div
+    class="pointer-events-none absolute -top-40 -left-40 size-[32rem] rounded-full
+           opacity-[0.13] blur-3xl"
+    style="background: var(--color-accent)"
+    aria-hidden="true"
+  ></div>
+  <div
+    class="pointer-events-none absolute -right-40 -bottom-40 size-[32rem] rounded-full
+           opacity-[0.11] blur-3xl"
+    style="background: var(--color-indigo)"
+    aria-hidden="true"
+  ></div>
 
-    <router-outlet />
-  </main>
+  <div class="relative flex min-h-screen flex-col items-center justify-center gap-6 px-5 py-10">
+    <main class="entra tarjeta w-full max-w-sm p-8 shadow-flotante">
+      <header class="mb-7 border-b border-rule pb-5">
+        <p class="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-accent">
+          Idea Uno
+        </p>
+        <h1 class="font-display text-2xl font-bold leading-tight tracking-tight">
+          Evaluación de Personal
+        </h1>
+      </header>
 
-  <p class="foot">Portal de evaluación de desempeño</p>
+      <router-outlet />
+    </main>
+
+    <p class="m-0 text-sm text-ink-3">Portal de evaluación de desempeño</p>
+  </div>
 </div>

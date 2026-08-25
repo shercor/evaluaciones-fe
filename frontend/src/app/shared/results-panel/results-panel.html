@@ -13,7 +13,7 @@
 @if (datos().promedios.error) {
   <p class="alert alert-error" role="alert">{{ datos().promedios.error }}</p>
 } @else if (cifras().length > 0) {
-  <section class="cifras">
+  <section class="cifras entra-escalonado">
     @for (c of cifras(); track c.titulo) {
       <article class="cifra" [title]="c.descripcion ?? ''">
         <p class="rotulo">{{ c.titulo }}</p>
@@ -61,8 +61,10 @@
       <div class="categoria-detalle">
         <h3 class="sub">
           {{ categoria.nombre }}
-          @if (categoria.promedio_general) {
-            <span class="chip chip-ok">Promedio {{ categoria.promedio_general }}</span>
+          @if (promedioDe(categoria); as promedio) {
+            <span class="chip chip-ok">Promedio {{ promedio }}</span>
+          } @else if (categoria.solo_texto) {
+            <span class="chip chip-pendiente">Solo comentarios</span>
           }
         </h3>
 

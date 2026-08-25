@@ -16,34 +16,18 @@ import { RouterLink } from '@angular/router';
   imports: [RouterLink],
   template: `
     @if (pendiente(); as p) {
-      <aside class="aviso-pendiente" role="status">
-        <span>
+      <aside
+        class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-card
+               border-l-4 border-accent bg-accent-soft px-5 py-4 text-sm"
+        role="status"
+      >
+        <span class="text-ink">
           Tenés tareas sin responder en <b>{{ p.titulo }}</b>.
         </span>
         <a class="btn btn-primary" [routerLink]="['/portal/evaluacion', p.evaluacion_id]">
           Responder
         </a>
       </aside>
-    }
-  `,
-  styles: `
-    .aviso-pendiente {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-      background: var(--accent-soft);
-      border-left: 3px solid var(--accent);
-      border-radius: var(--radius);
-      padding: 0.85rem 1.1rem;
-      margin-bottom: 1.4rem;
-      font-size: 0.92rem;
-    }
-    .aviso-pendiente .btn {
-      text-decoration: none;
-      font-size: 0.85rem;
-      padding: 0.4rem 0.9rem;
     }
   `,
 })

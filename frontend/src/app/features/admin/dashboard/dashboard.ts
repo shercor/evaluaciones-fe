@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { BarChart, SerieBarra } from '../../../shared/charts/bar-chart';
 import { ResultsService, Tablero } from '../../../core/api/results.service';
 import { mensajeDeError } from '../../../core/http/api-error';
+import { Skeleton } from '../../../shared/skeleton/skeleton';
 
 /**
  * Tablero general de una evaluación.
@@ -13,7 +14,7 @@ import { mensajeDeError } from '../../../core/http/api-error';
  */
 @Component({
   selector: 'app-dashboard',
-  imports: [BarChart],
+  imports: [BarChart, Skeleton],
   templateUrl: './dashboard.html',
 })
 export class Dashboard {
@@ -91,15 +92,28 @@ export class Dashboard {
     }));
   });
 
-  // -- Respuestas abiertas -------------------------------------------
+  // -- Encuesta de clima laboral --------------------------------------
 
-  protected readonly abiertas = computed(() => {
-    const r = this.datos()?.respuestas_abiertas.resultado;
-    if (!Array.isArray(r)) return [];
-    return (r as Record<string, unknown>[]).map((x) => ({
-      pregunta: String(x['pregunta'] ?? x['titulo'] ?? ''),
-      respuestas: ((x['respuestas'] as unknown[]) ?? []).map(String).filter((s) => s.trim() !== ''),
-    }));
+  /**
+   * Las preguntas del clima laboral son **numéricas**, no de texto: la API
+   * devuelve el promedio de cada una. Se dibujan como barras, que es lo que
+   * permite ver de un vistazo cuál quedó más baja.
+   */
+  protected readonly climaCategorias = computed<string[]>(() =>
+    this.listaClima().map((x) => x.titulo),
+  );
+
+  protected readonly climaSeries = computed<SerieBarra[]>(() => {
+    const lista = this.listaClima();
+    if (lista.length === 0) return [];
+    return [{ nombre: 'Promedio', valores: lista.map((x) => x.valor) }];
+  });
+
+  /** La pregunta peor evaluada, que es la que hay que mirar primero. */
+  protected readonly climaMasBaja = computed(() => {
+    const conDato = this.listaClima().filter((x) => x.valor !== null);
+    if (conDato.length === 0) return null;
+    return conDato.reduce((peor, x) => (x.valor! < peor.valor! ? x : peor));
   });
 
   constructor() {
@@ -122,6 +136,15 @@ export class Dashboard {
 
   protected volver(): void {
     this.router.navigate(['/admin/evaluaciones']);
+  }
+
+  private listaClima(): { titulo: string; valor: number | null }[] {
+    const r = this.datos()?.respuestas_abiertas.resultado;
+    if (!Array.isArray(r)) return [];
+    return (r as Record<string, unknown>[]).map((x) => ({
+      titulo: String(x['titulo'] ?? ''),
+      valor: typeof x['valor'] === 'number' ? x['valor'] : null,
+    }));
   }
 
   private listaSimple(): { titulo: string; valor: number | null }[] {

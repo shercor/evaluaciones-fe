@@ -22,7 +22,6 @@ interface Paso {
   selector: 'app-wizard-shell',
   imports: [RouterOutlet, RouterLink],
   templateUrl: './wizard-shell.html',
-  styleUrl: './wizard-shell.scss',
 })
 export class WizardShell {
   private readonly ruta = inject(ActivatedRoute);

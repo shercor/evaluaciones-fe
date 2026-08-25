@@ -1,7 +1,7 @@
 import { Component, computed, input } from '@angular/core';
 import { NgxEchartsDirective } from 'ngx-echarts';
 import type { EChartsCoreOption } from 'echarts/core';
-import { paleta, tinta } from './chart-theme';
+import { colorSerieUnica, paleta, tinta } from './chart-theme';
 
 export interface SerieBarra {
   nombre: string;
@@ -56,9 +56,9 @@ export class BarChart {
   });
 
   protected readonly opciones = computed<EChartsCoreOption>(() => {
-    const colores = paleta();
     const t = tinta();
     const varias = this.series().length > 1;
+    const colores = varias ? paleta() : [colorSerieUnica()];
 
     return {
       color: colores,
@@ -88,7 +88,13 @@ export class BarChart {
         type: 'category',
         data: this.categorias(),
         inverse: true,
-        axisLabel: { color: t.primaria, fontSize: 12, width: 190, overflow: 'truncate' },
+        axisLabel: {
+          color: t.primaria,
+          fontSize: 12,
+          // Sin leyenda sobra ancho, así que las frases largas no se cortan.
+          width: varias ? 190 : 300,
+          overflow: 'truncate',
+        },
         axisLine: { show: false },
         axisTick: { show: false },
       },

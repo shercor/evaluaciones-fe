@@ -1,5 +1,5 @@
 @if (cargando()) {
-  <p class="vacio">Cargando el tablero…</p>
+  <app-skeleton tipo="cifras" [cantidad]="4" />
 } @else if (error()) {
   <p class="alert alert-error" role="alert">{{ error() }}</p>
   <button type="button" class="btn btn-quiet" (click)="volver()">Volver</button>
@@ -17,7 +17,7 @@
     </div>
   </header>
 
-  <section class="cifras">
+  <section class="cifras entra-escalonado">
     @for (c of cifras(); track c.titulo) {
       <article class="cifra" [title]="c.descripcion ?? ''">
         <p class="rotulo">{{ c.titulo }}</p>
@@ -71,25 +71,21 @@
     </section>
   }
 
-  @if (abiertas().length > 0) {
+  @if (climaCategorias().length > 0) {
     <section class="bloque">
       <h2>{{ d.respuestas_abiertas.titulo }}</h2>
-      <p class="explica">Respuestas escritas, anónimas.</p>
-
-      @for (p of abiertas(); track p.pregunta) {
-        <div class="pregunta-abierta">
-          <h3 class="sub">{{ p.pregunta }}</h3>
-          @if (p.respuestas.length === 0) {
-            <p class="sin-dato">Nadie respondió esta pregunta.</p>
-          } @else {
-            <ul class="comentarios">
-              @for (r of p.respuestas; track $index) {
-                <li><blockquote>{{ r }}</blockquote></li>
-              }
-            </ul>
-          }
-        </div>
-      }
+      <p class="explica">
+        Promedio de cada afirmación de la encuesta.
+        @if (climaMasBaja(); as baja) {
+          La más baja es <b>«{{ baja.titulo }}»</b>, con {{ baja.valor }}.
+        }
+      </p>
+      <app-bar-chart
+        [categorias]="climaCategorias()"
+        [series]="climaSeries()"
+        [maximo]="notaMaxima()"
+        [titulo]="d.respuestas_abiertas.titulo ?? 'Encuesta de clima laboral'"
+      />
     </section>
   }
 }

@@ -8,6 +8,7 @@ import {
   ResultsService,
 } from '../../../core/api/results.service';
 import { mensajeDeError } from '../../../core/http/api-error';
+import { Skeleton } from '../../../shared/skeleton/skeleton';
 
 /**
  * Avance del proceso: quién respondió y quién no.
@@ -17,7 +18,7 @@ import { mensajeDeError } from '../../../core/http/api-error';
  */
 @Component({
   selector: 'app-monitoring',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, Skeleton],
   templateUrl: './monitoring.html',
 })
 export class Monitoring {

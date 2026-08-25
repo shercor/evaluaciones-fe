@@ -10,6 +10,7 @@ import {
 } from '../../../../core/api/directory.service';
 import { User } from '../../../../core/auth/user.model';
 import { mensajeDeError } from '../../../../core/http/api-error';
+import { Skeleton } from '../../../../shared/skeleton/skeleton';
 
 /**
  * Listado y edición de las personas del directorio.
@@ -19,9 +20,8 @@ import { mensajeDeError } from '../../../../core/http/api-error';
  */
 @Component({
   selector: 'app-people',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Skeleton],
   templateUrl: './people.html',
-  styleUrl: './people.scss',
 })
 export class People {
   private readonly directorio = inject(DirectoryService);

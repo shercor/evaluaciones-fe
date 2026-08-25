@@ -51,11 +51,9 @@
 </form>
 
 @if (cargando()) {
-  <p class="vacio">Cargando…</p>
+  <app-skeleton tipo="tabla" [cantidad]="4" />
 } @else if (evaluaciones().length === 0) {
-  <p class="vacio">
-    No hay procesos de evaluación que coincidan con el filtro.
-  </p>
+  <div class="vacio"><svg class="size-10 text-ink-3/50" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="17" cy="17" r="11"/><path d="m25.5 25.5 7 7"/></svg><p class="m-0">No hay procesos de evaluación que coincidan con el filtro.</p></div>
 } @else {
   <div class="tabla-scroll">
     <table class="tabla">

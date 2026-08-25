@@ -30,6 +30,7 @@ class UserResource extends JsonResource
             'role' => $this->role->value,
             'role_label' => $this->role->label(),
             'is_administrative' => $this->role->isAdministrative(),
+            'active' => $this->active,
             'must_set_password' => $this->must_set_password,
             'avatar_url' => $this->avatar_path ? asset('storage/'.$this->avatar_path) : null,
             'branch_office' => $this->whenLoaded('branchOffice', fn () => [

@@ -12,7 +12,6 @@ import { AuthService } from '../../core/auth/auth.service';
   selector: 'app-portal-layout',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, PendingNotice],
   templateUrl: './portal-layout.html',
-  styleUrl: './portal-layout.scss',
 })
 export class PortalLayout {
   private readonly auth = inject(AuthService);

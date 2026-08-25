@@ -1,25 +1,47 @@
-<main class="page">
-  <header class="masthead">
-    <p class="eyebrow">Evaluación de Personal · Portal</p>
-    <h1>Andamiaje operativo</h1>
-    <p class="standfirst">
-      Hito 1 de 8. Esta pantalla consulta el backend de verdad: si los cuatro puntos están
-      en verde, la cadena completa está funcionando.
+<main class="mx-auto max-w-3xl px-6 pt-14 pb-20">
+  <header class="mb-9 border-b-2 border-ink pb-5">
+    <p class="mb-3 text-[0.7rem] font-bold uppercase tracking-[0.16em] text-accent">
+      Evaluación de Personal · Portal
+    </p>
+    <h1 class="mb-3 text-3xl font-bold sm:text-4xl">Andamiaje operativo</h1>
+    <p class="max-w-xl text-ink-2">
+      Esta pantalla consulta el backend de verdad: si los puntos están en verde, la cadena
+      completa está funcionando.
     </p>
   </header>
 
   @if (loading()) {
-    <p class="loading">Consultando el backend…</p>
+    <p class="vacio">Consultando el backend…</p>
   } @else {
-    <ul class="checks">
+    <ul class="tarjeta mb-7 flex list-none flex-col overflow-hidden p-0">
       @for (check of checks(); track check.label) {
-        <li class="check" [attr.data-state]="check.state">
-          <span class="marker" aria-hidden="true"></span>
+        <li class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-4
+                   border-b border-rule px-5 py-4 last:border-b-0">
+          <span
+            class="mt-1.5 size-2.5 rounded-full"
+            [class]="
+              check.state === 'ok'
+                ? 'bg-accent'
+                : check.state === 'pending'
+                  ? 'bg-warn'
+                  : 'bg-danger'
+            "
+            aria-hidden="true"
+          ></span>
           <div>
-            <b>{{ check.label }}</b>
-            <p>{{ check.detail }}</p>
+            <b class="mb-0.5 block text-[0.98rem]">{{ check.label }}</b>
+            <p class="m-0 text-sm text-ink-2">{{ check.detail }}</p>
           </div>
-          <span class="state">
+          <span
+            class="pt-1 text-[0.66rem] font-bold uppercase tracking-wider whitespace-nowrap"
+            [class]="
+              check.state === 'ok'
+                ? 'text-accent'
+                : check.state === 'pending'
+                  ? 'text-warn'
+                  : 'text-danger'
+            "
+          >
             @switch (check.state) {
               @case ('ok') { Correcto }
               @case ('pending') { Pendiente }
@@ -30,15 +52,13 @@
       }
     </ul>
 
-    <button type="button" class="refresh" (click)="refresh()">Volver a consultar</button>
+    <button type="button" class="btn btn-quiet" (click)="refresh()">Volver a consultar</button>
   }
 
-  <section class="next">
-    <h2>Qué sigue</h2>
-    <p>
-      El hito 2 reemplaza esta pantalla por el acceso: login, invitación para definir la
-      primera contraseña, recuperación, roles y los dos portales — el de administración y el
-      del colaborador.
+  <section class="mt-12 border-t border-rule pt-6">
+    <h2 class="mb-2 text-base font-semibold">Qué sigue</h2>
+    <p class="max-w-xl text-sm text-ink-2">
+      El módulo está completo. Entrá con tu cuenta para usarlo.
     </p>
   </section>
 </main>
