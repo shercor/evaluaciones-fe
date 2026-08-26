@@ -303,8 +303,15 @@ class EvaluationWizardController extends Controller
     {
         $evaluation = $this->localFor($id);
 
+        // Ojo con calificar las columnas: más abajo se une `users`, que tiene
+        // `branch_office_id`, `job_position_id` y `supervisor_id` con los
+        // mismos nombres. Sin el prefijo, MySQL las declara ambiguas y la
+        // consulta muere. Y el prefijo correcto es `evaluation_users`: ahí
+        // viven los valores **congelados** al armar el padrón, que son los que
+        // la pantalla muestra. Filtrar por los de `users` daría los vigentes y
+        // devolvería filas que no coinciden con lo que se ve en la tabla.
         $query = EvaluationUser::query()
-            ->where('evaluation_id', $evaluation->id)
+            ->where('evaluation_users.evaluation_id', $evaluation->id)
             ->with(['user:id,name,lastname', 'jobPosition:id,name', 'branchOffice:id,name', 'supervisor:id,name,lastname']);
 
         if ($buscar = $request->string('search')->trim()->toString()) {
@@ -317,12 +324,12 @@ class EvaluationWizardController extends Controller
 
         foreach (['branch_office_id', 'job_position_id', 'supervisor_id'] as $filtro) {
             if ($request->filled($filtro)) {
-                $query->where($filtro, $request->input($filtro));
+                $query->where("evaluation_users.{$filtro}", $request->input($filtro));
             }
         }
 
         if ($request->has('participate') && $request->input('participate') !== '') {
-            $query->where('participate', $request->boolean('participate'));
+            $query->where('evaluation_users.participate', $request->boolean('participate'));
         }
 
         // Orden por columna, como en la intranet. La lista blanca evita que
