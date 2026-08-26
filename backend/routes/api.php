@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\GroupController;
 use App\Http\Controllers\Admin\ResultsController;
 use App\Http\Controllers\Admin\EvaluationWizardController;
 use App\Http\Controllers\Admin\ImportController;
+use App\Http\Controllers\Admin\ImportMappingController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Portal\PortalController;
@@ -112,6 +113,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('users/{user}/toggle-active', [UserController::class, 'toggleActive']);
             Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword']);
             Route::post('users/{user}/resend-invitation', [UserController::class, 'resendInvitation']);
+            Route::post('users/{user}/avatar', [UserController::class, 'uploadAvatar']);
+            Route::delete('users/{user}/avatar', [UserController::class, 'deleteAvatar']);
 
             // -- Directorio: catálogos -------------------------------
             // {tipo} es «sucursales» o «cargos»: comparten forma y controlador.
@@ -184,6 +187,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('importaciones', [ImportController::class, 'index']);
             Route::post('importaciones', [ImportController::class, 'store']);
             Route::get('importaciones/plantilla', [ImportController::class, 'template']);
+            // Homologar una planilla con otro formato. Va antes de
+            // `importaciones/{import}` para que «homologacion» no entre por el
+            // parámetro y termine buscando una importación con ese id.
+            Route::post('importaciones/homologacion', [ImportMappingController::class, 'store']);
+            Route::post('importaciones/homologacion/{borrador}/resumen', [ImportMappingController::class, 'preview']);
+            Route::post('importaciones/homologacion/{borrador}/importar', [ImportMappingController::class, 'confirm']);
+            Route::delete('importaciones/homologacion/{borrador}', [ImportMappingController::class, 'destroy']);
             Route::get('importaciones/{import}', [ImportController::class, 'show']);
             Route::get('importaciones/{import}/contrasenas', [ImportController::class, 'downloadPasswords']);
         });

@@ -3,11 +3,13 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ResultsService } from '../../../core/api/results.service';
 import { PanelResultados, ResultsPanel } from '../../../shared/results-panel/results-panel';
 import { mensajeDeError } from '../../../core/http/api-error';
+import { Avatar } from '../../../shared/avatar/avatar';
 
 interface Supervisado {
   user_id: number;
   nombre: string;
   iniciales: string;
+  foto: string | null;
   cargo: string | null;
 }
 
@@ -20,7 +22,7 @@ interface Supervisado {
  */
 @Component({
   selector: 'app-supervisados',
-  imports: [ResultsPanel, RouterLink],
+  imports: [ResultsPanel, RouterLink, Avatar],
   templateUrl: './supervisados.html',
 })
 export class Supervisados {

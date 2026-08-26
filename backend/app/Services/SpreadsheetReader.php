@@ -34,11 +34,56 @@ class SpreadsheetReader
      */
     public function read(UploadedFile $file): array
     {
-        $extension = mb_strtolower($file->getClientOriginalExtension());
+        return $this->asociar(
+            $this->celdas($file->getRealPath(), mb_strtolower($file->getClientOriginalExtension())),
+        );
+    }
 
+    /**
+     * Lee la planilla **sin dar por sentado ningún encabezado**.
+     *
+     * Es lo que necesita la homologación: acá el archivo viene con las
+     * columnas que se le ocurrieron a quien lo armó, así que se devuelven tal
+     * como están y quien decide qué es cada una es la persona, después.
+     *
+     * @return array{
+     *     headers: array<int, array{clave: string, etiqueta: string}>,
+     *     rows: array<int, array<string, string>>
+     * }
+     *
+     * @throws \RuntimeException si el archivo está vacío o no tiene encabezado
+     */
+    public function readRaw(string $ruta, string $extension): array
+    {
+        $filas = $this->celdas($ruta, mb_strtolower($extension));
+        $encabezado = $this->encabezados(array_shift($filas));
+
+        $resultado = [];
+
+        foreach ($filas as $fila) {
+            if ($this->estaVacia($fila)) {
+                continue;
+            }
+
+            $asociativa = [];
+            foreach ($encabezado as $indice => $columna) {
+                $asociativa[$columna['clave']] = $this->comoTexto($fila[$indice] ?? null);
+            }
+
+            $resultado[] = $asociativa;
+        }
+
+        return ['headers' => $encabezado, 'rows' => $resultado];
+    }
+
+    /**
+     * @return array<int, array<int, mixed>>
+     */
+    private function celdas(string $ruta, string $extension): array
+    {
         $filas = in_array($extension, ['csv', 'txt'], true)
-            ? $this->leerCsv($file->getRealPath())
-            : $this->leerExcel($file);
+            ? $this->leerCsv($ruta)
+            : $this->leerExcel($ruta);
 
         if (count($filas) < 2) {
             throw new \RuntimeException(
@@ -46,7 +91,95 @@ class SpreadsheetReader
             );
         }
 
-        return $this->asociar($filas);
+        return $filas;
+    }
+
+    /**
+     * Nombra las columnas del archivo para poder referirse a ellas.
+     *
+     * La clave es el encabezado normalizado; la etiqueta, el texto tal como
+     * se escribió, que es lo que la persona reconoce al mirar su planilla.
+     *
+     * Dos casos que se dan de verdad y hay que resolver acá: **encabezados
+     * repetidos** —dos columnas «Nombre»— y **encabezados vacíos**, que en
+     * Excel abundan porque alguien escribió algo en una celda suelta a la
+     * derecha. A los repetidos se les agrega un número; a los vacíos se les
+     * pone la letra de su columna, que es como la persona la ve en Excel.
+     *
+     * @return array<int, array{clave: string, etiqueta: string}>
+     */
+    private function encabezados(array $fila): array
+    {
+        $encabezados = [];
+        $usadas = [];
+
+        foreach ($fila as $indice => $celda) {
+            $etiqueta = trim((string) $this->comoTexto($celda));
+            $clave = $this->normalizarEncabezado($etiqueta);
+
+            if ($clave === '') {
+                $clave = 'columna_'.$this->letraDeColumna($indice);
+                $etiqueta = 'Columna '.$this->letraDeColumna($indice).' (sin nombre)';
+            }
+
+            $base = $clave;
+            $vuelta = 2;
+            while (isset($usadas[$clave])) {
+                $clave = $base.'_'.$vuelta;
+                $etiqueta .= ' ('.$vuelta.')';
+                $vuelta++;
+            }
+
+            $usadas[$clave] = true;
+            $encabezados[$indice] = ['clave' => $clave, 'etiqueta' => $etiqueta];
+        }
+
+        return $encabezados;
+    }
+
+    /** A, B, … Z, AA, AB: la referencia que muestra Excel. */
+    private function letraDeColumna(int $indice): string
+    {
+        $letra = '';
+
+        for ($n = $indice; $n >= 0; $n = intdiv($n, 26) - 1) {
+            $letra = chr(65 + $n % 26).$letra;
+        }
+
+        return $letra;
+    }
+
+    /**
+     * Toda celda se convierte a texto, y a propósito.
+     *
+     * Una planilla trae números, fechas y booleanos, y todo lo que el sistema
+     * guarda de una persona son cadenas. Sin esto, un código de ficha que
+     * Excel guardó como número llega como `123.0` y deja de coincidir con el
+     * `123` que ya está en el directorio: la misma persona se duplica.
+     */
+    private function comoTexto(mixed $valor): string
+    {
+        if ($valor === null || $valor === '') {
+            return '';
+        }
+
+        if ($valor instanceof \DateTimeInterface) {
+            return $valor->format('Y-m-d');
+        }
+
+        if (is_bool($valor)) {
+            return $valor ? '1' : '0';
+        }
+
+        // Un entero que viaja como decimal —`123.0`— vuelve a ser entero. Los
+        // decimales de verdad conservan sus dígitos.
+        if (is_float($valor)) {
+            return floor($valor) === $valor && abs($valor) < 1e15
+                ? number_format($valor, 0, '.', '')
+                : rtrim(rtrim(number_format($valor, 10, '.', ''), '0'), '.');
+        }
+
+        return trim((string) $valor);
     }
 
     // -----------------------------------------------------------------
@@ -107,12 +240,12 @@ class SpreadsheetReader
     /**
      * @return array<int, array<int, mixed>>
      */
-    private function leerExcel(UploadedFile $file): array
+    private function leerExcel(string $ruta): array
     {
         // `toArray` exige un objeto que implemente la interfaz marcadora del
         // paquete, aunque no se use ninguna de sus capacidades: acá solo se
         // quieren las celdas crudas.
-        $hojas = Excel::toArray(new class implements \Maatwebsite\Excel\Concerns\Import {}, $file);
+        $hojas = Excel::toArray(new class implements \Maatwebsite\Excel\Concerns\Import {}, $ruta);
 
         return $hojas[0] ?? [];
     }
@@ -141,7 +274,7 @@ class SpreadsheetReader
                 if ($columna === '') {
                     continue;
                 }
-                $asociativa[$columna] = $fila[$indice] ?? null;
+                $asociativa[$columna] = $this->comoTexto($fila[$indice] ?? null);
             }
 
             $resultado[] = $asociativa;

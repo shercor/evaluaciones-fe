@@ -106,7 +106,13 @@ export class ResultsService {
   misSupervisados(
     id: number,
   ): Observable<{
-    data: { user_id: number; nombre: string; iniciales: string; cargo: string | null }[];
+    data: {
+      user_id: number;
+      nombre: string;
+      iniciales: string;
+      foto: string | null;
+      cargo: string | null;
+    }[];
   }> {
     return this.http.get<never>(`/api/portal/evaluaciones/${id}/supervisados`);
   }

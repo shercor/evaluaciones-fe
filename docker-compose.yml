@@ -67,6 +67,10 @@ services:
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-root}"
     volumes:
       - mysql_data:/var/lib/mysql
+      # Bases de los clientes ficticios de prueba. MySQL lo corre solo al
+      # crear el volumen por primera vez; en un entorno andando hay que
+      # crearlas a mano. El propio archivo lo explica.
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${DB_ROOT_PASSWORD:-root}"]
       interval: 5s
@@ -112,6 +116,29 @@ services:
         condition: service_healthy
       mailpit:
         condition: service_started
+
+  # ---------------------------------------------------------------
+  # Programador de tareas. No hace nada de negocio: es lo que evita
+  # que las tablas de servicio —trabajos fallidos, planillas subidas
+  # a medias, contraseñas temporales viejas— crezcan para siempre.
+  #
+  # `schedule:work` se queda mirando el reloj, que es el equivalente
+  # en desarrollo del cron que en producción llama a `schedule:run`
+  # cada minuto. Qué corre y cada cuánto está en routes/console.php.
+  # ---------------------------------------------------------------
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: ep_scheduler
+    working_dir: /var/www/html
+    volumes:
+      - ./backend:/var/www/html
+    command: php artisan schedule:work
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
 
 volumes:
   mysql_data:

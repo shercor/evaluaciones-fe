@@ -137,9 +137,11 @@
           <tr [class.inactiva]="!p.email">
             <td>
               <div class="persona-celda">
-                <span class="avatar-mini avatar-tenue !size-8" aria-hidden="true">{{
-                  p.initials
-                }}</span>
+                <app-avatar
+                  [foto]="p.avatar_url"
+                  [iniciales]="p.initials"
+                  clases="avatar-tenue avatar-chico"
+                />
                 <span>
                   <b>{{ p.full_name }}</b>
                   @if (sinCorreoReal(p)) {
@@ -243,6 +245,63 @@
       }
 
       <form [formGroup]="formulario" (ngSubmit)="guardar()" novalidate>
+        <!--
+          La foto no es un campo más del formulario: se sube sola, apenas se
+          elige. Por eso vive fuera de la grilla y lo dice en su propia pista.
+        -->
+        <div class="foto-perfil">
+          <app-avatar
+            [foto]="fotoFormulario()"
+            [iniciales]="inicialesFormulario()"
+            clases="avatar-grande"
+          />
+
+          <div class="min-w-0">
+            <div class="acciones-foto">
+              <button
+                type="button"
+                class="btn btn-quiet"
+                [disabled]="subiendoFoto()"
+                (click)="archivoFoto.click()"
+              >
+                @if (subiendoFoto()) {
+                  Subiendo…
+                } @else if (fotoFormulario()) {
+                  Cambiar foto
+                } @else {
+                  Subir foto
+                }
+              </button>
+
+              @if (fotoFormulario()) {
+                <button
+                  type="button"
+                  class="btn btn-quiet"
+                  [disabled]="subiendoFoto()"
+                  (click)="quitarFoto()"
+                >
+                  Quitar
+                </button>
+              }
+            </div>
+
+            <p class="pista mt-2">
+              JPG, PNG o WebP, hasta 8 MB. Se recorta cuadrada y se guarda chica.
+              @if (persona.id !== 0) {
+                El cambio se aplica al instante, sin esperar a «Guardar».
+              }
+            </p>
+          </div>
+
+          <input
+            #archivoFoto
+            type="file"
+            class="hidden"
+            accept="image/jpeg,image/png,image/webp"
+            (change)="elegirFoto($event)"
+          />
+        </div>
+
         <div class="grilla-form">
           <div class="field">
             <label for="p-codigo">Código interno</label>

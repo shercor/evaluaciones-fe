@@ -10,5 +10,12 @@
     "secure": false,
     "changeOrigin": false,
     "logLevel": "debug"
+  },
+  "/storage": {
+    "//": "Las fotos de perfil. Laravel arma la dirección con el host de la petición, que en desarrollo es el de este servidor (4200) y no el de nginx: sin este reenvío la foto se guarda bien y se ve rota.",
+    "target": "http://nginx:80",
+    "secure": false,
+    "changeOrigin": false,
+    "logLevel": "debug"
   }
 }

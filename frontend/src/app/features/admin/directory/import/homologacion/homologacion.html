@@ -1,0 +1,326 @@
+@if (error()) {
+  <p class="alert alert-error" role="alert">{{ error() }}</p>
+}
+
+@switch (fase()) {
+  <!-- ------------------------------------------------ Paso 1: el archivo -->
+  @case ('archivo') {
+    <p class="explica">
+      Subí la planilla como la tengas. Lo único obligatorio es que la
+      <b>primera fila traiga los nombres de las columnas</b>: en el paso siguiente vas a decir cuál
+      es cuál. No importa el orden, ni que sobren columnas, ni cómo se llamen.
+    </p>
+
+    <div class="carga">
+      <input
+        type="file"
+        id="archivo-homologar"
+        accept=".csv,.txt,.xlsx,.xls"
+        (change)="seleccionar($event)"
+      />
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="!archivo() || ocupada()"
+        (click)="analizar()"
+      >
+        {{ ocupada() ? 'Leyendo…' : 'Leer las columnas' }}
+      </button>
+    </div>
+  }
+
+  <!-- --------------------------------------------- Paso 2: la homologación -->
+  @case ('mapa') {
+    @if (borrador(); as b) {
+      <p class="explica">
+        <b>{{ b.filename }}</b> · {{ b.rows_total }} {{ b.rows_total === 1 ? 'fila' : 'filas' }} ·
+        {{ b.headers.length }} columnas. Debajo de cada desplegable aparecen datos reales de la
+        columna elegida: sirven para confirmar que es la que pensabas.
+      </p>
+
+      <div class="homologacion">
+        @for (c of columnas(); track c.clave) {
+          <div
+            class="field campo-homologado"
+            [class.sin-conectar]="c.obligatoria && !mapa()[c.clave]"
+          >
+            <label [for]="'campo-' + c.clave">
+              {{ c.etiqueta }}
+              @if (c.obligatoria) {
+                <span class="chip chip-pendiente">Obligatoria</span>
+              }
+            </label>
+
+            <!--
+              Lo elegido se marca en cada `option` y no con `[value]` en el
+              `select`: el valor del select se aplica antes de que existan las
+              opciones, así que la sugerencia quedaba puesta en el modelo pero
+              el desplegable seguía mostrando «No está en mi planilla». Peor
+              que no sugerir nada: dice una cosa y hace otra.
+            -->
+            <select [id]="'campo-' + c.clave" (change)="conectar(c.clave, $event)">
+              <option value="" [selected]="!mapa()[c.clave]">— No está en mi planilla —</option>
+              @for (h of b.headers; track h.clave) {
+                <option [value]="h.clave" [selected]="mapa()[c.clave] === h.clave">
+                  {{ h.etiqueta }}
+                </option>
+              }
+            </select>
+
+            <span class="pista">{{ c.ayuda }}</span>
+
+            @if (ejemplosDe(c.clave).length > 0) {
+              <p class="ejemplos">
+                @for (e of ejemplosDe(c.clave); track e) {
+                  <span class="dato">{{ e }}</span>
+                }
+              </p>
+            }
+          </div>
+        }
+      </div>
+
+      @if (faltantes().length > 0) {
+        <p class="alert alert-error" role="alert">
+          Falta conectar
+          @for (f of faltantes(); track f; let ultimo = $last) {
+            <b>{{ f }}</b
+            >{{ ultimo ? '.' : ', ' }}
+          }
+          Sin eso no se puede identificar a la persona.
+        </p>
+      }
+
+      @for (r of repetidas(); track r.columna) {
+        <p class="alert alert-error" role="alert">
+          La columna <b>{{ r.columna }}</b> está conectada a {{ r.campos.join(' y ') }}. Cada
+          columna de tu planilla puede alimentar un solo campo.
+        </p>
+      }
+
+      <div class="acciones-paso">
+        <button type="button" class="btn btn-quiet" (click)="descartar()">
+          Cambiar de archivo
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="!puedeSeguir() || ocupada()"
+          (click)="verResumen()"
+        >
+          {{ ocupada() ? 'Revisando…' : 'Ver el resumen' }}
+        </button>
+      </div>
+    }
+  }
+
+  <!-- ------------------------------------------------- Paso 3: el resumen -->
+  @case ('resumen') {
+    @if (resumen(); as r) {
+      <p class="explica">
+        Así van a quedar los datos en el sistema. <b>Todavía no se importó nada.</b>
+      </p>
+
+      <div class="marcadores">
+        <div class="marcador">
+          <b>{{ r.filas_totales }}</b>
+          <span>Filas en el archivo</span>
+        </div>
+        <div class="marcador ok">
+          <b>{{ r.se_crearan }}</b>
+          <span>Se van a crear</span>
+        </div>
+        <div class="marcador">
+          <b>{{ r.se_actualizaran }}</b>
+          <span>Se van a actualizar</span>
+        </div>
+        <div class="marcador" [class.mal]="r.filas_con_problemas > 0">
+          <b>{{ r.filas_con_problemas }}</b>
+          <span>Se van a rechazar</span>
+        </div>
+      </div>
+
+      @if (r.muestra.length > 0) {
+        <!-- Cómo queda cada dato: esto es lo que hay que mirar de verdad -->
+        <h3>Cómo van a quedar</h3>
+        <p class="explica">
+          Las primeras {{ r.muestra.length }} filas que entran, con tus datos puestos debajo del
+          campo del sistema al que los conectaste.
+        </p>
+
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th class="num">Línea</th>
+                @for (c of columnasMapeadas(); track c.clave) {
+                  <th>
+                    {{ c.etiqueta }}
+                    <em class="origen">{{ etiquetaDeOrigen(mapa()[c.clave]) }}</em>
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (f of r.muestra; track f.linea) {
+                <tr>
+                  <td class="num">{{ f.linea }}</td>
+                  @for (c of columnasMapeadas(); track c.clave) {
+                    <td>{{ f[c.clave] || '—' }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (sinUsar().length > 0) {
+        <p class="explica">
+          Columnas de tu planilla que no se van a usar: {{ sinUsar().join(', ') }}.
+        </p>
+      }
+
+      @if (codigosFaltantes(); as faltan) {
+        <div class="alert alert-error" role="alert">
+          <b>Hay códigos que el sistema no conoce.</b> Conectaste la columna del código sin la del
+          nombre, y con un código suelto no hay con qué crear la sucursal o el cargo. Las filas que
+          los usan no van a entrar. Se arregla de dos maneras: cargándolos en Directorio, o
+          conectando también la columna con el nombre.
+
+          @if (faltan.sucursales.length > 0) {
+            <p class="catalogo-nuevo">
+              <em>Sucursales:</em>
+              @for (c of faltan.sucursales; track c) {
+                <span class="dato">{{ c }}</span>
+              }
+            </p>
+          }
+
+          @if (faltan.cargos.length > 0) {
+            <p class="catalogo-nuevo">
+              <em>Cargos:</em>
+              @for (c of faltan.cargos; track c) {
+                <span class="dato">{{ c }}</span>
+              }
+            </p>
+          }
+        </div>
+      }
+
+      @if (catalogoNuevo(); as nuevo) {
+        <div class="alert alert-ok">
+          <b>La planilla trae sucursales y cargos que todavía no existen.</b> Se guardan en su
+          propia tabla: el sistema busca por código y por nombre, y crea lo que no encuentra. Revisá
+          que no haya dos formas de escribir lo mismo —«Suc. Norte» y «Sucursal Norte» serían dos
+          sucursales distintas—.
+
+          @if (nuevo.sucursales.total > 0) {
+            <p class="catalogo-nuevo">
+              <em>{{ nuevo.sucursales.total }} sucursales:</em>
+              @for (n of nuevo.sucursales.muestra; track n) {
+                <span class="dato">{{ n }}</span>
+              }
+              @if (nuevo.sucursales.restantes > 0) {
+                <em>y {{ nuevo.sucursales.restantes }} más</em>
+              }
+            </p>
+          }
+
+          @if (nuevo.cargos.total > 0) {
+            <p class="catalogo-nuevo">
+              <em>{{ nuevo.cargos.total }} cargos:</em>
+              @for (n of nuevo.cargos.muestra; track n) {
+                <span class="dato">{{ n }}</span>
+              }
+              @if (nuevo.cargos.restantes > 0) {
+                <em>y {{ nuevo.cargos.restantes }} más</em>
+              }
+            </p>
+          }
+        </div>
+      }
+
+      @if (r.sin_correo > 0) {
+        <p class="alert alert-ok">
+          {{ r.sin_correo }}
+          {{ r.sin_correo === 1 ? 'persona no trae correo' : 'personas no traen correo' }}: van a
+          quedar con una contraseña temporal para descargar y entregar en mano.
+        </p>
+      }
+
+      @if (codigosRepetidos().length > 0) {
+        <p class="alert alert-error" role="alert">
+          <b>Hay códigos repetidos en el archivo.</b>
+          @for (c of codigosRepetidos(); track c.codigo) {
+            <span class="dato">{{ c.codigo }} ×{{ c.veces }}</span>
+          }
+          No detiene la importación, pero la última fila de cada uno pisa a las anteriores: si son
+          personas distintas, corregí el archivo antes de seguir.
+        </p>
+      }
+
+      <!-- Lo que se va a rechazar, con el motivo de cada fila -->
+      @if (r.problemas.length > 0) {
+        <h3>Filas que se van a rechazar</h3>
+        <p class="explica">
+          El resto se importa igual: una fila con problemas no voltea el archivo.
+        </p>
+
+        <div class="tabla-scroll">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th class="num">Línea</th>
+                <th>Código</th>
+                <th>Persona</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of r.problemas; track p.linea) {
+                <tr>
+                  <td class="num">{{ p.linea }}</td>
+                  <td>{{ p.codigo || '—' }}</td>
+                  <td>{{ p.nombre || '—' }}</td>
+                  <td>{{ p.motivos.join(' ') }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (r.problemas_omitidos > 0) {
+          <p class="explica">
+            Y {{ r.problemas_omitidos }} filas más con problemas, que se listan completas en el
+            resultado al terminar.
+          </p>
+        }
+      }
+
+      <div class="acciones-paso">
+        <button type="button" class="btn btn-quiet" (click)="volverAlMapa()">
+          Corregir las columnas
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="ocupada() || r.filas_validas === 0"
+          (click)="importar()"
+        >
+          @if (ocupada()) {
+            Importando…
+          } @else {
+            Importar {{ r.filas_validas }} {{ r.filas_validas === 1 ? 'fila' : 'filas' }}
+          }
+        </button>
+      </div>
+
+      @if (r.filas_validas === 0) {
+        <p class="explica">
+          Ninguna fila pasa las validaciones: revisá la homologación o el archivo.
+        </p>
+      }
+    }
+  }
+}

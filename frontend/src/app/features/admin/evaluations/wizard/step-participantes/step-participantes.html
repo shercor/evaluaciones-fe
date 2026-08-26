@@ -133,9 +133,11 @@
               </td>
               <td>
                 <div class="persona-celda">
-                  <span class="avatar-mini avatar-tenue !size-8" aria-hidden="true">{{
-                    p.iniciales
-                  }}</span>
+                  <app-avatar
+                    [foto]="p.foto"
+                    [iniciales]="p.iniciales"
+                    clases="avatar-tenue avatar-chico"
+                  />
                   <b>{{ p.nombre }}</b>
                 </div>
               </td>

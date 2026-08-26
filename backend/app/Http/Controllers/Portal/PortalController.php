@@ -294,7 +294,7 @@ class PortalController extends Controller
         $filas = EvaluationUser::where('evaluation_id', $evaluation->id)
             ->where('supervisor_id', $request->user()->id)
             ->participating()
-            ->with(['user:id,name,lastname', 'jobPosition:id,name'])
+            ->with(['user:id,name,lastname,avatar_path', 'jobPosition:id,name'])
             ->get();
 
         return response()->json([
@@ -302,6 +302,7 @@ class PortalController extends Controller
                 'user_id' => $f->user_id,
                 'nombre' => $f->user?->fullName(),
                 'iniciales' => $f->user?->initials(),
+                'foto' => $f->user?->avatarUrl(),
                 'cargo' => $f->jobPosition?->name,
             ])->values(),
         ]);

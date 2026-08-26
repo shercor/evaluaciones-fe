@@ -6,6 +6,7 @@ import {
   ResumenImportacion,
 } from '../../../../core/api/directory.service';
 import { mensajeDeError } from '../../../../core/http/api-error';
+import { Homologacion } from './homologacion/homologacion';
 
 /**
  * Carga de la nómina desde planilla.
@@ -16,11 +17,18 @@ import { mensajeDeError } from '../../../../core/http/api-error';
  */
 @Component({
   selector: 'app-import',
-  imports: [RouterLink],
+  imports: [RouterLink, Homologacion],
   templateUrl: './import.html',
 })
 export class Import {
   private readonly directorio = inject(DirectoryService);
+
+  /**
+   * Los dos caminos de carga. El de homologar es secundario a propósito: si
+   * la planilla ya viene con el formato del sistema, homologarla es trabajo
+   * de más y una oportunidad más de equivocarse.
+   */
+  protected readonly modo = signal<'formato-propio' | 'homologar'>('formato-propio');
 
   protected readonly archivo = signal<File | null>(null);
   protected readonly enviarInvitaciones = signal(true);
@@ -35,6 +43,20 @@ export class Import {
   protected readonly historial = signal<ResumenImportacion[]>([]);
 
   constructor() {
+    this.cargarHistorial();
+  }
+
+  protected cambiarModo(modo: 'formato-propio' | 'homologar'): void {
+    this.modo.set(modo);
+    this.error.set(null);
+  }
+
+  /** Terminó una carga homologada: se muestra igual que cualquier otra. */
+  protected recibirImportacion(evento: { resumen: ResumenImportacion; mensaje: string }): void {
+    this.resultado.set(evento.resumen);
+    this.mensaje.set(evento.mensaje);
+    this.filtroFilas.set('todas');
+    this.cargarDetalle(evento.resumen.id);
     this.cargarHistorial();
   }
 

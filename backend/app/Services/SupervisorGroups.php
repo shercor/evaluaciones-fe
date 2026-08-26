@@ -45,7 +45,7 @@ class SupervisorGroups
         //    gente que está perfectamente bien.
         $todos = EvaluationUser::query()
             ->where('evaluation_id', $evaluation->id)
-            ->with(['user:id,name,lastname', 'jobPosition:id,name', 'branchOffice:id,name'])
+            ->with(['user:id,name,lastname,avatar_path', 'jobPosition:id,name', 'branchOffice:id,name'])
             ->get();
 
         $padron = $todos->where('participate', true);
@@ -159,6 +159,7 @@ class SupervisorGroups
             'user_id' => $fila->user_id,
             'nombre' => $fila->user?->fullName() ?? 'Sin nombre',
             'iniciales' => $fila->user?->initials() ?? '?',
+            'foto' => $fila->user?->avatarUrl(),
             'cargo' => $fila->jobPosition?->name,
             'sucursal' => $fila->branchOffice?->name,
         ];

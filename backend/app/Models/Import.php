@@ -20,6 +20,11 @@ class Import extends Model
     protected $fillable = [
         'user_id', 'filename', 'status',
         'rows_total', 'rows_created', 'rows_updated', 'rows_failed', 'error',
+        'mapping',
+    ];
+
+    protected $casts = [
+        'mapping' => 'array',
     ];
 
     public function user(): BelongsTo

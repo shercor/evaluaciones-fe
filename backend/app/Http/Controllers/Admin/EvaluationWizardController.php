@@ -314,7 +314,7 @@ class EvaluationWizardController extends Controller
         // devolvería filas que no coinciden con lo que se ve en la tabla.
         $query = EvaluationUser::query()
             ->where('evaluation_users.evaluation_id', $evaluation->id)
-            ->with(['user:id,name,lastname', 'jobPosition:id,name', 'branchOffice:id,name', 'supervisor:id,name,lastname']);
+            ->with(['user:id,name,lastname,avatar_path', 'jobPosition:id,name', 'branchOffice:id,name', 'supervisor:id,name,lastname']);
 
         if ($buscar = $request->string('search')->trim()->toString()) {
             $query->whereHas('user', function ($q) use ($buscar) {
@@ -369,6 +369,7 @@ class EvaluationWizardController extends Controller
                 'user_id' => $f->user_id,
                 'nombre' => $f->user?->fullName(),
                 'iniciales' => $f->user?->initials(),
+                'foto' => $f->user?->avatarUrl(),
                 'participate' => $f->participate,
                 'cargo' => $f->jobPosition ? ['id' => $f->jobPosition->id, 'nombre' => $f->jobPosition->name] : null,
                 'sucursal' => $f->branchOffice ? ['id' => $f->branchOffice->id, 'nombre' => $f->branchOffice->name] : null,

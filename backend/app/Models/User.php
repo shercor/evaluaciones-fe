@@ -163,6 +163,18 @@ class User extends Authenticatable
     }
 
     /**
+     * Dirección pública de la foto de perfil, o `null` si no tiene.
+     *
+     * Sale del modelo y no de cada consulta porque la foto se muestra en seis
+     * pantallas, y con la regla escrita en un solo lugar no puede pasar que
+     * una arme la ruta distinto que otra.
+     */
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path ? asset('storage/'.$this->avatar_path) : null;
+    }
+
+    /**
      * Iniciales para el avatar cuando no hay foto cargada.
      */
     public function initials(): string

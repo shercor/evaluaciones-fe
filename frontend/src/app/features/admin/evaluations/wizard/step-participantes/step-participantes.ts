@@ -9,6 +9,7 @@ import {
   WizardService,
 } from '../../../../../core/api/wizard.service';
 import { mensajeDeError } from '../../../../../core/http/api-error';
+import { Avatar } from '../../../../../shared/avatar/avatar';
 import {
   BuscadorPersonas,
   PersonaSugerida,
@@ -23,7 +24,7 @@ import {
  */
 @Component({
   selector: 'app-step-participantes',
-  imports: [ReactiveFormsModule, BuscadorPersonas],
+  imports: [ReactiveFormsModule, BuscadorPersonas, Avatar],
   templateUrl: './step-participantes.html',
 })
 export class StepParticipantes {

@@ -40,6 +40,7 @@ cp backend/.env.example backend/.env    # configuración de la aplicación
 docker compose up -d
 docker compose exec php php artisan key:generate
 docker compose exec php php artisan migrate --seed
+docker compose exec php php artisan storage:link   # para que se vean las fotos de perfil
 ```
 
 | Servicio  | URL                     |

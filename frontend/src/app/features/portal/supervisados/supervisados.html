@@ -23,7 +23,7 @@
         [class.elegido]="elegido()?.user_id === s.user_id"
         (click)="elegir(s)"
       >
-        <span class="avatar-mini" aria-hidden="true">{{ s.iniciales }}</span>
+        <app-avatar [foto]="s.foto" [iniciales]="s.iniciales" />
         <span class="datos">
           <b>{{ s.nombre }}</b>
           <em>{{ s.cargo ?? 'Sin cargo' }}</em>

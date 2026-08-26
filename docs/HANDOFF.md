@@ -3,7 +3,7 @@
 Bitácora viva del avance. Se actualiza al cerrar cada hito, para que el estado
 no dependa de la memoria de nadie.
 
-**Última actualización:** 2026-08-25 · los 8 hitos terminados · estilos migrados a Tailwind.
+**Última actualización:** 2026-08-26 · los 8 hitos terminados · avisos por correo y fotos de perfil.
 
 ---
 
@@ -58,7 +58,9 @@ Lo que sigue sin hacerse está en *Deuda y pendientes conocidos*.
 
 ### Hito 1 — Andamiaje ✅
 
-Cinco servicios en Docker: `angular`, `nginx`, `php`, `mysql`, `queue`.
+Siete servicios en Docker: `angular`, `nginx`, `php`, `mysql`, `queue`,
+`mailpit` —la bandeja de correo de desarrollo— y `scheduler`, que corre las
+tareas de limpieza.
 Cliente de Evaluación 360 portado en `backend/app/Support/E360/`, con el
 comando `php artisan e360:ping` que diagnostica las tres capas por separado
 (configuración, plano central, plano tenant). Pantalla de verificación en
@@ -94,6 +96,41 @@ y los cargos que no existan se crean solos. La jerarquía se resuelve al final,
 para que una fila pueda nombrar como supervisor a alguien que aparece más abajo
 en el archivo.
 
+**Homologar una planilla con otro formato** (2026-08-26). El camino de arriba
+exige que los encabezados sean los que el sistema espera. El segundo camino no
+exige ninguno: la planilla llega como la tenía Recursos Humanos —«N° Ficha»,
+«Nombre del Trabajador», «Local Asignado», «Jefe Directo»— y es una persona la
+que conecta cada campo del sistema con una columna del archivo. Lo único
+obligatorio es que la primera fila traiga nombres de columna.
+
+Son tres pasos separados porque entre medio hay trabajo humano: se sube el
+archivo y se leen sus encabezados, se homologa, y se revisa un resumen **antes**
+de tocar el directorio. El archivo queda mientras tanto en el disco privado del
+servidor, anotado en `import_drafts`; se borra al importar, al descartar, o solo
+a las 24 horas si alguien abandona a mitad de camino —son nóminas completas de
+la empresa y no pueden quedar ahí para siempre—.
+
+- **La sugerencia inicial** mira los nombres de los encabezados contra una lista
+  de sinónimos. En la planilla de prueba acertó las ocho columnas. Prioriza la
+  coincidencia exacta sobre la parcial y no ofrece dos veces la misma columna:
+  con «supervisor» y «codigo_supervisor» juntas hay que elegir la segunda, y una
+  planilla que trae el código del jefe pero no el de la persona no puede
+  terminar con la columna del jefe puesta en «código interno».
+- **El resumen es el corazón de la función**, no un trámite: muestra las
+  primeras filas con los datos reales del archivo puestos debajo del campo del
+  sistema al que se conectaron, y en cada encabezado dice de qué columna salen.
+  Es el único lugar donde alguien puede notar que conectó el *nombre* del jefe
+  donde va su *código*. Además adelanta los números —cuántas se crean, cuántas
+  se actualizan, cuántas se rechazan y por qué— consultando el directorio, sin
+  escribir nada.
+- **Lo que se rechaza** se rechaza fila por fila, como en el otro camino. La
+  homologación no agrega un modo «todo o nada».
+- **Todo se homologa como texto.** Ninguna columna del directorio guarda números
+  ni fechas, así que traducir es renombrar claves. El lector pasa toda celda a
+  texto, lo que además arregla un problema viejo del otro camino: una ficha que
+  Excel guardó como número llegaba como `123.0` y no coincidía con el `123` que
+  ya estaba en el directorio, duplicando a la persona.
+
 **Los dos caminos para la contraseña.** Con correo se envía invitación; sin
 correo se genera una temporal que el administrador descarga en CSV y entrega en
 mano. Los dos terminan en `must_set_password`.
@@ -105,7 +142,7 @@ es **una sola consulta recursiva** con tope de profundidad, y hay una variante
 que cuenta los supervisados de toda una página de golpe.
 
 **Verificado:** importación de una planilla con 7 filas y 3 errores a propósito
-(sin nombre, correo inválido, rol inexistente) → 4 creadas y 3 rechazadas, cada
+(sin nombre, correo inválido, sucursal inexistente) → 4 creadas y 3 rechazadas, cada
 una con su motivo; contraseña temporal solo para quien no tenía correo; aviso de
 supervisor inexistente; y la detección de ciclos rechazando tanto «ser jefe de
 uno mismo» como «poner a la nieta de jefa».
@@ -302,6 +339,25 @@ queda en blanco— sin ningún error de compilación que lo delate.
 | Correo en desarrollo | Mailpit, en el `docker-compose.yml`. Sin cuota y no entrega afuera: un envío a padrón completo no puede escaparse a casillas reales. Bandeja en <http://localhost:8025>. | 2026-08-26 |
 | Proveedor de correo en producción | **Sin definir.** Mailtrap gratuito (50 correos al mes) sirve solo para controlar cómo se ve el correo en clientes reales, no para envíos de verdad. Decisión bloqueante del hito de avisos. | Hito 2 |
 | Fotos de perfil | Todas nuevas. No se migra ninguna imagen de la intranet. | Hito 0 |
+| Qué se guarda de una foto | **Nunca el archivo original.** Se endereza según el EXIF, se recorta cuadrada y se reescribe como WebP de 256 px —unos 20 KB—. Un solo tamaño para todas las pantallas: no hay que elegir versión en cada vista. Guardar el original serviría 4 MB para un círculo de 36 px y arrastraría los metadatos de la cámara, que incluyen dónde se tomó la foto. Todo en `AvatarStorage`. | 2026-08-26 |
+| El recorte no va por el centro | En una foto vertical se toma a un tercio de la altura sobrante, no a la mitad: el encuadre de un retrato siempre deja aire de torso abajo, y recortar por el medio corta las cabezas. | 2026-08-26 |
+| Cuándo se guarda la foto | Al elegirla, no al pulsar «Guardar». Es un archivo, no un campo: atarla al formulario obligaría a mandarlo entero para cambiar una foto. El formulario lo dice. La excepción es la persona que todavía no existe: ahí se muestra la elegida y se sube apenas se crea, que es cuando hay un id. | 2026-08-26 |
+| Límites de subida de PHP | `docker/php/php.ini`, que antes no existía: PHP acepta 2 MB de fábrica y con eso no entra ni una foto de teléfono ni una planilla de nómina grande. nginx ya aceptaba 20 MB, así que el techo real lo ponía un archivo que nadie había escrito. | 2026-08-26 |
+| Sesiones y espacio | Las **sesiones** van en la base y se limpian solas: el driver hace recolección por lotería —2 de cada 100 peticiones borran las vencidas—, así que la tabla se mantiene en decenas de filas y no necesita tarea. Lo que sí crecía sin techo era otra cosa, y por eso existe el contenedor `scheduler`: los trabajos fallidos, las planillas subidas a medias y las contraseñas temporales. La tabla `cache` no crece hoy porque el código de la aplicación no cachea nada; si algún día lo hace, el driver de base no borra lo vencido y va a hacer falta una tarea más. | 2026-08-26 |
+| Las contraseñas temporales caducan | Se guardan **en claro** —hay que poder descargarlas y entregarlas en mano— y hasta ahora se guardaban para siempre. Ahora se olvidan a los 90 días: después de que la persona entró y la cambió no sirven para nada, y una tabla con miles de contraseñas de gente real es de lo que no conviene tener. La fila del registro no se borra: la auditoría de qué pasó con cada línea se queda. | 2026-08-26 |
+| Los archivos huérfanos se barren por edad | Borrar un borrador borra su archivo, pero la fila puede irse sin él por tres caminos: el borrado en cascada de quien lo subió, un cambio de base de datos —la carpeta es una sola y las filas viven en cada base— y un respaldo restaurado. Por eso la limpieza mira la **edad del archivo** y no si alguien lo referencia. Apareció barriendo a mano y encontrando uno de 85 KB sin dueño. | 2026-08-26 |
+| Sucursal y cargo: la regla | **Si la planilla trae el nombre, se crea lo que falte; si trae solo el código, tiene que existir.** Es la diferencia entre un dato que la planilla puede inventar y una clave que apunta a otro lado: un código suelto que no existe no se puede crear —no habría con qué nombrarlo— y dejarlo pasar significaba, hasta ahora, crear una sucursal **llamada** «S-14», sin fallar ni avisar. Buscar es más permisivo que crear: un valor se busca entre los códigos y entre los nombres sin importar en qué columna venía, así una planilla que pone el código donde va el nombre encuentra la fila en vez de duplicarla. Todo en `CatalogResolver`. | 2026-08-26 |
+| Nada de adivinar si es código o nombre | Se evaluó detectarlo mirando los valores —«si son números, son ids»— y se descartó: una sucursal puede llamarse «2024» y un código puede ser «Casa Matriz». No hace falta, porque la homologación ya permite **decirlo**: hay un campo «Sucursal» y otro «Código de la sucursal», y conectar una columna a uno u otro es la declaración. Lo que sí se adivina es la **sugerencia** inicial, que se puede corregir y no importa nada por su cuenta. | 2026-08-26 |
+| El catálogo entero en memoria | `CatalogResolver` carga las sucursales y los cargos una vez por importación. Antes era un `firstOrCreate` por fila: en una nómina de 7.000 personas, 14.000 consultas para resolver 129 sucursales y 16 cargos. | 2026-08-26 |
+| Variantes de escritura | El resumen previo **lista qué sucursales y cargos se van a crear**, ordenados alfabéticamente para que «Suc. Norte» quede al lado de «Sucursal Norte» y se vea que son la misma escrita distinto. El cotejo de MySQL ya perdona mayúsculas y acentos; lo que no perdona son las redacciones. | 2026-08-26 |
+| Otro cliente es otra base | El sistema atiende a una empresa por instalación, así que probar con otra empresa es otra base entera y no un filtro por columna. Cambiar de una a otra mueve tres valores del `.env` —la base y el par del tenant de E360—, y el par va junto a propósito: con la base nueva y el tenant viejo, la empresa nueva estaría mirando las evaluaciones de la anterior. | 2026-08-26 |
+| Un solo importador para los dos caminos | La homologación traduce las claves de cada fila y le entrega el resultado a `DirectoryImportService`, que es el mismo de siempre. Un segundo importador en paralelo sería la manera más rápida de que los dos caminos se comporten distinto —uno idempotente y el otro no, uno que arma la jerarquía al final y el otro no—. | 2026-08-26 |
+| El borrador es de quien lo subió | No alcanza con que las dos personas sean administradoras: mientras el borrador existe, la nómina completa de la empresa está en el disco del servidor y su id es la única llave. | 2026-08-26 |
+| Dos campos del sistema no pueden compartir columna | Se rechaza con nombre y apellido: «la columna X está conectada a "Nombre" y "Apellido"». Es siempre un descuido de quien elige en dos desplegables seguidos, y si pasara en silencio se descubriría con el directorio ya cargado. Se avisa en el navegador mientras se elige, y el servidor lo vuelve a comprobar. | 2026-08-26 |
+| El rol no se importa | Se probó traducirlo del castellano —«Administrador», «Empleado»— y funcionaba, pero el dato no es universal: cada planilla llama de otra manera a algo que en el sistema son tres valores, y equivocarse ahí reparte permisos de administración. Ahora **todo el mundo entra como colaborador** y los administradores se nombran a mano en el directorio, que son dos o tres por empresa. La contrapartida está cubierta: al **actualizar**, la importación no toca el rol, así que volver a cargar la nómina no devuelve a los administradores a colaborador. | 2026-08-26 |
+| Códigos repetidos dentro del archivo | No son un error —la última fila actualiza a la anterior— pero casi siempre son un descuido, y en silencio se pierde una persona. El resumen los lista antes de importar. | 2026-08-26 |
+| `/storage` en el proxy de Angular | Laravel arma la dirección de la foto con el host de la petición, que en desarrollo es el del servidor de Angular (4200) y no el de nginx. Sin ese reenvío en `proxy.conf.json`, la foto se guarda perfecta y **se ve rota**: el servidor de desarrollo responde el `index.html` en vez de la imagen. Apareció recién al mirar la pantalla; por API todo daba 200. | 2026-08-26 |
+| El círculo de la persona | Un solo componente, `<app-avatar>`, en las seis pantallas donde aparece. Antes cada una escribía las iniciales por su cuenta; con la foto de por medio, eso serían seis `@if` iguales y basta olvidar uno para que la misma persona salga con foto en una vista y sin ella en otra. El respaldo son las iniciales y no una silueta gris: las iniciales dicen a quién se está mirando. El componente lleva `:host { display: contents }`: sin eso su envoltorio se cuela como un elemento más de la fila, encogible, y la foto sale ovalada —82 px de ancho por 96 de alto, medido—. | 2026-08-26 |
 | Roles | Tres, no dos: `super_admin`, `admin`, `collaborator`. El super admin **no es evaluable**, igual que en la intranet. | Hito 2 |
 | Versiones | Laravel 13 y Angular 22 (los `latest`). El plan decía Laravel 12, que es lo que corre la API E360. **Sin confirmar** si conviene fijar a 12. | Hito 1 |
 | API E360 | No se modifica en ningún hito. | Hito 0 |
@@ -417,16 +473,31 @@ deshacer sin querer:
     ofrece ignorarlo. La alternativa, preguntarle a Evaluación 360 por cada
     persona, son cientos de peticiones remotas por envío. El detalle está en
     `EvaluationAudience::pendientesConCorreo()`.
-- **Casi sin tests automatizados.** Hay uno: `buscador-personas.spec.ts`, que
-  cubre el contrato de tecleo del buscador —mínimo de caracteres, espera,
-  cancelación de la consulta vieja, fallo de red—. Se eligió eso y no otra cosa
-  porque es la parte que no se ve mirando la pantalla. Corre con `ng test`
+- **Casi sin tests automatizados.** Hay dos, y los dos cubren lo mismo: lo que
+  **no se ve mirando la pantalla**. `buscador-personas.spec.ts` cubre el
+  contrato de tecleo del buscador —mínimo de caracteres, espera, cancelación de
+  la consulta vieja, fallo de red—. `AvatarStorageTest` cubre el tratamiento de
+  la foto: que quede cuadrada de 256 en WebP, que el recorte de un retrato tire
+  hacia arriba, que una foto de teléfono acostada se enderece por su EXIF, y
+  que la anterior no quede ocupando disco. `ImportMappingTest` cubre la
+  homologación: qué columna se sugiere para cuál, qué homologaciones se
+  rechazan y qué dice el resumen antes de tocar nada. Las tres pruebas de
+  prioridad de la sugerencia nacieron de fallos que encontraron ellas mismas.
+  `ImportHousekeepingTest` cubre la limpieza, que es trabajo invisible: si un
+  día deja de correr, no se nota hasta que molesta. Corre con `ng test`
   (vitest, ya configurado). Se borró `app.spec.ts`, que era andamiaje de
   `ng new` comprobando un `Hello, frontend` que no existe desde hace meses.
   El resto de la verificación sigue siendo por navegador: `docs/recorrido.mjs`
   pulsa cada control de cada pantalla y reporta los que no producen efecto.
-- **Las fotos de perfil** todavía no se pueden subir: el modelo tiene `avatar_path`
-  y el respaldo son las iniciales, pero falta la pantalla de carga.
+- **Las fotos de perfil ya se pueden subir**, desde el formulario de persona
+  del directorio. Lo que queda pendiente es que **cada quien pueda cambiar la
+  suya**: hoy solo la carga un administrador, y con una nómina de miles de
+  personas eso no escala. Falta decidir si el colaborador puede, que es una
+  decisión de política y no de código: el endpoint sería el mismo.
+- **El padrón del asistente no muestra fotos en la lista de sucursales ni en el
+  tablero**, porque esas consultas no traen la columna. Donde sí aparecen es en
+  el directorio, las dos cabeceras, el padrón, la previsualización y «mi
+  equipo» del portal.
 
 ---
 
@@ -445,10 +516,15 @@ paralelo, no una modificación.
 cd ~/Escritorio/proyectos/evaluacion-persona-frontend
 docker compose up -d
 docker compose exec php php artisan migrate --seed   # solo la primera vez
+docker compose exec php php artisan storage:link     # solo la primera vez
 ```
 
 Frontend en <http://localhost:4200>, API en <http://localhost:8081>,
 bandeja de correo en <http://localhost:8025>.
+
+Para probar con otra empresa —una base vacía, para cargar una nómina desde
+cero— está `docs/CLIENTES.md`: `./docker/cliente.sh flippy` y de vuelta con
+`./docker/cliente.sh demo`.
 Las cuentas de prueba y su organigrama están en el `README.md` de la raíz —
 todas con la contraseña `password`.
 

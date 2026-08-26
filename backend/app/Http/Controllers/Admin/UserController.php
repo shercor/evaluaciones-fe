@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Notifications\DirectoryInvitation;
+use App\Services\AvatarStorage;
 use App\Services\PersonSuggestions;
 use App\Services\SupervisionChain;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 /**
  * Administración de personas del directorio.
@@ -233,6 +235,49 @@ class UserController extends Controller
         $user->notify(new DirectoryInvitation);
 
         return response()->json(['message' => 'Invitación reenviada.']);
+    }
+
+    /**
+     * Cambia la foto de perfil.
+     *
+     * Llega la imagen tal como salió de la cámara y se guarda recortada,
+     * enderezada y en WebP; el detalle está en `AvatarStorage`.
+     */
+    public function uploadAvatar(Request $request, User $user, AvatarStorage $fotos): JsonResponse
+    {
+        $request->validate([
+            // `mimetypes` mira el contenido del archivo, no su extensión: un
+            // `.jpg` que por dentro es otra cosa no pasa.
+            'foto' => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:8192'],
+        ], [
+            'foto.required' => 'Elegí una imagen.',
+            'foto.mimetypes' => 'La foto tiene que ser JPG, PNG o WebP. Las de iPhone vienen en HEIC y hay que exportarlas antes.',
+            'foto.max' => 'La foto no puede pesar más de 8 MB.',
+        ]);
+
+        try {
+            $fotos->guardar($user, $request->file('foto'));
+        } catch (RuntimeException $e) {
+            throw ValidationException::withMessages(['foto' => $e->getMessage()]);
+        }
+
+        return response()->json([
+            'data' => (new UserResource($user->load(['branchOffice', 'jobPosition', 'supervisor'])))->resolve(),
+            'message' => 'Foto actualizada.',
+        ]);
+    }
+
+    /**
+     * Quita la foto. La persona vuelve a mostrarse con sus iniciales.
+     */
+    public function deleteAvatar(User $user, AvatarStorage $fotos): JsonResponse
+    {
+        $fotos->borrar($user);
+
+        return response()->json([
+            'data' => (new UserResource($user->load(['branchOffice', 'jobPosition', 'supervisor'])))->resolve(),
+            'message' => 'Foto quitada.',
+        ]);
     }
 
     // -----------------------------------------------------------------

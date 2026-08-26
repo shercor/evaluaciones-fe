@@ -17,9 +17,7 @@
   </div>
 
   <div class="flex min-w-0 items-center gap-3">
-    <span class="avatar-mini" aria-hidden="true">
-      {{ user()?.initials }}
-    </span>
+    <app-avatar [foto]="user()?.avatar_url ?? null" [iniciales]="user()?.initials ?? ''" />
     <span class="hidden min-w-0 flex-col leading-tight sm:flex">
       <b class="truncate text-sm">{{ user()?.full_name }}</b>
       <em class="text-xs not-italic text-ink-3">

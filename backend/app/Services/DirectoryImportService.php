@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\Role;
-use App\Models\BranchOffice;
 use App\Models\Import;
 use App\Models\ImportRow;
-use App\Models\JobPosition;
 use App\Models\User;
 use App\Notifications\DirectoryInvitation;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +42,66 @@ class DirectoryImportService
      */
     public const COLUMNS = [
         'codigo', 'nombre', 'apellido', 'correo',
-        'cargo', 'sucursal', 'codigo_supervisor', 'rol',
+        'cargo', 'cargo_codigo', 'sucursal', 'sucursal_codigo',
+        'codigo_supervisor',
+    ];
+
+    /**
+     * Las mismas columnas, explicadas.
+     *
+     * Esto lo consume la pantalla de homologación, donde hay que decirle a una
+     * persona qué es cada campo del sistema **antes** de que elija con cuál de
+     * su planilla conectarlo. Sin la explicación, «código» y «código
+     * supervisor» se confunden todo el tiempo.
+     *
+     * @var array<string, array{etiqueta: string, obligatoria: bool, ayuda: string}>
+     */
+    public const COLUMN_DEFINITIONS = [
+        'codigo' => [
+            'etiqueta' => 'Código interno',
+            'obligatoria' => true,
+            'ayuda' => 'La identidad de la persona: RUT, ficha o número de empleado. Con esto se decide si la fila crea a alguien nuevo o actualiza a quien ya está.',
+        ],
+        'nombre' => [
+            'etiqueta' => 'Nombre',
+            'obligatoria' => true,
+            'ayuda' => 'Solo el nombre. Si tu planilla trae el nombre completo en una sola columna, conectala acá: el apellido puede quedar vacío.',
+        ],
+        'apellido' => [
+            'etiqueta' => 'Apellido',
+            'obligatoria' => false,
+            'ayuda' => 'Opcional. Se usa para las iniciales y para ordenar el directorio.',
+        ],
+        'correo' => [
+            'etiqueta' => 'Correo',
+            'obligatoria' => false,
+            'ayuda' => 'Quien lo tenga recibe una invitación para definir su contraseña. Quien no, queda con una contraseña temporal que se descarga al terminar.',
+        ],
+        'cargo' => [
+            'etiqueta' => 'Cargo',
+            'obligatoria' => false,
+            'ayuda' => 'El nombre del cargo, en texto. Los que no existan se crean solos.',
+        ],
+        'cargo_codigo' => [
+            'etiqueta' => 'Código del cargo',
+            'obligatoria' => false,
+            'ayuda' => 'Solo si tu planilla trae el código además del nombre. Si conectás el código sin el nombre, el cargo tiene que estar cargado de antes: con un código suelto no hay con qué nombrarlo.',
+        ],
+        'sucursal' => [
+            'etiqueta' => 'Sucursal',
+            'obligatoria' => false,
+            'ayuda' => 'El nombre de la sucursal, en texto. Las que no existan se crean solas.',
+        ],
+        'sucursal_codigo' => [
+            'etiqueta' => 'Código de la sucursal',
+            'obligatoria' => false,
+            'ayuda' => 'Solo si tu planilla trae el código además del nombre. Si conectás el código sin el nombre, la sucursal tiene que estar cargada de antes: con un código suelto no hay con qué nombrarla.',
+        ],
+        'codigo_supervisor' => [
+            'etiqueta' => 'Código del supervisor',
+            'obligatoria' => false,
+            'ayuda' => 'El código de quien la supervisa, no su nombre. Puede estar más abajo en el mismo archivo: la jerarquía se arma al final.',
+        ],
     ];
 
     /**
@@ -53,6 +110,11 @@ class DirectoryImportService
     public function import(array $rows, Import $import, bool $enviarInvitaciones = true): Import
     {
         $import->update(['rows_total' => count($rows), 'status' => Import::PENDING]);
+
+        // Uno por corrida, no uno por fila: guarda el catálogo en memoria y
+        // las sucursales que va creando, así la segunda persona de la misma
+        // sucursal ya la encuentra.
+        $catalogos = new CatalogResolver;
 
         /** @var array<string, string> $supervisoresPendientes  codigo => codigo_supervisor */
         $supervisoresPendientes = [];
@@ -65,10 +127,26 @@ class DirectoryImportService
             $linea = $indice + 2;
             $fila = $this->normalizar($fila);
 
-            $validador = Validator::make($fila, $this->reglas(), $this->mensajes());
+            $problemas = $this->problemas($fila);
 
-            if ($validador->fails()) {
-                $this->registrarFila($import, $linea, ImportRow::FAILED, $fila, implode(' ', $validador->errors()->all()));
+            if ($problemas !== []) {
+                $this->registrarFila($import, $linea, ImportRow::FAILED, $fila, implode(' ', $problemas));
+                $fallidos++;
+
+                continue;
+            }
+
+            // La sucursal y el cargo se resuelven antes de guardar: un código
+            // que no está cargado rechaza la fila, y eso no es un error de
+            // ejecución sino un dato que falta.
+            [$idSucursal, $errorSucursal] = $catalogos->resolver('sucursal', $fila['sucursal_codigo'], $fila['sucursal']);
+            [$idCargo, $errorCargo] = $catalogos->resolver('cargo', $fila['cargo_codigo'], $fila['cargo']);
+
+            if ($errorSucursal !== null || $errorCargo !== null) {
+                $this->registrarFila(
+                    $import, $linea, ImportRow::FAILED, $fila,
+                    trim(($errorSucursal ?? '').' '.($errorCargo ?? '')),
+                );
                 $fallidos++;
 
                 continue;
@@ -76,7 +154,7 @@ class DirectoryImportService
 
             try {
                 [$resultado, $temporal] = DB::transaction(
-                    fn () => $this->guardarPersona($fila, $enviarInvitaciones),
+                    fn () => $this->guardarPersona($fila, $enviarInvitaciones, $idSucursal, $idCargo),
                 );
 
                 $this->registrarFila($import, $linea, $resultado, $fila, null, $temporal);
@@ -112,18 +190,21 @@ class DirectoryImportService
     /**
      * @return array{0: string, 1: string|null}  resultado y contraseña temporal
      */
-    private function guardarPersona(array $fila, bool $enviarInvitaciones): array
-    {
+    private function guardarPersona(
+        array $fila,
+        bool $enviarInvitaciones,
+        ?int $idSucursal,
+        ?int $idCargo,
+    ): array {
         $existente = User::where('external_code', $fila['codigo'])->first();
 
         $datos = [
             'external_code' => $fila['codigo'],
             'name' => $fila['nombre'],
             'lastname' => $fila['apellido'],
-            'role' => $fila['rol'] ?: Role::COLLABORATOR->value,
             'active' => true,
-            'branch_office_id' => $this->resolverSucursal($fila['sucursal']),
-            'job_position_id' => $this->resolverCargo($fila['cargo']),
+            'branch_office_id' => $idSucursal,
+            'job_position_id' => $idCargo,
         ];
 
         // El correo puede faltar. Cuando falta se inventa uno interno para no
@@ -136,11 +217,17 @@ class DirectoryImportService
         $temporal = null;
 
         if ($existente) {
-            // Actualizar no toca la contraseña: quien ya entraba, sigue entrando.
+            // Actualizar no toca la contraseña ni el rol. El rol **no viene en
+            // la planilla**: los administradores se nombran a mano en el
+            // directorio, y si cada importación lo reescribiera, la segunda
+            // carga de la nómina los devolvería a todos a colaborador.
             $existente->update($datos);
 
             return [ImportRow::UPDATED, null];
         }
+
+        // Quien entra por planilla entra como colaborador, siempre.
+        $datos['role'] = Role::COLLABORATOR->value;
 
         if ($tieneCorreo) {
             // Sin contraseña: la define desde el enlace de la invitación.
@@ -229,28 +316,13 @@ class DirectoryImportService
     }
 
     /**
-     * Las sucursales y los cargos se crean solos si no existen: obligar a
-     * cargarlos antes convertiría la importación en un trámite de dos pasos.
+     * Deja la fila como la va a guardar el sistema.
+     *
+     * Es pública porque la homologación necesita mostrar **exactamente** esto
+     * en su resumen: de nada sirve una vista previa que muestre otra cosa que
+     * lo que después se guarda.
      */
-    private function resolverSucursal(?string $nombre): ?int
-    {
-        if (blank($nombre)) {
-            return null;
-        }
-
-        return BranchOffice::firstOrCreate(['name' => trim($nombre)], ['active' => true])->id;
-    }
-
-    private function resolverCargo(?string $nombre): ?int
-    {
-        if (blank($nombre)) {
-            return null;
-        }
-
-        return JobPosition::firstOrCreate(['name' => trim($nombre)], ['active' => true])->id;
-    }
-
-    private function normalizar(array $fila): array
+    public function normalizar(array $fila): array
     {
         $limpia = [];
 
@@ -259,10 +331,25 @@ class DirectoryImportService
             $limpia[$columna] = is_string($valor) ? trim($valor) : $valor;
         }
 
-        $limpia['rol'] = mb_strtolower((string) $limpia['rol']);
         $limpia['correo'] = mb_strtolower((string) $limpia['correo']);
 
         return $limpia;
+    }
+
+    /**
+     * Qué le falta o le sobra a una fila, en castellano.
+     *
+     * La usan el importador y el ensayo previo de la homologación, para que
+     * el resumen que se muestra antes de importar diga exactamente lo mismo
+     * que va a decir el resultado.
+     *
+     * @return array<int, string>  vacío si la fila está bien
+     */
+    public function problemas(array $filaNormalizada): array
+    {
+        $validador = Validator::make($filaNormalizada, $this->reglas(), $this->mensajes());
+
+        return $validador->fails() ? $validador->errors()->all() : [];
     }
 
     private function reglas(): array
@@ -273,11 +360,10 @@ class DirectoryImportService
             'apellido' => ['nullable', 'string', 'max:255'],
             'correo' => ['nullable', 'email', 'max:255'],
             'cargo' => ['nullable', 'string', 'max:255'],
+            'cargo_codigo' => ['nullable', 'string', 'max:255'],
             'sucursal' => ['nullable', 'string', 'max:255'],
+            'sucursal_codigo' => ['nullable', 'string', 'max:255'],
             'codigo_supervisor' => ['nullable', 'string', 'max:255'],
-            // El super administrador no se reparte por planilla: es personal
-            // de Idea Uno, no de la empresa.
-            'rol' => ['nullable', 'in:admin,collaborator'],
         ];
     }
 
@@ -287,7 +373,6 @@ class DirectoryImportService
             'codigo.required' => 'Falta el código de la persona.',
             'nombre.required' => 'Falta el nombre.',
             'correo.email' => 'El correo no tiene un formato válido.',
-            'rol.in' => 'El rol debe ser «admin» o «collaborator».',
         ];
     }
 

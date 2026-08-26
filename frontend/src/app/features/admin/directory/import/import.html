@@ -2,8 +2,8 @@
   <div>
     <h1 class="pagina-titulo">Importar nómina</h1>
     <p class="pagina-intro">
-      Cargá la planilla de Recursos Humanos. Una fila con errores no voltea el archivo: se
-      importa todo lo demás y se explica qué se rechazó.
+      Cargá la planilla de Recursos Humanos. Una fila con errores no voltea el archivo: se importa
+      todo lo demás y se explica qué se rechazó.
     </p>
   </div>
   <div class="acciones-encabezado">
@@ -19,44 +19,90 @@
 <section class="bloque">
   <h2>1 · Elegí el archivo</h2>
 
-  <p class="explica">
-    Acepta CSV y Excel. Las columnas que entiende son
-    <code>codigo</code>, <code>nombre</code>, <code>apellido</code>, <code>correo</code>,
-    <code>cargo</code>, <code>sucursal</code>, <code>codigo_supervisor</code> y
-    <code>rol</code>. Los acentos y las mayúsculas del encabezado no importan.
-  </p>
-
-  <p class="explica">
-    El <b>código</b> es la identidad de cada persona: si ya existe se actualiza, si no se crea.
-    Reimportar la misma planilla no duplica a nadie. Las sucursales y los cargos que no existan
-    se crean solos.
-  </p>
-
-  <p>
-    <a [href]="urlPlantilla()" class="btn btn-quiet">Descargar planilla de ejemplo</a>
-  </p>
-
-  <div class="carga">
-    <input
-      type="file"
-      id="archivo"
-      accept=".csv,.txt,.xlsx,.xls"
-      (change)="seleccionar($event)"
-    />
-
-    <label class="recordar">
-      <input
-        type="checkbox"
-        [checked]="enviarInvitaciones()"
-        (change)="alternarInvitaciones($event)"
-      />
-      <span>Enviar invitación por correo a quienes tengan dirección</span>
-    </label>
-
-    <button type="button" class="btn btn-primary" [disabled]="!archivo() || subiendo()" (click)="subir()">
-      {{ subiendo() ? 'Procesando…' : 'Importar' }}
+  <div class="opciones-modo" role="group" aria-label="Formato de la planilla">
+    <button
+      type="button"
+      class="mini"
+      [class.activo]="modo() === 'formato-propio'"
+      (click)="cambiarModo('formato-propio')"
+    >
+      Tiene el formato del sistema
+    </button>
+    <button
+      type="button"
+      class="mini"
+      [class.activo]="modo() === 'homologar'"
+      (click)="cambiarModo('homologar')"
+    >
+      Tiene otro formato
     </button>
   </div>
+
+  <label class="recordar">
+    <input
+      type="checkbox"
+      [checked]="enviarInvitaciones()"
+      (change)="alternarInvitaciones($event)"
+    />
+    <span>Enviar invitación por correo a quienes tengan dirección</span>
+  </label>
+
+  @if (modo() === 'homologar') {
+    <app-homologacion
+      [enviarInvitaciones]="enviarInvitaciones()"
+      (importada)="recibirImportacion($event)"
+    />
+  } @else {
+    <p class="explica">
+      Acepta CSV y Excel. Las columnas que entiende son
+      <code>codigo</code>, <code>nombre</code>, <code>apellido</code>, <code>correo</code>,
+      <code>cargo</code>, <code>cargo_codigo</code>, <code>sucursal</code>,
+      <code>sucursal_codigo</code> y <code>codigo_supervisor</code>. Los acentos y las mayúsculas
+      del encabezado no importan.
+    </p>
+
+    <p class="explica">
+      El <b>código</b> es la identidad de cada persona: si ya existe se actualiza, si no se crea.
+      Reimportar la misma planilla no duplica a nadie.
+    </p>
+
+    <p class="explica">
+      Con las sucursales y los cargos la regla es:
+      <b
+        >si la planilla trae el nombre, se crea lo que falte; si trae solo el código, tiene que
+        estar cargado de antes</b
+      >
+      —con un código suelto no hay con qué nombrarlo—. Las columnas de código son opcionales.
+    </p>
+
+    <p class="explica">
+      El <b>rol no se importa</b>: todo el mundo entra como colaborador. Los administradores se
+      nombran después, uno por uno, desde el directorio. Volver a importar la nómina no se los
+      quita.
+    </p>
+
+    <p>
+      <a [href]="urlPlantilla()" class="btn btn-quiet">Descargar planilla de ejemplo</a>
+    </p>
+
+    <div class="carga">
+      <input
+        type="file"
+        id="archivo"
+        accept=".csv,.txt,.xlsx,.xls"
+        (change)="seleccionar($event)"
+      />
+
+      <button
+        type="button"
+        class="btn btn-primary"
+        [disabled]="!archivo() || subiendo()"
+        (click)="subir()"
+      >
+        {{ subiendo() ? 'Procesando…' : 'Importar' }}
+      </button>
+    </div>
+  }
 
   <p class="explica nota-clave">
     Quien no tenga correo queda con una <b>contraseña temporal</b> que vas a poder descargar al
@@ -189,7 +235,12 @@
         <tbody>
           @for (h of historial(); track h.id) {
             <tr>
-              <td><b>{{ h.filename }}</b></td>
+              <td>
+                <b>{{ h.filename }}</b>
+                @if (h.mapping) {
+                  <span class="chip chip-neutro">Homologada</span>
+                }
+              </td>
               <td>{{ h.user ?? '—' }}</td>
               <td class="num">{{ h.rows_created }}</td>
               <td class="num">{{ h.rows_updated }}</td>

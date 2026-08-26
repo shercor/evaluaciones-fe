@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ImportResource;
 use App\Models\Import;
 use App\Models\ImportRow;
 use App\Services\DirectoryImportService;
@@ -31,7 +32,7 @@ class ImportController extends Controller
             ->paginate(15);
 
         return response()->json([
-            'data' => $imports->getCollection()->map(fn (Import $i) => $this->resumen($i)),
+            'data' => ImportResource::collection($imports->getCollection())->resolve(),
             'meta' => [
                 'current_page' => $imports->currentPage(),
                 'last_page' => $imports->lastPage(),
@@ -62,7 +63,7 @@ class ImportController extends Controller
 
             return response()->json([
                 'message' => $e->getMessage(),
-                'data' => $this->resumen($import),
+                'data' => (new ImportResource($import))->resolve(),
             ], 422);
         }
 
@@ -74,7 +75,7 @@ class ImportController extends Controller
 
         return response()->json([
             'message' => $this->mensajeFinal($import),
-            'data' => $this->resumen($import),
+            'data' => (new ImportResource($import))->resolve(),
         ]);
     }
 
@@ -92,7 +93,7 @@ class ImportController extends Controller
         $filas = $query->paginate(50);
 
         return response()->json([
-            'import' => $this->resumen($import),
+            'import' => (new ImportResource($import))->resolve(),
             'rows' => $filas->getCollection()->map(fn (ImportRow $r) => [
                 'line' => $r->line,
                 'outcome' => $r->outcome,
@@ -153,9 +154,13 @@ class ImportController extends Controller
 
             fwrite($salida, "\xEF\xBB\xBF");
             fputcsv($salida, DirectoryImportService::COLUMNS);
-            fputcsv($salida, ['RUT-100', 'Ana', 'Pérez', 'ana.perez@empresa.cl', 'Gerente General', 'Casa Matriz', '', 'admin']);
-            fputcsv($salida, ['RUT-101', 'Luis', 'Gómez', 'luis.gomez@empresa.cl', 'Supervisor', 'Sucursal Norte', 'RUT-100', 'collaborator']);
-            fputcsv($salida, ['RUT-102', 'Sofía', 'Díaz', '', 'Vendedor', 'Sucursal Norte', 'RUT-101', 'collaborator']);
+
+            // Las columnas de código van vacías a propósito en la primera
+            // fila y llenas en las otras: se ve que son opcionales y que,
+            // cuando están, viajan **junto** al nombre.
+            fputcsv($salida, ['RUT-100', 'Ana', 'Pérez', 'ana.perez@empresa.cl', 'Gerente General', '', 'Casa Matriz', '', '']);
+            fputcsv($salida, ['RUT-101', 'Luis', 'Gómez', 'luis.gomez@empresa.cl', 'Supervisor', 'SUP', 'Sucursal Norte', 'SUC-N', 'RUT-100']);
+            fputcsv($salida, ['RUT-102', 'Sofía', 'Díaz', '', 'Vendedor', 'VEND', 'Sucursal Norte', 'SUC-N', 'RUT-101']);
 
             fclose($salida);
         }, 'plantilla-nomina.csv', [
@@ -164,25 +169,6 @@ class ImportController extends Controller
     }
 
     // -----------------------------------------------------------------
-
-    private function resumen(Import $import): array
-    {
-        return [
-            'id' => $import->id,
-            'filename' => $import->filename,
-            'status' => $import->status,
-            'rows_total' => $import->rows_total,
-            'rows_created' => $import->rows_created,
-            'rows_updated' => $import->rows_updated,
-            'rows_failed' => $import->rows_failed,
-            'error' => $import->error,
-            'has_passwords' => $import->rowsWithPassword()->exists(),
-            'created_at' => $import->created_at?->toIso8601String(),
-            'user' => $import->relationLoaded('user') && $import->user
-                ? trim($import->user->name.' '.$import->user->lastname)
-                : null,
-        ];
-    }
 
     private function mensajeFinal(Import $import): string
     {

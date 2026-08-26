@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { SelectorTema } from '../../shared/selector-tema/selector-tema';
 import { PendingNotice } from '../../shared/pending-notice/pending-notice';
 import { AuthService } from '../../core/auth/auth.service';
+import { Avatar } from '../../shared/avatar/avatar';
 
 interface ItemMenu {
   ruta: string;
@@ -20,7 +21,7 @@ interface ItemMenu {
  */
 @Component({
   selector: 'app-admin-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, PendingNotice, SelectorTema],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, PendingNotice, SelectorTema, Avatar],
   templateUrl: './admin-layout.html',
 })
 export class AdminLayout {

@@ -31,6 +31,8 @@ export interface Participante {
   user_id: number;
   nombre: string;
   iniciales: string;
+  /** Foto de perfil; `null` en quien no cargó ninguna: ahí van las iniciales. */
+  foto: string | null;
   participate: boolean;
   cargo: { id: number; nombre: string } | null;
   sucursal: { id: number; nombre: string } | null;
@@ -66,6 +68,7 @@ export interface IntegranteGrupo {
   user_id: number;
   nombre: string;
   iniciales: string;
+  foto: string | null;
   cargo: string | null;
   sucursal: string | null;
 }

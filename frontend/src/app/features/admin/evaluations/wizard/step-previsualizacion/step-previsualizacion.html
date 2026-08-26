@@ -46,7 +46,7 @@
       <ul class="huerfanos max-h-64 overflow-y-auto pr-1">
         @for (h of d.huerfanos; track h.user_id) {
           <li>
-            <span class="avatar-mini" aria-hidden="true">{{ h.iniciales }}</span>
+            <app-avatar [foto]="h.foto" [iniciales]="h.iniciales" />
             <span>
               <b>{{ h.nombre }}</b>
               <em>{{ h.cargo ?? 'Sin cargo' }} · {{ h.sucursal ?? 'Sin sucursal' }}</em>
@@ -140,9 +140,11 @@
                   "
                   (click)="elegirEquipo(g)"
                 >
-                  <span class="avatar-mini avatar-tenue !size-7" aria-hidden="true">
-                    {{ g.supervisor.iniciales }}
-                  </span>
+                  <app-avatar
+                    [foto]="g.supervisor.foto"
+                    [iniciales]="g.supervisor.iniciales"
+                    clases="avatar-tenue avatar-chico"
+                  />
                   <span class="min-w-0 flex-1">
                     <b class="block truncate text-[0.82rem]">{{ g.supervisor.nombre }}</b>
                     @if (!g.supervisor.participa) {
@@ -159,7 +161,7 @@
           @if (equipoElegido(); as g) {
             <div class="detalle-equipo">
               <header [class.opacity-60]="!g.supervisor.participa">
-                <span class="avatar-mini" aria-hidden="true">{{ g.supervisor.iniciales }}</span>
+                <app-avatar [foto]="g.supervisor.foto" [iniciales]="g.supervisor.iniciales" />
                 <span class="min-w-0">
                   <b class="block truncate">{{ g.supervisor.nombre }}</b>
                   <em class="not-italic text-xs text-ink-3">
@@ -178,9 +180,11 @@
               <ul>
                 @for (i of g.integrantes; track i.user_id) {
                   <li>
-                    <span class="avatar-mini avatar-tenue !size-7" aria-hidden="true">
-                      {{ i.iniciales }}
-                    </span>
+                    <app-avatar
+                      [foto]="i.foto"
+                      [iniciales]="i.iniciales"
+                      clases="avatar-tenue avatar-chico"
+                    />
                     <span class="min-w-0">
                       <b class="block truncate text-sm">{{ i.nombre }}</b>
                       <em class="not-italic text-xs text-ink-3">

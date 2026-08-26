@@ -14,9 +14,13 @@
    ------------------------------------------------------------------ */
 
 @custom-variant dark {
-  &:where([data-theme='dark'], [data-theme='dark'] *) { @slot; }
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
   @media (prefers-color-scheme: dark) {
-    &:where(:not([data-theme='light'], [data-theme='light'] *)) { @slot; }
+    &:where(:not([data-theme='light'], [data-theme='light'] *)) {
+      @slot;
+    }
   }
 }
 
@@ -159,7 +163,6 @@
    ------------------------------------------------------------------ */
 
 @layer theme {
-
   /* Violeta */
   :root[data-tema='violeta'] {
     --t-paper: #f6f5f9;
@@ -445,20 +448,20 @@
   /* Oscuro por preferencia del sistema, salvo que se haya forzado el claro. */
   @media (prefers-color-scheme: dark) {
     :root[data-tema]:not([data-theme='light']) {
-    --color-paper: var(--td-paper);
-    --color-surface: var(--td-surface);
-    --color-surface-2: var(--td-surface-2);
-    --color-ink: var(--td-ink);
-    --color-ink-2: var(--td-ink-2);
-    --color-ink-3: var(--td-ink-3);
-    --color-rule: var(--td-rule);
-    --color-accent: var(--td-accent);
-    --color-accent-hover: var(--td-accent-hover);
-    --color-accent-ink: var(--td-accent-ink);
-    --color-accent-soft: var(--td-accent-soft);
-    --color-realce: var(--td-realce);
-    --color-realce-soft: var(--td-realce-soft);
-    --color-realce-ink: var(--td-realce-ink);
+      --color-paper: var(--td-paper);
+      --color-surface: var(--td-surface);
+      --color-surface-2: var(--td-surface-2);
+      --color-ink: var(--td-ink);
+      --color-ink-2: var(--td-ink-2);
+      --color-ink-3: var(--td-ink-3);
+      --color-rule: var(--td-rule);
+      --color-accent: var(--td-accent);
+      --color-accent-hover: var(--td-accent-hover);
+      --color-accent-ink: var(--td-accent-ink);
+      --color-accent-soft: var(--td-accent-soft);
+      --color-realce: var(--td-realce);
+      --color-realce-soft: var(--td-realce-soft);
+      --color-realce-ink: var(--td-realce-ink);
     }
   }
 
@@ -481,31 +484,45 @@
   }
 }
 
-
 /* ------------------------------------------------------------------ */
 
 @layer base {
-  html, body { height: 100%; }
+  html,
+  body {
+    height: 100%;
+  }
 
   body {
     @apply bg-paper text-ink font-sans antialiased;
     margin: 0;
   }
 
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     @apply font-display tracking-tight;
     text-wrap: balance;
     margin: 0;
   }
 
   /* Los números de una tabla tienen que alinearse en columna. */
-  .tabular, td, th { font-variant-numeric: tabular-nums; }
+  .tabular,
+  td,
+  th {
+    font-variant-numeric: tabular-nums;
+  }
 
-  a { @apply text-accent; }
+  a {
+    @apply text-accent;
+  }
 
-  :focus-visible { @apply outline-2 outline-offset-2 outline-accent; }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
+  }
 
-  ::selection { @apply bg-accent-soft text-accent; }
+  ::selection {
+    @apply bg-accent-soft text-accent;
+  }
 
   * {
     scrollbar-width: thin;
@@ -513,7 +530,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    *,
+    *::before,
+    *::after {
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
@@ -532,16 +551,21 @@
    ------------------------------------------------------------------ */
 
 @layer components {
-
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-md border
            px-4 py-2 text-sm font-semibold no-underline cursor-pointer
            transition-colors duration-150
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  .btn-primary { @apply bg-accent text-accent-ink border-transparent hover:bg-accent-hover; }
-  .btn-quiet   { @apply bg-surface text-ink-2 border-rule hover:border-accent hover:text-accent; }
-  .btn-peligro { @apply bg-danger text-white border-transparent hover:bg-danger-hover; }
+  .btn-primary {
+    @apply bg-accent text-accent-ink border-transparent hover:bg-accent-hover;
+  }
+  .btn-quiet {
+    @apply bg-surface text-ink-2 border-rule hover:border-accent hover:text-accent;
+  }
+  .btn-peligro {
+    @apply bg-danger text-white border-transparent hover:bg-danger-hover;
+  }
 
   /*
     Acción afirmativa secundaria: ejecuta algo, pero no es la opción esperada.
@@ -553,7 +577,9 @@
     —uno abre el proceso, el otro no hace nada— es justamente el error que
     hay que evitar.
   */
-  .btn-secundario { @apply bg-transparent text-accent border-accent hover:bg-accent hover:text-accent-ink; }
+  .btn-secundario {
+    @apply bg-transparent text-accent border-accent hover:bg-accent hover:text-accent-ink;
+  }
 
   /* Botón chico, para acciones dentro de una fila de tabla. */
   /*
@@ -572,16 +598,32 @@
            disabled:cursor-not-allowed disabled:border-dashed
            disabled:bg-surface-2 disabled:text-ink-3 disabled:opacity-70;
   }
-  .mini.apagado { @apply border-dashed text-ink-3 cursor-default hover:border-rule hover:text-ink-3; }
-  .mini.peligro { @apply border-danger text-danger hover:bg-danger-soft; }
-  .mini.activo  { @apply border-accent text-accent font-semibold; }
+  .mini.apagado {
+    @apply border-dashed text-ink-3 cursor-default hover:border-rule hover:text-ink-3;
+  }
+  .mini.peligro {
+    @apply border-danger text-danger hover:bg-danger-soft;
+  }
+  .mini.activo {
+    @apply border-accent text-accent font-semibold;
+  }
 
-  .tarjeta { @apply rounded-card border border-rule bg-surface shadow-suave; }
-  .bloque  { @apply rounded-card border border-rule bg-surface shadow-suave p-6 mb-5; }
+  .tarjeta {
+    @apply rounded-card border border-rule bg-surface shadow-suave;
+  }
+  .bloque {
+    @apply rounded-card border border-rule bg-surface shadow-suave p-6 mb-5;
+  }
 
-  .field { @apply flex flex-col gap-1.5 mb-4; }
-  .field label { @apply text-sm font-semibold text-ink-2; }
-  .field input, .field select, .field textarea {
+  .field {
+    @apply flex flex-col gap-1.5 mb-4;
+  }
+  .field label {
+    @apply text-sm font-semibold text-ink-2;
+  }
+  .field input,
+  .field select,
+  .field textarea {
     @apply w-full rounded-md border border-rule bg-surface px-3 py-2
            text-sm text-ink transition-colors duration-150
            placeholder:text-ink-3 focus:border-accent focus:outline-none;
@@ -593,24 +635,39 @@
     de filtros quedaba con los desplegables un pelo más altos que las cajas de
     texto. Medido en navegador: 39 px contra 38.
   */
-  .field input, .field select { height: var(--alto-control); }
-  .field textarea { min-height: calc(var(--alto-control) * 2.5); }
+  .field input,
+  .field select {
+    height: var(--alto-control);
+  }
+  .field textarea {
+    min-height: calc(var(--alto-control) * 2.5);
+  }
 
   /*
     Fila de controles —filtros, barras de herramientas—. Todo lo que va
     dentro comparte alto y radio: si no, cada pieza trae el suyo y la fila
     queda escalonada.
   */
-  .fila-controles { @apply flex flex-wrap items-end gap-3; }
-  .fila-controles > .field { margin-bottom: 0; }
+  .fila-controles {
+    @apply flex flex-wrap items-end gap-3;
+  }
+  .fila-controles > .field {
+    margin-bottom: 0;
+  }
   .fila-controles .tarjeta-opcion,
   .fila-controles .btn {
     @apply rounded-md py-0;
     height: var(--alto-control);
   }
-  .field input[aria-invalid='true'] { @apply border-danger; }
-  .field .error { @apply text-xs text-danger; }
-  .pista { @apply text-xs text-ink-3; }
+  .field input[aria-invalid='true'] {
+    @apply border-danger;
+  }
+  .field .error {
+    @apply text-xs text-danger;
+  }
+  .pista {
+    @apply text-xs text-ink-3;
+  }
 
   /*
     Buscador de personas con sugerencias.
@@ -619,10 +676,16 @@
     desplegable va posicionado, fuera de flujo, así que no empuja nada ni
     desalinea la barra de filtros donde vive.
   */
-  .buscador { @apply relative; }
-  .buscador-caja { @apply relative; }
+  .buscador {
+    @apply relative;
+  }
+  .buscador-caja {
+    @apply relative;
+  }
   /* Sitio para la ×, para que no se monte sobre el texto escrito. */
-  .buscador-caja input { @apply pr-9; }
+  .buscador-caja input {
+    @apply pr-9;
+  }
   .buscador-limpiar {
     @apply absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center
            rounded-full text-base leading-none text-ink-3 cursor-pointer
@@ -633,7 +696,9 @@
     @apply absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto
            rounded-md border border-rule bg-surface py-1 shadow-flotante;
   }
-  .sugerencias ul { @apply m-0 list-none p-0; }
+  .sugerencias ul {
+    @apply m-0 list-none p-0;
+  }
 
   .sugerencia {
     @apply flex items-baseline justify-between gap-3 px-3 py-2 text-sm
@@ -644,47 +709,107 @@
     índice. Con un `:hover` aparte se ven dos filas marcadas a la vez y no se
     sabe cuál elige el Enter.
   */
-  .sugerencia.resaltada { @apply bg-accent-soft text-accent; }
-  .sugerencia-nombre { @apply truncate; }
-  .sugerencia-codigo { @apply shrink-0 text-xs text-ink-3 tabular-nums; }
-  .sugerencia.resaltada .sugerencia-codigo { @apply text-accent; }
+  .sugerencia.resaltada {
+    @apply bg-accent-soft text-accent;
+  }
+  .sugerencia-nombre {
+    @apply truncate;
+  }
+  .sugerencia-codigo {
+    @apply shrink-0 text-xs text-ink-3 tabular-nums;
+  }
+  .sugerencia.resaltada .sugerencia-codigo {
+    @apply text-accent;
+  }
 
-  .sugerencia-nota { @apply m-0 px-3 py-2 text-xs text-ink-3; }
-  .sugerencia-fallo { @apply text-danger; }
+  .sugerencia-nota {
+    @apply m-0 px-3 py-2 text-xs text-ink-3;
+  }
+  .sugerencia-fallo {
+    @apply text-danger;
+  }
 
-  .alert { @apply mb-5 rounded-md border-l-4 px-4 py-3 text-sm; }
-  .alert-error { @apply border-danger bg-danger-soft text-danger; }
-  .alert-ok { @apply border-accent bg-accent-soft text-accent; }
+  .alert {
+    @apply mb-5 rounded-md border-l-4 px-4 py-3 text-sm;
+  }
+  .alert-error {
+    @apply border-danger bg-danger-soft text-danger;
+  }
+  .alert-ok {
+    @apply border-accent bg-accent-soft text-accent;
+  }
 
-  .chip { @apply inline-flex items-center rounded px-2 py-0.5 text-xs font-bold whitespace-nowrap; }
-  .chip-ok { @apply bg-accent-soft text-accent; }
-  .chip-pendiente { @apply bg-warn-soft text-warn; }
-  .chip-error { @apply bg-danger-soft text-danger; }
+  .chip {
+    @apply inline-flex items-center rounded px-2 py-0.5 text-xs font-bold whitespace-nowrap;
+  }
+  .chip-ok {
+    @apply bg-accent-soft text-accent;
+  }
+  .chip-pendiente {
+    @apply bg-warn-soft text-warn;
+  }
+  .chip-error {
+    @apply bg-danger-soft text-danger;
+  }
+  /* Informativo, sin juicio: no es bueno ni malo, solo distingue. */
+  .chip-neutro {
+    @apply bg-surface-2 text-ink-3;
+  }
 
-  .tabla-scroll { @apply overflow-x-auto rounded-card border border-rule bg-surface shadow-suave; }
-  .tabla { @apply w-full border-collapse text-sm; }
+  .tabla-scroll {
+    @apply overflow-x-auto rounded-card border border-rule bg-surface shadow-suave;
+  }
+  .tabla {
+    @apply w-full border-collapse text-sm;
+  }
   .tabla thead th {
     @apply bg-surface-2 px-4 py-3 text-left text-[0.68rem] font-bold
            uppercase tracking-wider text-ink-3 whitespace-nowrap border-b border-rule;
   }
-  .tabla td { @apply px-4 py-3 align-middle border-b border-rule; }
-  .tabla tbody tr:last-child td { @apply border-b-0; }
-  .tabla tbody tr { @apply transition-colors duration-100; }
-  .tabla tbody tr:hover { background-color: color-mix(in oklab, var(--color-surface-2) 60%, transparent); }
-  .tabla .num { @apply text-right tabular-nums; }
-  .tabla .acciones { @apply text-right whitespace-nowrap; }
-  .tabla .acciones > * + * { @apply ml-1; }
+  .tabla td {
+    @apply px-4 py-3 align-middle border-b border-rule;
+  }
+  .tabla tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .tabla tbody tr {
+    @apply transition-colors duration-100;
+  }
+  .tabla tbody tr:hover {
+    background-color: color-mix(in oklab, var(--color-surface-2) 60%, transparent);
+  }
+  .tabla .num {
+    @apply text-right tabular-nums;
+  }
+  .tabla .acciones {
+    @apply text-right whitespace-nowrap;
+  }
+  .tabla .acciones > * + * {
+    @apply ml-1;
+  }
 
   .vacio {
     @apply rounded-card border border-dashed border-rule px-6 py-12 text-center text-ink-3;
   }
 
-  .pagina-titulo { @apply text-2xl font-bold sm:text-3xl; }
-  .pagina-intro { @apply mt-1 max-w-3xl text-ink-2; }
-  .encabezado { @apply mb-6 flex flex-wrap items-start justify-between gap-6; }
-  .acciones-encabezado { @apply flex shrink-0 gap-2; }
-  .explica { @apply max-w-3xl text-sm text-ink-2; }
-  .sub { @apply mt-6 mb-2 text-base font-semibold; }
+  .pagina-titulo {
+    @apply text-2xl font-bold sm:text-3xl;
+  }
+  .pagina-intro {
+    @apply mt-1 max-w-3xl text-ink-2;
+  }
+  .encabezado {
+    @apply mb-6 flex flex-wrap items-start justify-between gap-6;
+  }
+  .acciones-encabezado {
+    @apply flex shrink-0 gap-2;
+  }
+  .explica {
+    @apply max-w-3xl text-sm text-ink-2;
+  }
+  .sub {
+    @apply mt-6 mb-2 text-base font-semibold;
+  }
 
   .modal-fondo {
     @apply fixed inset-0 z-50 grid place-items-center p-6;
@@ -698,9 +823,15 @@
     max-height: 90vh;
     animation: subir 0.2s ease-out;
   }
-  .modal h2 { @apply mb-4 text-lg font-semibold; }
-  .modal .nota { @apply text-sm text-ink-3; }
-  .acciones-modal { @apply mt-6 flex flex-wrap justify-end gap-2 border-t border-rule pt-5; }
+  .modal h2 {
+    @apply mb-4 text-lg font-semibold;
+  }
+  .modal .nota {
+    @apply text-sm text-ink-3;
+  }
+  .acciones-modal {
+    @apply mt-6 flex flex-wrap justify-end gap-2 border-t border-rule pt-5;
+  }
 
   /*
     Diálogos con dos caminos afirmativos: los botones se apilan a lo ancho.
@@ -720,34 +851,67 @@
     `column-reverse`: si no, el foco del teclado recorrería los botones al
     revés de como se ven.
   */
-  .acciones-apiladas { @apply flex-col items-stretch; }
-  .ancho-form { @apply max-w-3xl; }
-  .grilla-form { @apply grid gap-x-5 sm:grid-cols-2; }
-  .ancho-doble { @apply sm:col-span-2; }
+  .acciones-apiladas {
+    @apply flex-col items-stretch;
+  }
+  .ancho-form {
+    @apply max-w-3xl;
+  }
+  .grilla-form {
+    @apply grid gap-x-5 sm:grid-cols-2;
+  }
+
+  /* Bloque de la foto en el formulario de persona: el círculo grande y, al
+     lado, qué se puede hacer con él. Va separado del resto con un fondo
+     propio porque es lo único del formulario que se guarda solo. */
+  .foto-perfil {
+    @apply mb-5 flex items-center gap-4 rounded-card border border-rule bg-surface-2/50 p-4;
+  }
+  /* Los dos botones son del mismo rol —actuar sobre la foto—, así que van con
+     la misma clase y comparten alto, radio y tipografía. «Quitar» no lleva
+     color de peligro: no destruye nada que no se pueda volver a subir. */
+  .foto-perfil .acciones-foto {
+    @apply flex flex-wrap items-center gap-2;
+  }
+  .ancho-doble {
+    @apply sm:col-span-2;
+  }
 
   .avatar-mini {
     @apply grid size-8 shrink-0 place-items-center rounded-full
            bg-surface-2 text-[0.7rem] font-bold text-ink-2;
   }
 
-  .paginacion { @apply mt-4 flex flex-wrap items-center justify-between gap-4 text-sm text-ink-3; }
+  .paginacion {
+    @apply mt-4 flex flex-wrap items-center justify-between gap-4 text-sm text-ink-3;
+  }
 
-  .medidor { @apply h-1.5 overflow-hidden rounded-full bg-surface-2; }
-  .medidor span { @apply block h-full rounded-full bg-accent transition-all duration-500; }
+  .medidor {
+    @apply h-1.5 overflow-hidden rounded-full bg-surface-2;
+  }
+  .medidor span {
+    @apply block h-full rounded-full bg-accent transition-all duration-500;
+  }
 
   .filtros {
     @apply mb-5 grid items-end gap-4 rounded-card border border-rule
            bg-surface p-5 shadow-suave;
     grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
   }
-  .filtros .field { @apply mb-0; }
+  .filtros .field {
+    @apply mb-0;
+  }
 
-  .pestanas { @apply mb-6 flex gap-1 border-b border-rule; }
+  .pestanas {
+    @apply mb-6 flex gap-1 border-b border-rule;
+  }
   .pestanas a {
     @apply -mb-px border-b-2 border-transparent px-4 py-2.5 text-sm
            text-ink-2 no-underline transition-colors duration-150 hover:text-ink;
   }
-  .pestanas a.activa { @apply border-accent font-semibold text-accent; }
+  .pestanas a.activa {
+    @apply border-accent font-semibold text-accent;
+  }
 
   .cerrar {
     @apply float-right cursor-pointer border-0 bg-transparent
@@ -755,72 +919,147 @@
     color: inherit;
   }
 
-  .recordar { @apply mb-5 flex cursor-pointer items-center gap-2 text-sm text-ink-2; }
-  .recordar input { accent-color: var(--color-accent); }
+  .recordar {
+    @apply mb-5 flex cursor-pointer items-center gap-2 text-sm text-ink-2;
+  }
+  .recordar input {
+    accent-color: var(--color-accent);
+  }
 
-  .ancho { @apply w-full; }
-  .titulo { @apply mb-5 text-base font-semibold; }
-  .intro { @apply -mt-2 mb-6 text-sm text-ink-2; }
-  .ayuda { @apply mt-5 border-t border-rule pt-4 text-center text-sm; }
+  .ancho {
+    @apply w-full;
+  }
+  .titulo {
+    @apply mb-5 text-base font-semibold;
+  }
+  .intro {
+    @apply -mt-2 mb-6 text-sm text-ink-2;
+  }
+  .ayuda {
+    @apply mt-5 border-t border-rule pt-4 text-center text-sm;
+  }
 }
 
-@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 @keyframes subir {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* --- Piezas de pantallas concretas.
        Van acá y no en las plantillas porque se repiten entre vistas. --- */
 
 @layer components {
-
   /* Cifras de cabecera de un informe. */
-  .cifras { @apply mb-6 grid gap-4; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
-  .cifra { @apply rounded-card border border-rule bg-surface p-5 shadow-suave; }
-  .rotulo { @apply mb-2 text-[0.7rem] font-bold uppercase tracking-wider text-ink-3; }
-  .numero { @apply mb-2.5 text-3xl font-bold leading-none tabular-nums; }
-  .de { @apply ml-1 text-sm font-normal text-ink-3; }
-  .sin-dato { @apply text-sm text-ink-3; }
-  .pie-cifra { @apply mt-2 text-xs text-ink-3; }
+  .cifras {
+    @apply mb-6 grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  }
+  .cifra {
+    @apply rounded-card border border-rule bg-surface p-5 shadow-suave;
+  }
+  .rotulo {
+    @apply mb-2 text-[0.7rem] font-bold uppercase tracking-wider text-ink-3;
+  }
+  .numero {
+    @apply mb-2.5 text-3xl font-bold leading-none tabular-nums;
+  }
+  .de {
+    @apply ml-1 text-sm font-normal text-ink-3;
+  }
+  .sin-dato {
+    @apply text-sm text-ink-3;
+  }
+  .pie-cifra {
+    @apply mt-2 text-xs text-ink-3;
+  }
 
   .ficha-persona {
     @apply mb-5 flex flex-wrap items-start justify-between gap-6
            rounded-card border border-rule bg-surface p-6 shadow-suave;
   }
-  .contexto { @apply text-right text-sm text-ink-3; }
+  .contexto {
+    @apply text-right text-sm text-ink-3;
+  }
 
-  .comentarios { @apply list-none p-0; }
-  .comentarios li { @apply border-b border-rule py-3 last:border-b-0; }
-  .pregunta-comentario { @apply mb-1.5 text-xs text-ink-3; }
+  .comentarios {
+    @apply list-none p-0;
+  }
+  .comentarios li {
+    @apply border-b border-rule py-3 last:border-b-0;
+  }
+  .pregunta-comentario {
+    @apply mb-1.5 text-xs text-ink-3;
+  }
   .comentarios blockquote {
     @apply m-0 border-l-2 border-accent-soft pl-4 text-sm text-ink-2;
   }
 
-  .categoria-detalle { @apply border-b border-rule py-4 last:border-b-0; }
-  .categoria-detalle .sub { @apply mt-0 flex flex-wrap items-center gap-2; }
-  .enunciado-celda { @apply min-w-[20rem] whitespace-normal; }
-  td.destacado { @apply bg-accent-soft font-bold text-accent; }
+  .categoria-detalle {
+    @apply border-b border-rule py-4 last:border-b-0;
+  }
+  .categoria-detalle .sub {
+    @apply mt-0 flex flex-wrap items-center gap-2;
+  }
+  .enunciado-celda {
+    @apply min-w-[20rem] whitespace-normal;
+  }
+  td.destacado {
+    @apply bg-accent-soft font-bold text-accent;
+  }
 
   /* Monitoreo */
-  .medidores { @apply mb-6 grid gap-4; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
-  .medida { @apply rounded-card border border-rule bg-surface p-5 shadow-suave; }
-  .medida.completa { @apply border-accent; }
-  .numero-chico { @apply mb-2.5 text-xl font-bold leading-none tabular-nums; }
-  .rotulo-medida { @apply mt-2.5 text-xs leading-relaxed text-ink-3; }
+  .medidores {
+    @apply mb-6 grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  }
+  .medida {
+    @apply rounded-card border border-rule bg-surface p-5 shadow-suave;
+  }
+  .medida.completa {
+    @apply border-accent;
+  }
+  .numero-chico {
+    @apply mb-2.5 text-xl font-bold leading-none tabular-nums;
+  }
+  .rotulo-medida {
+    @apply mt-2.5 text-xs leading-relaxed text-ink-3;
+  }
 
   /* Gráficos */
-  .grafico { @apply w-full; }
+  .grafico {
+    @apply w-full;
+  }
 }
 
 @layer components {
-
   /* --- Listados y celdas --- */
 
-  .persona-celda { @apply flex min-w-0 items-center gap-2.5; }
-  .persona-celda b { @apply block leading-snug; }
-  .persona-celda em { @apply text-xs not-italic text-ink-3; }
-  .persona-celda .sin-correo { @apply text-warn; }
+  .persona-celda {
+    @apply flex min-w-0 items-center gap-2.5;
+  }
+  .persona-celda b {
+    @apply block leading-snug;
+  }
+  .persona-celda em {
+    @apply text-xs not-italic text-ink-3;
+  }
+  .persona-celda .sin-correo {
+    @apply text-warn;
+  }
 
   .estado {
     @apply inline-flex items-center gap-1.5 rounded px-2.5 py-1
@@ -833,11 +1072,22 @@
     animation: latido 1.4s ease-in-out infinite;
   }
 
-  .publicado { @apply block text-xs not-italic text-accent; }
-  .trabajando, .sin-acciones { @apply text-sm text-ink-3; }
-  tr.ocupada { @apply opacity-50; }
-  tr.excluido { @apply opacity-50; }
-  tr.excluido b { @apply line-through; }
+  .publicado {
+    @apply block text-xs not-italic text-accent;
+  }
+  .trabajando,
+  .sin-acciones {
+    @apply text-sm text-ink-3;
+  }
+  tr.ocupada {
+    @apply opacity-50;
+  }
+  tr.excluido {
+    @apply opacity-50;
+  }
+  tr.excluido b {
+    @apply line-through;
+  }
   /*
     Interruptor gobernado por el modelo, no por el estado de un <input>.
     Un checkbox nativo se marca solo al hacer clic: si la acción se cancela o
@@ -865,8 +1115,12 @@
     animation: girar 0.7s linear infinite;
   }
 
-  .interruptor[aria-checked='true'] { @apply border-accent bg-accent; }
-  .interruptor[aria-checked='true']::after { @apply translate-x-4 bg-accent-ink; }
+  .interruptor[aria-checked='true'] {
+    @apply border-accent bg-accent;
+  }
+  .interruptor[aria-checked='true']::after {
+    @apply translate-x-4 bg-accent-ink;
+  }
 
   /*
     Cabecera ordenable. Es un botón y no un enlace: ordenar no lleva a otra
@@ -878,87 +1132,156 @@
            transition-colors duration-150 hover:text-accent;
     font-size: inherit;
   }
-  .flecha-orden { @apply text-accent; }
+  .flecha-orden {
+    @apply text-accent;
+  }
 
   /* --- Tarjetas de sección --- */
 
-  .tarjetas { @apply grid gap-4; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+  .tarjetas {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  }
   .tarjeta-seccion,
   .tarjetas > article {
     @apply flex flex-col gap-2 rounded-card border border-rule bg-surface p-5 shadow-suave;
   }
-  .tarjetas h2 { @apply text-base font-semibold; }
-  .tarjetas p { @apply m-0 flex-1 text-sm text-ink-2; }
+  .tarjetas h2 {
+    @apply text-base font-semibold;
+  }
+  .tarjetas p {
+    @apply m-0 flex-1 text-sm text-ink-2;
+  }
   .etiqueta {
     @apply self-start rounded border border-rule px-1.5 py-0.5
            text-[0.64rem] font-bold uppercase tracking-wider text-ink-3;
   }
 
-  .ficha, .pendiente {
+  .ficha,
+  .pendiente {
     @apply mb-5 rounded-card border border-rule bg-surface p-6 shadow-suave;
   }
-  .ficha h2, .pendiente h2 { @apply mb-4 text-base font-semibold; }
-  .ficha dl { @apply m-0 grid gap-4; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
-  .ficha dl > div { @apply flex min-w-0 flex-col gap-0.5; }
-  .ficha dt { @apply text-[0.7rem] font-bold uppercase tracking-wider text-ink-3; }
-  .ficha dd { @apply m-0 text-[0.94rem]; }
-  .ficha .nota { @apply mt-5 border-t border-rule pt-4 text-sm text-ink-3; }
-  .pendiente p { @apply m-0 text-sm text-ink-2; }
+  .ficha h2,
+  .pendiente h2 {
+    @apply mb-4 text-base font-semibold;
+  }
+  .ficha dl {
+    @apply m-0 grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  }
+  .ficha dl > div {
+    @apply flex min-w-0 flex-col gap-0.5;
+  }
+  .ficha dt {
+    @apply text-[0.7rem] font-bold uppercase tracking-wider text-ink-3;
+  }
+  .ficha dd {
+    @apply m-0 text-[0.94rem];
+  }
+  .ficha .nota {
+    @apply mt-5 border-t border-rule pt-4 text-sm text-ink-3;
+  }
+  .pendiente p {
+    @apply m-0 text-sm text-ink-2;
+  }
 
   /* --- Portal del colaborador --- */
 
   .destacada {
     @apply mb-5 rounded-card border border-accent bg-surface p-7 shadow-alzado;
   }
-  .destacada.lista { @apply border-rule shadow-suave; }
+  .destacada.lista {
+    @apply border-rule shadow-suave;
+  }
   .etiqueta-viva {
     @apply mb-3 inline-block rounded bg-accent-soft px-2 py-1
            text-[0.66rem] font-bold uppercase tracking-wider text-accent;
   }
-  .destacada h2 { @apply mb-1 text-xl font-semibold; }
-  .destacada .cabecera p { @apply m-0 text-sm text-ink-3; }
-  .destacada .mensaje { @apply my-4 text-[0.93rem] text-ink-2; }
+  .destacada h2 {
+    @apply mb-1 text-xl font-semibold;
+  }
+  .destacada .cabecera p {
+    @apply m-0 text-sm text-ink-3;
+  }
+  .destacada .mensaje {
+    @apply my-4 text-[0.93rem] text-ink-2;
+  }
 
-  .progreso { @apply mb-7; }
-  .barra { @apply mb-2 h-2 overflow-hidden rounded-full bg-surface-2; }
-  .barra span { @apply block h-full rounded-full bg-accent transition-all duration-500; }
-  .progreso p { @apply m-0 text-sm text-ink-2; }
+  .progreso {
+    @apply mb-7;
+  }
+  .barra {
+    @apply mb-2 h-2 overflow-hidden rounded-full bg-surface-2;
+  }
+  .barra span {
+    @apply block h-full rounded-full bg-accent transition-all duration-500;
+  }
+  .progreso p {
+    @apply m-0 text-sm text-ink-2;
+  }
 
-  .evaluados { @apply list-none p-0; }
+  .evaluados {
+    @apply list-none p-0;
+  }
   .evaluados li {
     @apply flex items-center justify-between gap-4 border-b border-rule py-3 last:border-b-0;
   }
-  .evaluados .quien { @apply flex flex-wrap items-center gap-2.5; }
-  .evaluando { @apply mt-2 text-[0.93rem] text-ink-2; }
+  .evaluados .quien {
+    @apply flex flex-wrap items-center gap-2.5;
+  }
+  .evaluando {
+    @apply mt-2 text-[0.93rem] text-ink-2;
+  }
 
   /* --- Responder --- */
 
-  .preguntas { @apply list-none p-0; counter-reset: q; }
-  .preguntas li { @apply border-b border-rule py-5 last:border-b-0; counter-increment: q; }
-  .enunciado { @apply mb-3 text-[0.95rem] font-semibold; }
-  .enunciado::before { content: counter(q) '. '; @apply font-normal text-ink-3; }
+  .preguntas {
+    @apply list-none p-0;
+    counter-reset: q;
+  }
+  .preguntas li {
+    @apply border-b border-rule py-5 last:border-b-0;
+    counter-increment: q;
+  }
+  .enunciado {
+    @apply mb-3 text-[0.95rem] font-semibold;
+  }
+  .enunciado::before {
+    content: counter(q) '. ';
+    @apply font-normal text-ink-3;
+  }
   .opcional {
     @apply ml-2 rounded border border-rule px-1.5 py-0.5 text-[0.64rem]
            font-normal not-italic uppercase tracking-wide text-ink-3;
   }
-  .escala { @apply flex flex-wrap gap-2; }
+  .escala {
+    @apply flex flex-wrap gap-2;
+  }
   .punto {
     @apply size-11 rounded-md border border-rule bg-surface text-[0.95rem]
            font-semibold text-ink-2 cursor-pointer transition-colors duration-150
            hover:not-disabled:border-accent hover:not-disabled:text-accent
            disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  .punto.elegido { @apply border-accent bg-accent text-accent-ink; }
-  .leyenda { @apply mt-2 text-xs text-ink-3; }
+  .punto.elegido {
+    @apply border-accent bg-accent text-accent-ink;
+  }
+  .leyenda {
+    @apply mt-2 text-xs text-ink-3;
+  }
   .preguntas textarea {
     @apply w-full resize-y rounded-md border border-rule bg-surface px-3 py-2
            text-[0.93rem] text-ink focus:border-accent focus:outline-none;
   }
-  .faltantes { @apply mr-auto self-center text-sm text-ink-3; }
+  .faltantes {
+    @apply mr-auto self-center text-sm text-ink-3;
+  }
 
   /* --- Asistente --- */
 
-  .acciones-paso { @apply mt-6 flex flex-wrap justify-end gap-3; }
+  .acciones-paso {
+    @apply mt-6 flex flex-wrap justify-end gap-3;
+  }
   /*
     Las plantillas van en un carril horizontal. Una rejilla que envuelve deja
     filas huérfanas y huecos cuando hay dos o tres; el carril siempre se ve
@@ -968,46 +1291,71 @@
     @apply flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1;
     scrollbar-width: none;
   }
-  .carril-plantillas::-webkit-scrollbar { display: none; }
+  .carril-plantillas::-webkit-scrollbar {
+    display: none;
+  }
   /*
     Ancho fijo: la tarjeta mide lo mismo haya una o diez. Estirar la única
     hasta el ancho del bloque la deja con un texto minúsculo flotando en un
     rectángulo enorme, que se lee peor que el hueco a su derecha.
   */
-  .carril-plantillas > * { @apply w-72 shrink-0 snap-start; }
+  .carril-plantillas > * {
+    @apply w-72 shrink-0 snap-start;
+  }
   .plantilla {
     @apply flex cursor-pointer flex-col gap-0.5 rounded-md border border-rule
            bg-surface p-4 text-left text-ink transition-colors duration-150
            hover:border-accent;
   }
-  .plantilla.elegida { @apply border-accent bg-accent-soft; }
-  .plantilla em { @apply text-xs not-italic text-ink-3; }
+  .plantilla.elegida {
+    @apply border-accent bg-accent-soft;
+  }
+  .plantilla em {
+    @apply text-xs not-italic text-ink-3;
+  }
 
   /*
     Los formularios se acomodan al ancho de su texto. En rejilla, «Evaluación
     a personas a cargo» y «Autoevaluación» ocupaban lo mismo, con un hueco
     enorme en la corta y una fila huérfana al final.
   */
-  .formularios { @apply flex list-none flex-wrap gap-2 p-0; }
+  .formularios {
+    @apply flex list-none flex-wrap gap-2 p-0;
+  }
 
-  .sucursales { @apply mb-4 grid list-none gap-3 p-0; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+  .sucursales {
+    @apply mb-4 grid list-none gap-3 p-0;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
 
   /*
     El `<li>` se estira solo, pero la tarjeta de adentro no lo hacía: con un
     nombre de dos líneas, esa fila quedaba con una tarjeta alta y el resto
     flotando arriba. `h-full` en la tarjeta las empareja.
   */
-  .sucursales > li { @apply flex; }
+  .sucursales > li {
+    @apply flex;
+  }
   .sucursal {
     @apply flex h-full w-full cursor-pointer items-center gap-3 rounded-md
            border border-rule bg-surface p-4 transition-colors duration-150
            hover:border-accent;
   }
-  .sucursal.elegida { @apply border-accent bg-accent-soft; }
-  .sucursal input { accent-color: var(--color-accent); }
-  .sucursal .datos { @apply flex flex-col leading-snug; }
-  .sucursal em { @apply text-xs not-italic text-ink-3; }
-  .resumen-seleccion { @apply mt-4 border-t border-rule pt-4 text-[0.92rem] text-ink-2; }
+  .sucursal.elegida {
+    @apply border-accent bg-accent-soft;
+  }
+  .sucursal input {
+    accent-color: var(--color-accent);
+  }
+  .sucursal .datos {
+    @apply flex flex-col leading-snug;
+  }
+  .sucursal em {
+    @apply text-xs not-italic text-ink-3;
+  }
+  .resumen-seleccion {
+    @apply mt-4 border-t border-rule pt-4 text-[0.92rem] text-ink-2;
+  }
 
   /*
     Tablero de equipos: jefaturas a la izquierda, integrantes a la derecha.
@@ -1037,31 +1385,58 @@
   .fila-equipo .cuenta {
     @apply shrink-0 rounded-full bg-surface px-2 py-0.5 text-[0.7rem] font-bold text-ink-2;
   }
-  .fila-equipo.elegido .cuenta { @apply bg-accent-soft text-accent; }
+  .fila-equipo.elegido .cuenta {
+    @apply bg-accent-soft text-accent;
+  }
 
-  .detalle-equipo { @apply flex min-w-0 flex-col overflow-hidden bg-surface; }
+  .detalle-equipo {
+    @apply flex min-w-0 flex-col overflow-hidden bg-surface;
+  }
   .detalle-equipo > header {
     @apply flex shrink-0 items-center gap-3 border-b border-rule px-4 py-3;
   }
-  .detalle-equipo > ul { @apply m-0 flex-1 list-none overflow-y-auto p-0; }
+  .detalle-equipo > ul {
+    @apply m-0 flex-1 list-none overflow-y-auto p-0;
+  }
   .detalle-equipo > ul > li {
     @apply flex items-center gap-3 border-b border-rule px-4 py-2.5 last:border-b-0;
   }
 
-  .grupos { @apply grid gap-4; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); }
-  .grupo { @apply overflow-hidden rounded-card border border-rule bg-surface shadow-suave; }
-  .grupo header { @apply flex items-center gap-2.5 border-b border-rule bg-surface-2 px-4 py-3; }
-  .grupo header b { @apply text-sm; }
-  .grupo em { @apply block text-xs not-italic text-ink-3; }
+  .grupos {
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  }
+  .grupo {
+    @apply overflow-hidden rounded-card border border-rule bg-surface shadow-suave;
+  }
+  .grupo header {
+    @apply flex items-center gap-2.5 border-b border-rule bg-surface-2 px-4 py-3;
+  }
+  .grupo header b {
+    @apply text-sm;
+  }
+  .grupo em {
+    @apply block text-xs not-italic text-ink-3;
+  }
   .grupo .cuenta {
     @apply ml-auto rounded bg-accent-soft px-1.5 py-0.5 text-xs font-bold text-accent;
   }
-  .grupo ul { @apply list-none px-4 pt-2 pb-3; }
-  .grupo li { @apply py-1 text-sm; }
+  .grupo ul {
+    @apply list-none px-4 pt-2 pb-3;
+  }
+  .grupo li {
+    @apply py-1 text-sm;
+  }
 
-  .huerfanos { @apply mb-4 list-none p-0; }
-  .huerfanos li { @apply flex items-center gap-2.5 border-b border-rule py-2.5 last:border-b-0; }
-  .huerfanos em { @apply block text-xs not-italic text-ink-3; }
+  .huerfanos {
+    @apply mb-4 list-none p-0;
+  }
+  .huerfanos li {
+    @apply flex items-center gap-2.5 border-b border-rule py-2.5 last:border-b-0;
+  }
+  .huerfanos em {
+    @apply block text-xs not-italic text-ink-3;
+  }
 
   /* --- Importación --- */
 
@@ -1069,37 +1444,137 @@
     @apply my-5 flex flex-wrap items-center gap-4 rounded-md border border-dashed
            border-rule bg-surface-2 p-5;
   }
-  .carga input[type='file'] { @apply min-w-56 flex-1 text-sm; }
-  .carga .recordar { @apply mb-0; }
-  .nota-clave { @apply mt-4 border-t border-rule pt-4 text-ink-3; }
+  .carga input[type='file'] {
+    @apply min-w-56 flex-1 text-sm;
+  }
+  .carga .recordar {
+    @apply mb-0;
+  }
+  .nota-clave {
+    @apply mt-4 border-t border-rule pt-4 text-ink-3;
+  }
 
-  .marcadores { @apply mb-5 grid gap-3; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); }
-  .marcador { @apply flex flex-col gap-0.5 rounded-md border border-rule p-4; }
-  .marcador b { @apply text-2xl font-bold leading-tight tabular-nums; }
-  .marcador span { @apply text-[0.72rem] uppercase tracking-wide text-ink-3; }
-  .marcador.ok b { @apply text-accent; }
-  .marcador.mal b { @apply text-danger; }
-  .filtro-filas { @apply mb-4 flex gap-2; }
-  .filtro-filas .mini { @apply ml-0; }
+  .marcadores {
+    @apply mb-5 grid gap-3;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  }
+  .marcador {
+    @apply flex flex-col gap-0.5 rounded-md border border-rule p-4;
+  }
+  .marcador b {
+    @apply text-2xl font-bold leading-tight tabular-nums;
+  }
+  .marcador span {
+    @apply text-[0.72rem] uppercase tracking-wide text-ink-3;
+  }
+  .marcador.ok b {
+    @apply text-accent;
+  }
+  .marcador.mal b {
+    @apply text-danger;
+  }
+  /* Fila de botones que elige entre dos vistas del mismo bloque: el filtro
+     del resultado y, en la carga, el formato de la planilla. Mismo rol, misma
+     definición, para que no se vean distintos a diez píxeles de distancia. */
+  .filtro-filas,
+  .opciones-modo {
+    @apply mb-4 flex flex-wrap gap-2;
+  }
+  .filtro-filas .mini,
+  .opciones-modo .mini {
+    @apply ml-0;
+  }
+
+  /* --- Homologación de una planilla con otro formato --- */
+
+  /* Una tarjeta por campo del sistema. El mínimo de 17rem es para que en el
+     ancho de una tarjeta entren el desplegable y los ejemplos sin cortarse:
+     los ejemplos son el motivo por el que esto no es una tabla de dos
+     columnas, que era la forma obvia y la que no deja ver los datos. */
+  .homologacion {
+    @apply mb-5 grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  }
+  .campo-homologado {
+    @apply mb-0 rounded-md border border-rule bg-surface p-4;
+  }
+  /* Sin conectar y obligatoria: se marca el borde, no el fondo, para que no
+     grite más que un error de verdad. */
+  .campo-homologado.sin-conectar {
+    @apply border-danger;
+  }
+  .campo-homologado label {
+    @apply flex flex-wrap items-center gap-2;
+  }
+  .campo-homologado .pista {
+    @apply mt-1.5;
+  }
+
+  /* Valores reales de la columna elegida. Son la prueba de que se conectó
+     bien, así que se muestran como dato y no como texto de ayuda. */
+  .ejemplos {
+    @apply mt-2 flex flex-wrap gap-1.5;
+  }
+  .dato {
+    @apply rounded border border-rule bg-surface-2 px-2 py-0.5
+           text-[0.72rem] text-ink-2 tabular-nums;
+  }
+  .alert .dato {
+    @apply mx-1 border-transparent bg-surface/60;
+  }
+  /* Lista de sucursales o cargos que la planilla va a crear. */
+  .catalogo-nuevo {
+    @apply mt-2 flex flex-wrap items-center gap-1.5;
+  }
+  .catalogo-nuevo em {
+    @apply text-xs not-italic opacity-80;
+  }
+
+  /* El encabezado del resumen dice el campo del sistema y, debajo y en chico,
+     de qué columna del archivo sale. Las dos cosas juntas son lo que permite
+     verificar la homologación de un vistazo. */
+  .tabla th .origen {
+    @apply block text-[0.68rem] font-normal normal-case not-italic text-ink-3;
+  }
+
+  .acciones-paso {
+    @apply mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-rule pt-5;
+  }
 
   /* --- Previsualización de formularios --- */
 
-  .cuenta-suave { @apply ml-1 text-xs text-ink-3; }
-  .bloque h2 .chip { @apply ml-2 align-middle; }
-  .pregunta-abierta { @apply border-b border-rule py-4 last:border-b-0; }
-  .pregunta-abierta .sub { @apply mt-0; }
+  .cuenta-suave {
+    @apply ml-1 text-xs text-ink-3;
+  }
+  .bloque h2 .chip {
+    @apply ml-2 align-middle;
+  }
+  .pregunta-abierta {
+    @apply border-b border-rule py-4 last:border-b-0;
+  }
+  .pregunta-abierta .sub {
+    @apply mt-0;
+  }
 
   /* --- Equipo a cargo --- */
 
-  .equipo { @apply mb-5 flex flex-wrap gap-3; }
+  .equipo {
+    @apply mb-5 flex flex-wrap gap-3;
+  }
   .miembro {
     @apply flex cursor-pointer items-center gap-2.5 rounded-md border border-rule
            bg-surface px-4 py-2.5 text-left text-ink transition-colors duration-150
            hover:border-accent;
   }
-  .miembro.elegido { @apply border-accent bg-accent-soft; }
-  .miembro .datos { @apply flex flex-col leading-snug; }
-  .miembro em { @apply text-xs not-italic text-ink-3; }
+  .miembro.elegido {
+    @apply border-accent bg-accent-soft;
+  }
+  .miembro .datos {
+    @apply flex flex-col leading-snug;
+  }
+  .miembro em {
+    @apply text-xs not-italic text-ink-3;
+  }
 
   /* --- Modal de contraseña temporal --- */
 
@@ -1109,16 +1584,22 @@
     font-family: ui-monospace, monospace;
   }
 
-  .modal .grilla-form .field { @apply mb-4; }
+  .modal .grilla-form .field {
+    @apply mb-4;
+  }
 }
 
 @keyframes latido {
-  0%, 100% { opacity: 0.25; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @layer components {
-
   /* Atajos del inicio: tarjetas que llevan a cada sector. */
   .atajo {
     @apply relative flex flex-col gap-1.5 rounded-card border border-rule
@@ -1137,17 +1618,25 @@
            text-accent transition-colors duration-200
            group-hover:bg-accent group-hover:text-accent-ink;
   }
-  .atajo-icono svg { @apply size-6; }
+  .atajo-icono svg {
+    @apply size-6;
+  }
 
-  .atajo-titulo { @apply text-base font-semibold text-ink; }
-  .atajo-texto { @apply text-sm text-ink-2; }
+  .atajo-titulo {
+    @apply text-base font-semibold text-ink;
+  }
+  .atajo-texto {
+    @apply text-sm text-ink-2;
+  }
   .atajo-flecha {
     @apply absolute right-5 top-6 text-lg text-ink-3
            transition-transform duration-200 group-hover:translate-x-1 group-hover:text-accent;
   }
 
   /* El botón de limpiar filtros no debe estirarse a lo ancho de su celda. */
-  .filtros > .btn { @apply justify-self-start; }
+  .filtros > .btn {
+    @apply justify-self-start;
+  }
 }
 
 /* ------------------------------------------------------------------
@@ -1160,19 +1649,34 @@
    ------------------------------------------------------------------ */
 
 @layer utilities {
-
   /* Entrada del contenido de una pantalla. */
-  .entra { animation: entra 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+  .entra {
+    animation: entra 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
 
   /* Entrada escalonada: las tarjetas de una grilla llegan de a una, y el
      ojo las recorre en el orden en que están. */
-  .entra-escalonado > * { animation: entra 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .entra-escalonado > *:nth-child(1) { animation-delay: 0.04s; }
-  .entra-escalonado > *:nth-child(2) { animation-delay: 0.09s; }
-  .entra-escalonado > *:nth-child(3) { animation-delay: 0.14s; }
-  .entra-escalonado > *:nth-child(4) { animation-delay: 0.19s; }
-  .entra-escalonado > *:nth-child(5) { animation-delay: 0.24s; }
-  .entra-escalonado > *:nth-child(n + 6) { animation-delay: 0.28s; }
+  .entra-escalonado > * {
+    animation: entra 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .entra-escalonado > *:nth-child(1) {
+    animation-delay: 0.04s;
+  }
+  .entra-escalonado > *:nth-child(2) {
+    animation-delay: 0.09s;
+  }
+  .entra-escalonado > *:nth-child(3) {
+    animation-delay: 0.14s;
+  }
+  .entra-escalonado > *:nth-child(4) {
+    animation-delay: 0.19s;
+  }
+  .entra-escalonado > *:nth-child(5) {
+    animation-delay: 0.24s;
+  }
+  .entra-escalonado > *:nth-child(n + 6) {
+    animation-delay: 0.28s;
+  }
 
   /* Barrido de carga, para los esqueletos. */
   .esqueleto {
@@ -1189,12 +1693,21 @@
 }
 
 @keyframes entra {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes sirena {
-  0%, 100% { box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-warn) 25%, transparent); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--color-warn) 25%, transparent);
+  }
   50% {
     box-shadow:
       0 0 0 2px var(--color-warn),
@@ -1203,12 +1716,18 @@
 }
 
 @keyframes girar {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes barrido {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 /*
@@ -1216,13 +1735,21 @@
   esto no queda claro a cuál se llegó. El destello lo dice sin escribir nada.
 */
 @layer utilities {
-  .destella { animation: destello 1.6s ease-out; }
-  .con-margen-scroll { scroll-margin-top: 1rem; }
+  .destella {
+    animation: destello 1.6s ease-out;
+  }
+  .con-margen-scroll {
+    scroll-margin-top: 1rem;
+  }
 }
 
 @keyframes destello {
-  from { background-color: color-mix(in oklab, var(--color-accent) 16%, transparent); }
-  to { background-color: transparent; }
+  from {
+    background-color: color-mix(in oklab, var(--color-accent) 16%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
 }
 
 /* ------------------------------------------------------------------
@@ -1230,7 +1757,6 @@
    ------------------------------------------------------------------ */
 
 @layer components {
-
   /* Título de página, con la display en su tamaño grande. */
   .pagina-titulo {
     @apply font-display text-3xl font-bold tracking-tight sm:text-4xl;
@@ -1238,7 +1764,9 @@
 
   /* Franja superior de una tarjeta destacada: un hilo de color que la
      distingue sin agregar ruido. */
-  .con-hilo { @apply relative overflow-hidden; }
+  .con-hilo {
+    @apply relative overflow-hidden;
+  }
   .con-hilo::before {
     content: '';
     @apply absolute inset-x-0 top-0 h-0.5;
@@ -1259,12 +1787,32 @@
     @apply bg-none bg-surface-2 text-ink-2;
   }
 
+  /* La foto ocupa el mismo círculo que las iniciales. `object-cover` es un
+     seguro: el archivo se guarda ya recortado en cuadrado, pero si alguna vez
+     llegara uno que no lo esté, es preferible que se recorte a que la cara
+     salga estirada. */
+  .avatar-foto {
+    @apply block bg-none object-cover;
+  }
+
+  /* Los dos tamaños que se usan además del de la cabecera: el de las filas de
+     una tabla, y el del formulario, donde la foto es el asunto de la pantalla
+     y hay que poder juzgar el recorte. */
+  .avatar-chico {
+    @apply size-8;
+  }
+  .avatar-grande {
+    @apply size-24 text-2xl;
+  }
+
   /* Cifras grandes: la display, con las mayúsculas ajustadas. */
   .numero {
     @apply mb-2.5 font-display text-4xl font-bold leading-none tabular-nums;
     letter-spacing: -0.03em;
   }
-  .numero-chico { @apply mb-2.5 font-display text-2xl font-bold leading-none tabular-nums; }
+  .numero-chico {
+    @apply mb-2.5 font-display text-2xl font-bold leading-none tabular-nums;
+  }
 
   /* Tarjeta de cifra: con hilo de color y elevación al pasar por encima.
      La franja va escrita acá y no con `@apply con-hilo` porque `@apply` solo
@@ -1303,8 +1851,12 @@
            text-[0.7rem] font-bold whitespace-nowrap text-white shadow-suave;
   }
 
-  .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap; }
-  .chip-realce { @apply bg-realce-soft text-realce; }
+  .chip {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold whitespace-nowrap;
+  }
+  .chip-realce {
+    @apply bg-realce-soft text-realce;
+  }
 
   /* Pestañas con subrayado que se desliza. */
   .pestanas a {
@@ -1325,9 +1877,13 @@
     @apply mb-6 flex list-none gap-0 overflow-x-auto overflow-y-hidden p-0 px-1 py-2;
     scrollbar-width: none;
   }
-  .linea-tiempo::-webkit-scrollbar { display: none; }
+  .linea-tiempo::-webkit-scrollbar {
+    display: none;
+  }
 
-  .hito { @apply relative flex min-w-28 flex-1 flex-col items-center gap-2.5 px-2; }
+  .hito {
+    @apply relative flex min-w-28 flex-1 flex-col items-center gap-2.5 px-2;
+  }
 
   /*
     El hilo que une con el hito anterior. Vive en el hito de la derecha
@@ -1349,20 +1905,26 @@
     @apply relative z-10 grid size-[2.125rem] shrink-0 place-items-center
            rounded-full text-xs font-bold transition-all duration-200;
   }
-  .hito-punto svg { @apply size-4; }
+  .hito-punto svg {
+    @apply size-4;
+  }
 
   .hito-etiqueta {
     @apply text-center text-xs leading-tight text-ink-2 transition-colors duration-200;
   }
 
   /* Cumplido */
-  .hito.es-cumplido .hito-punto { @apply bg-accent text-accent-ink shadow-suave; }
+  .hito.es-cumplido .hito-punto {
+    @apply bg-accent text-accent-ink shadow-suave;
+  }
 
   /* Actual: halo para que se encuentre de un vistazo */
   .hito.es-actual .hito-punto {
     @apply bg-realce text-realce-ink shadow-alzado ring-4 ring-realce/20;
   }
-  .hito.es-actual .hito-etiqueta { @apply font-bold text-realce; }
+  .hito.es-actual .hito-etiqueta {
+    @apply font-bold text-realce;
+  }
 
   /* Disponible pero todavía sin visitar */
   .hito.es-disponible .hito-punto {
@@ -1373,26 +1935,42 @@
   .hito.es-bloqueado .hito-punto {
     @apply border-2 border-dashed border-rule bg-surface-2 text-ink-3;
   }
-  .hito.es-bloqueado .hito-etiqueta { @apply text-ink-3; }
+  .hito.es-bloqueado .hito-etiqueta {
+    @apply text-ink-3;
+  }
 
   /* El hito entero es el blanco de clic, no solo el círculo. */
   .hito-enlace {
     @apply flex cursor-pointer flex-col items-center gap-2.5 rounded-md border-0
            bg-transparent p-0 no-underline;
   }
-  .hito-enlace:hover .hito-punto { @apply scale-110; }
-  .hito-enlace:hover .hito-etiqueta { @apply text-accent; }
-  .hito-enlace:focus-visible { @apply outline-2 outline-offset-4 outline-accent; }
-  .hito-enlace[aria-disabled='true'] { @apply cursor-not-allowed; }
-  .hito-enlace[aria-disabled='true']:hover .hito-punto { @apply scale-100; }
-  .hito-enlace[aria-disabled='true']:hover .hito-etiqueta { @apply text-ink-3; }
+  .hito-enlace:hover .hito-punto {
+    @apply scale-110;
+  }
+  .hito-enlace:hover .hito-etiqueta {
+    @apply text-accent;
+  }
+  .hito-enlace:focus-visible {
+    @apply outline-2 outline-offset-4 outline-accent;
+  }
+  .hito-enlace[aria-disabled='true'] {
+    @apply cursor-not-allowed;
+  }
+  .hito-enlace[aria-disabled='true']:hover .hito-punto {
+    @apply scale-100;
+  }
+  .hito-enlace[aria-disabled='true']:hover .hito-etiqueta {
+    @apply text-ink-3;
+  }
 
   /*
     Sirena: un proceso editado a medias late en ámbar hasta que se resuelve.
     Late en vez de quedarse quieto porque en una tabla larga un color fijo
     pasa desapercibido, y esto hay que verlo sí o sí antes de abrir nada.
   */
-  .sirena { animation: sirena 2s ease-in-out infinite; }
+  .sirena {
+    animation: sirena 2s ease-in-out infinite;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     .sirena {
@@ -1417,17 +1995,27 @@
   .cifra-icono {
     @apply pointer-events-none absolute right-4 top-4 text-ink-3/40;
   }
-  .cifra-icono svg { @apply size-5; }
+  .cifra-icono svg {
+    @apply size-5;
+  }
 
-  .cifra-valor { @apply font-display text-3xl font-bold leading-none text-ink; }
-  .cifra-nombre { @apply text-xs text-ink-2; }
+  .cifra-valor {
+    @apply font-display text-3xl font-bold leading-none text-ink;
+  }
+  .cifra-nombre {
+    @apply text-xs text-ink-2;
+  }
 
   /* La única cifra que puede exigir acción se tiñe y responde al puntero. */
   .cifra--alerta {
     @apply border-warn/40 bg-warn-soft/40 hover:-translate-y-0.5 hover:shadow-alzado;
   }
-  .cifra--alerta .cifra-valor { @apply text-warn; }
-  .cifra--alerta .cifra-icono { @apply text-warn/50; }
+  .cifra--alerta .cifra-valor {
+    @apply text-warn;
+  }
+  .cifra--alerta .cifra-icono {
+    @apply text-warn/50;
+  }
 
   /* --- Selector de apariencia --- */
 
@@ -1436,7 +2024,9 @@
            text-ink-2 transition-colors duration-150
            hover:border-accent hover:text-accent;
   }
-  .boton-apariencia svg { @apply size-[1.15rem]; }
+  .boton-apariencia svg {
+    @apply size-[1.15rem];
+  }
 
   .panel-apariencia {
     @apply absolute right-0 top-11 z-50 w-72 rounded-card border border-rule
@@ -1469,11 +2059,17 @@
   .muestra {
     @apply flex size-4 shrink-0 overflow-hidden rounded-full ring-1 ring-rule;
   }
-  .muestra > span { @apply block h-full w-1/2; }
+  .muestra > span {
+    @apply block h-full w-1/2;
+  }
 
   /* Encabezado del asistente y de pantallas con paso activo. */
-  .paso-activo { @apply border-realce !text-realce; }
-  .paso-activo .numero-paso { @apply bg-realce text-realce-ink; }
+  .paso-activo {
+    @apply border-realce !text-realce;
+  }
+  .paso-activo .numero-paso {
+    @apply bg-realce text-realce-ink;
+  }
 
   /* Estado vacío con más presencia. */
   .vacio {
@@ -1485,7 +2081,9 @@
   .bloque > h2 {
     @apply mb-1 font-display text-lg font-semibold;
   }
-  .bloque > h2 + .explica { @apply mb-5; }
+  .bloque > h2 + .explica {
+    @apply mb-5;
+  }
 
   /*
     Cabecera de sección con ícono. El ícono no decora: en una vista con varias
@@ -1494,17 +2092,25 @@
   .cabecera-bloque {
     @apply mb-5 flex items-start gap-3.5 border-b border-rule pb-4;
   }
-  .cabecera-bloque h2 { @apply mb-0.5 font-display text-lg font-semibold leading-tight; }
-  .cabecera-bloque p { @apply m-0 max-w-2xl text-sm text-ink-2; }
+  .cabecera-bloque h2 {
+    @apply mb-0.5 font-display text-lg font-semibold leading-tight;
+  }
+  .cabecera-bloque p {
+    @apply m-0 max-w-2xl text-sm text-ink-2;
+  }
 
   .icono-bloque {
     @apply grid size-10 shrink-0 place-items-center rounded-xl
            bg-accent-soft text-accent shadow-suave;
   }
-  .icono-bloque svg { @apply size-5; }
+  .icono-bloque svg {
+    @apply size-5;
+  }
 
   /* Variante para que dos secciones seguidas no se confundan de un vistazo. */
-  .icono-bloque--realce { @apply bg-realce-soft text-realce; }
+  .icono-bloque--realce {
+    @apply bg-realce-soft text-realce;
+  }
 
   /*
     Flechas del carril. Aparecen solo cuando hay algo hacia ese lado: una
@@ -1521,17 +2127,29 @@
            transition-colors duration-150 hover:border-accent hover:text-accent
            disabled:pointer-events-none disabled:opacity-0;
   }
-  .flecha-carril--izq { @apply -left-3; }
-  .flecha-carril--der { @apply -right-3; }
+  .flecha-carril--izq {
+    @apply -left-3;
+  }
+  .flecha-carril--der {
+    @apply -right-3;
+  }
 
   /*
     Velo en el borde por donde sigue el carril. Sin él las tarjetas se cortan
     a filo y parece un error de maquetación en vez de contenido que continúa.
   */
-  .velo-carril { @apply pointer-events-none absolute inset-y-0 z-[5] w-14; }
-  .velo-carril--izq { @apply left-0 bg-gradient-to-r from-surface to-transparent; }
-  .velo-carril--der { @apply right-0 bg-gradient-to-l from-surface to-transparent; }
-  .flecha-carril svg { @apply size-4; }
+  .velo-carril {
+    @apply pointer-events-none absolute inset-y-0 z-[5] w-14;
+  }
+  .velo-carril--izq {
+    @apply left-0 bg-gradient-to-r from-surface to-transparent;
+  }
+  .velo-carril--der {
+    @apply right-0 bg-gradient-to-l from-surface to-transparent;
+  }
+  .flecha-carril svg {
+    @apply size-4;
+  }
 
   /*
     Campo cuyo valor no lo elige la persona. Se ve distinto a propósito: un
@@ -1550,9 +2168,15 @@
            bg-surface px-3.5 py-3 text-sm transition-all duration-150
            hover:border-accent hover:shadow-suave;
   }
-  .tarjeta-opcion input { @apply sr-only; }
-  .tarjeta-opcion:has(input:checked) { @apply border-accent bg-accent-soft; }
-  .tarjeta-opcion:has(input:focus-visible) { @apply outline outline-2 outline-offset-2 outline-accent; }
+  .tarjeta-opcion input {
+    @apply sr-only;
+  }
+  .tarjeta-opcion:has(input:checked) {
+    @apply border-accent bg-accent-soft;
+  }
+  .tarjeta-opcion:has(input:focus-visible) {
+    @apply outline outline-2 outline-offset-2 outline-accent;
+  }
 
   .marca-opcion {
     @apply grid size-5 shrink-0 place-items-center rounded-md border-2
@@ -1561,5 +2185,7 @@
   .tarjeta-opcion:has(input:checked) .marca-opcion {
     @apply border-accent bg-accent text-accent-ink;
   }
-  .marca-opcion svg { @apply size-3; }
+  .marca-opcion svg {
+    @apply size-3;
+  }
 }

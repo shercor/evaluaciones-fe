@@ -52,6 +52,59 @@ export interface ResumenImportacion {
   has_passwords: boolean;
   created_at: string | null;
   user: string | null;
+  /** Con qué homologación se cargó, o `null` si vino con el formato propio. */
+  mapping: Record<string, string> | null;
+}
+
+/** Una columna tal como viene en la planilla de quien la subió. */
+export interface ColumnaArchivo {
+  clave: string;
+  etiqueta: string;
+  /** Hasta tres valores de esa columna, para reconocerla de un vistazo. */
+  ejemplos: string[];
+}
+
+/** Una columna de las que el sistema necesita. */
+export interface ColumnaSistema {
+  clave: string;
+  etiqueta: string;
+  obligatoria: boolean;
+  ayuda: string;
+}
+
+/** La planilla subida, esperando a que le digan qué columna es cuál. */
+export interface BorradorHomologacion {
+  id: number;
+  filename: string;
+  rows_total: number;
+  headers: ColumnaArchivo[];
+}
+
+/** Campo del sistema => columna del archivo. `null` es «no la trae». */
+export type Homologacion = Record<string, string | null>;
+
+export interface FilaDeMuestra extends Record<string, string | number> {
+  linea: number;
+}
+
+export interface ResumenHomologacion {
+  filas_totales: number;
+  filas_validas: number;
+  filas_con_problemas: number;
+  se_crearan: number;
+  se_actualizaran: number;
+  sin_correo: number;
+  /** Código repetido dentro del archivo => cuántas veces aparece. */
+  codigos_repetidos: Record<string, number>;
+  /** Sucursales y cargos que la planilla va a crear porque todavía no existen. */
+  sucursales_nuevas: string[];
+  cargos_nuevos: string[];
+  /** Códigos que la planilla usa y no están cargados: bloquean su fila. */
+  sucursales_faltantes: string[];
+  cargos_faltantes: string[];
+  muestra: FilaDeMuestra[];
+  problemas: { linea: number; codigo: string; nombre: string; motivos: string[] }[];
+  problemas_omitidos: number;
 }
 
 export interface FilaImportacion {
@@ -148,6 +201,28 @@ export class DirectoryService {
     );
   }
 
+  /**
+   * Cambia la foto de perfil.
+   *
+   * Viaja el archivo tal como salió de la cámara: recortarlo en el navegador
+   * ahorraría subida, pero dejaría el resultado a merced de qué navegador se
+   * use, y el servidor tendría que rehacer el trabajo igual para no confiar en
+   * lo que le mandan.
+   */
+  subirFoto(id: number, archivo: File): Observable<{ data: User; message: string }> {
+    const cuerpo = new FormData();
+    cuerpo.append('foto', archivo);
+
+    return this.http.post<{ data: User; message: string }>(
+      `${this.base}/users/${id}/avatar`,
+      cuerpo,
+    );
+  }
+
+  quitarFoto(id: number): Observable<{ data: User; message: string }> {
+    return this.http.delete<{ data: User; message: string }>(`${this.base}/users/${id}/avatar`);
+  }
+
   reenviarInvitacion(id: number): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.base}/users/${id}/resend-invitation`, {});
   }
@@ -209,6 +284,65 @@ export class DirectoryService {
       `${this.base}/importaciones`,
       cuerpo,
     );
+  }
+
+  // -- Homologación de una planilla con otro formato ----------------
+
+  /**
+   * Paso 1: subir la planilla y ver qué columnas trae.
+   *
+   * El archivo queda guardado en el servidor mientras se homologa. Por eso
+   * después solo viajan las decisiones, no el archivo de nuevo: así lo que
+   * alguien aprueba en el resumen y lo que termina importándose son lo mismo.
+   */
+  analizarPlanilla(archivo: File): Observable<{
+    data: BorradorHomologacion;
+    columnas_sistema: ColumnaSistema[];
+    sugerencia: Homologacion;
+  }> {
+    const cuerpo = new FormData();
+    cuerpo.append('file', archivo);
+
+    return this.http.post<{
+      data: BorradorHomologacion;
+      columnas_sistema: ColumnaSistema[];
+      sugerencia: Homologacion;
+    }>(`${this.base}/importaciones/homologacion`, cuerpo);
+  }
+
+  /** Paso 2: qué pasaría con esta homologación, sin importar nada. */
+  resumenHomologacion(
+    id: number,
+    mapping: Homologacion,
+  ): Observable<{
+    data: BorradorHomologacion;
+    mapping: Record<string, string>;
+    sin_usar: string[];
+    resumen: ResumenHomologacion;
+  }> {
+    return this.http.post<{
+      data: BorradorHomologacion;
+      mapping: Record<string, string>;
+      sin_usar: string[];
+      resumen: ResumenHomologacion;
+    }>(`${this.base}/importaciones/homologacion/${id}/resumen`, { mapping });
+  }
+
+  /** Paso 3: importar de verdad. */
+  importarHomologada(
+    id: number,
+    mapping: Homologacion,
+    enviarInvitaciones: boolean,
+  ): Observable<{ message: string; data: ResumenImportacion }> {
+    return this.http.post<{ message: string; data: ResumenImportacion }>(
+      `${this.base}/importaciones/homologacion/${id}/importar`,
+      { mapping, send_invitations: enviarInvitaciones },
+    );
+  }
+
+  /** Tirar la planilla subida sin importarla. */
+  descartarBorrador(id: number): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(`${this.base}/importaciones/homologacion/${id}`);
   }
 
   detalleImportacion(

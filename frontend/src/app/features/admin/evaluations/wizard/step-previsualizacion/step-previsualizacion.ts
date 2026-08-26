@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Previsualizacion, WizardService } from '../../../../../core/api/wizard.service';
 import { mensajeDeError } from '../../../../../core/http/api-error';
+import { Avatar } from '../../../../../shared/avatar/avatar';
 
 /**
  * Paso 4 · Revisar los grupos y enviar.
@@ -17,7 +18,7 @@ import { mensajeDeError } from '../../../../../core/http/api-error';
  */
 @Component({
   selector: 'app-step-previsualizacion',
-  imports: [FormsModule],
+  imports: [FormsModule, Avatar],
   templateUrl: './step-previsualizacion.html',
 })
 export class StepPrevisualizacion {
