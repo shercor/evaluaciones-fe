@@ -27,6 +27,12 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    /**
+     * El dominio de las casillas inventadas por el importador para quien no
+     * tiene correo. No existe: nada que se mande ahí llega a ninguna parte.
+     */
+    public const INTERNAL_MAIL_DOMAIN = '@interno.local';
+
     protected $fillable = [
         'external_code',
         'name',
@@ -104,7 +110,42 @@ class User extends Authenticatable
             ->where('role', '!=', Role::SUPER_ADMIN->value);
     }
 
+    /**
+     * Quienes tienen una casilla real, a la que se le puede escribir.
+     *
+     * `email` es NOT NULL y único, así que a quien no tiene correo el
+     * importador le inventa uno interno —`sin-correo.{codigo}@interno.local`—
+     * solo para no romper esa unicidad. Nunca hay que mandarle nada ahí: es
+     * un dominio que no existe.
+     *
+     * Antes esta regla vivía suelta dentro de `resendInvitation()` y los
+     * avisos por correo no la conocían: contaban esas casillas inventadas como
+     * destinatarios válidos y les despachaban correo.
+     */
+    public function scopeWithMailbox(Builder $query): Builder
+    {
+        return $query->whereNotNull($this->getTable().'.email')
+            ->where($this->getTable().'.email', '!=', '')
+            ->where($this->getTable().'.email', 'not like', '%'.self::INTERNAL_MAIL_DOMAIN);
+    }
+
+    /** Los del caso contrario: participan, pero no hay dónde escribirles. */
+    public function scopeWithoutMailbox(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->whereNull($this->getTable().'.email')
+            ->orWhere($this->getTable().'.email', '=', '')
+            ->orWhere($this->getTable().'.email', 'like', '%'.self::INTERNAL_MAIL_DOMAIN));
+    }
+
     // -- Ayudas -------------------------------------------------------
+
+    /** La versión de [scopeWithMailbox] para una fila ya cargada. */
+    public function hasMailbox(): bool
+    {
+        return ! blank($this->email)
+            && ! str_ends_with($this->email, self::INTERNAL_MAIL_DOMAIN);
+    }
 
     public function fullName(): string
     {

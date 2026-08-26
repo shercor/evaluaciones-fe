@@ -19,6 +19,13 @@ interface Confirmacion {
   etiquetaBoton: string;
   peligrosa: boolean;
   ejecutar: () => void;
+
+  /**
+   * Segunda acción afirmativa, para los diálogos que ofrecen dos caminos
+   * distintos en vez de «hacerlo o cancelar». La usan «Abrir» y «Publicar»,
+   * que en ambos casos son «hacerlo avisando» o «hacerlo en silencio».
+   */
+  secundaria?: { etiqueta: string; ejecutar: () => void };
 }
 
 /**
@@ -114,18 +121,29 @@ export class EvaluationsList implements OnDestroy {
 
   // -- Acciones -----------------------------------------------------
 
+  /**
+   * Abrir es una decisión con dos caminos, como en la intranet: se puede
+   * abrir avisando o abrir en silencio.
+   *
+   * El aviso no se manda solo por abrir. Un proceso de prueba abierto por
+   * descuido son miles de correos que no se pueden despachar de vuelta, así
+   * que quien abre tiene que elegirlo a propósito.
+   */
   protected pedirAbrir(e: Evaluacion): void {
     this.confirmacion.set({
       titulo: '¿Abrir el proceso de evaluación?',
       cuerpo:
         'Los participantes van a poder empezar a responder sus formularios. ' +
-        'Podés volver a cerrarlo mientras no publiques los resultados.',
-      advertencia:
-        'Todavía no se envían avisos por correo: esa parte está diferida, así que ' +
-        'vas a tener que comunicarlo por otro medio.',
-      etiquetaBoton: 'Abrir proceso',
+        'Podés volver a cerrarlo mientras no publiques los resultados. ' +
+        'Si elegís avisar, cada participante con correo registrado va a recibir ' +
+        'un mensaje con el enlace a sus evaluaciones.',
+      etiquetaBoton: 'Abrir y notificar',
       peligrosa: false,
-      ejecutar: () => this.ejecutar(e, () => this.api.abrir(e.id)),
+      ejecutar: () => this.ejecutar(e, () => this.api.abrir(e.id, true)),
+      secundaria: {
+        etiqueta: 'Abrir sin notificar',
+        ejecutar: () => this.ejecutar(e, () => this.api.abrir(e.id, false)),
+      },
     });
   }
 
@@ -141,16 +159,47 @@ export class EvaluationsList implements OnDestroy {
     });
   }
 
+  /**
+   * Recordarles a los rezagados.
+   *
+   * Es la única acción del listado que no cambia nada del proceso: lo único
+   * que produce son correos. Por eso el diálogo dice a quiénes les llega y a
+   * quiénes no, antes de mandarlos y no después.
+   */
+  protected pedirRecordar(e: Evaluacion): void {
+    this.confirmacion.set({
+      titulo: '¿Enviar un recordatorio?',
+      cuerpo:
+        'Les llega solo a los participantes que todavía tienen tareas sin responder ' +
+        'y tienen correo registrado. A quienes ya terminaron no se les escribe. ' +
+        'Podés enviarlo las veces que haga falta.',
+      etiquetaBoton: 'Enviar recordatorio',
+      peligrosa: false,
+      ejecutar: () => this.ejecutar(e, () => this.api.recordar(e.id)),
+    });
+  }
+
+  /**
+   * Publicar también ofrece los dos caminos, por la misma razón que abrir y
+   * con más motivo: no se puede deshacer. Si el aviso saliera solo, un clic de
+   * más serían miles de correos anunciando resultados que nadie eligió
+   * anunciar todavía.
+   */
   protected pedirPublicar(e: Evaluacion): void {
     this.confirmacion.set({
       titulo: '¿Publicar los resultados?',
       cuerpo:
         'Cada participante va a poder ver sus resultados, y el proceso queda cerrado ' +
-        'definitivamente.',
+        'definitivamente. Si elegís avisar, cada participante con correo registrado ' +
+        'va a recibir un mensaje con el enlace a su informe.',
       advertencia: 'Esta acción no se puede deshacer: después no vas a poder reabrir el proceso.',
-      etiquetaBoton: 'Publicar resultados',
+      etiquetaBoton: 'Publicar y notificar',
       peligrosa: true,
-      ejecutar: () => this.ejecutar(e, () => this.api.publicar(e.id)),
+      ejecutar: () => this.ejecutar(e, () => this.api.publicar(e.id, true)),
+      secundaria: {
+        etiqueta: 'Publicar sin notificar',
+        ejecutar: () => this.ejecutar(e, () => this.api.publicar(e.id, false)),
+      },
     });
   }
 

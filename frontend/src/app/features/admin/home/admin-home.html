@@ -11,28 +11,100 @@
   Cuatro cifras para saber en qué anda la organización sin entrar a ninguna
   pantalla. La de «cambios sin enviar» es la única que puede exigir acción, así
   que se tiñe y enlaza directo.
+
+  Los íconos van chicos y apagados, en la esquina: acá el contenido es el
+  número, y un ícono grande le disputaría la mirada. Lo que aportan es
+  silueta —cuatro tarjetas por lo demás idénticas se distinguen sin leer el
+  rótulo—. El de «cambios sin enviar» es el mismo ⚠ que usa el listado de
+  evaluaciones para lo mismo.
 -->
 @if (cifrasListas()) {
   <section class="entra-escalonado mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <article class="cifra">
+      <span class="cifra-icono" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 3.5 21 8l-9 4.5L3 8l9-4.5Z" />
+          <path d="m3 12.4 9 4.5 9-4.5" />
+          <path d="m3 16.6 9 4.5 9-4.5" />
+        </svg>
+      </span>
       <span class="cifra-valor"><app-contador [valor]="procesos()" /></span>
       <span class="cifra-nombre">Procesos creados</span>
     </article>
     <article class="cifra">
+      <span class="cifra-icono" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="8.5" />
+          <path d="M12 7.2V12l3.2 2" />
+        </svg>
+      </span>
       <span class="cifra-valor"><app-contador [valor]="enCurso()" /></span>
       <span class="cifra-nombre">En curso ahora</span>
     </article>
     <article class="cifra">
+      <span class="cifra-icono" aria-hidden="true">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="8" r="3.6" />
+          <path d="M5 20.2a7 7 0 0 1 14 0" />
+        </svg>
+      </span>
       <span class="cifra-valor"><app-contador [valor]="personas()" /></span>
       <span class="cifra-nombre">Personas activas</span>
     </article>
     @if (pendientes() > 0) {
       <a routerLink="/admin/evaluaciones" class="cifra cifra--alerta">
+        <span class="cifra-icono" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 4.2 21 19.4H3L12 4.2Z" />
+            <path d="M12 10.2v3.6M12 16.8h.01" />
+          </svg>
+        </span>
         <span class="cifra-valor"><app-contador [valor]="pendientes()" /></span>
         <span class="cifra-nombre">Con cambios sin enviar</span>
       </a>
     } @else {
       <article class="cifra">
+        <span class="cifra-icono" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M12 4.2 21 19.4H3L12 4.2Z" />
+            <path d="M12 10.2v3.6M12 16.8h.01" />
+          </svg>
+        </span>
         <span class="cifra-valor">0</span>
         <span class="cifra-nombre">Con cambios sin enviar</span>
       </article>
@@ -42,6 +114,23 @@
 
 <section class="entra-escalonado mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
   <a routerLink="/admin/evaluaciones" class="atajo group">
+    <!-- Portapapeles con visto: un proceso que se completa. -->
+    <span class="atajo-icono" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M9 4.5h6a1 1 0 0 1 1 1V7H8V5.5a1 1 0 0 1 1-1Z" />
+        <path
+          d="M16 6.2h2A2 2 0 0 1 20 8.2v10.3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8.2a2 2 0 0 1 2-2h2"
+        />
+        <path d="m9 13.4 2.2 2.2 4.3-4.6" />
+      </svg>
+    </span>
     <span class="atajo-titulo">Evaluaciones</span>
     <span class="atajo-texto">
       Crear un proceso, abrirlo, cerrarlo y publicar sus resultados.
@@ -50,6 +139,22 @@
   </a>
 
   <a routerLink="/admin/directorio" class="atajo group">
+    <!-- Dos personas: el directorio son empleados, no estructura. -->
+    <span class="atajo-icono" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="9.2" cy="8" r="3.3" />
+        <path d="M3.4 19.8a5.8 5.8 0 0 1 11.6 0" />
+        <path d="M16.2 5.2a3.3 3.3 0 0 1 0 5.6" />
+        <path d="M17.6 14.4a5.8 5.8 0 0 1 3 5.4" />
+      </svg>
+    </span>
     <span class="atajo-titulo">Directorio</span>
     <span class="atajo-texto">
       Empleados, sucursales, cargos y el organigrama. Importación desde planilla.
@@ -58,6 +163,25 @@
   </a>
 
   <a routerLink="/admin/grupos" class="atajo group">
+    <!--
+      Organigrama y no «varias personas»: acá los grupos se arman por
+      supervisor, y con dos siluetas humanas se confundiría con Directorio.
+    -->
+    <span class="atajo-icono" aria-hidden="true">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="9" y="3" width="6" height="5" rx="1.5" />
+        <rect x="2.8" y="16" width="6" height="5" rx="1.5" />
+        <rect x="15.2" y="16" width="6" height="5" rx="1.5" />
+        <path d="M12 8v3.2M5.8 16v-2.4h12.4V16" />
+      </svg>
+    </span>
     <span class="atajo-titulo">Grupos</span>
     <span class="atajo-texto"> A qué conjunto de personas apunta cada proceso. </span>
     <span class="atajo-flecha" aria-hidden="true">→</span>

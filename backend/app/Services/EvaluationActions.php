@@ -22,6 +22,7 @@ class EvaluationActions
 {
     public const OPEN = 'open';
     public const CLOSE = 'close';
+    public const REMIND = 'remind';
     public const PUBLISH = 'publish';
     public const DELETE = 'delete';
     public const RESTORE = 'restore';
@@ -65,6 +66,10 @@ class EvaluationActions
 
             EvaluationStatus::IN_PROCESS => [
                 self::CLOSE,
+                // Recordar solo tiene sentido con el proceso abierto: es lo
+                // único que se le puede pedir a alguien que todavía puede
+                // responder.
+                self::REMIND,
                 self::EDIT,
                 self::PARTICIPANTS,
                 self::MONITOR,
@@ -114,6 +119,10 @@ class EvaluationActions
 
         if ($accion === self::PUBLISH && (bool) ($evaluation->publicado ?? false)) {
             return 'Los resultados de esta evaluación ya fueron publicados.';
+        }
+
+        if ($accion === self::REMIND) {
+            return 'Solo se puede recordar mientras el proceso está abierto.';
         }
 
         $etiqueta = $estado?->label() ?? 'desconocido';

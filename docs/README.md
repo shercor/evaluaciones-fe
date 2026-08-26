@@ -27,7 +27,7 @@ negocio. Vale la pena tenerla abierta al construir cada hito.
 | Autenticación | Usuarios propios del BFF. Ni SSO ni FusionAuth. |
 | Gráficos | ECharts, no Highcharts, para no gestionar licencias. |
 | Correo transaccional | Sí, desde el hito 2: invitación y recuperación de contraseña. |
-| Avisos de negocio por correo | Diferidos: apertura, recordatorio y resultados. |
+| Avisos de negocio por correo | Los tres, hechos: apertura, recordatorio y resultados. Ninguno se manda solo: los dispara el administrador. |
 | Proveedor de correo | Sin definir. Mailtrap en desarrollo, con credenciales propias. |
 | Fotos de perfil | Todas nuevas. No se migra ninguna imagen de la intranet. |
 | API de Evaluación 360 | No se modifica en ningún hito. |

@@ -292,8 +292,15 @@ queda en blanco— sin ningún error de compilación que lo delate.
 | Gráficos | ECharts (`ngx-echarts`), no Highcharts, para no gestionar licencias. Los envoltorios van en `shared/charts/` para que la biblioteca sea reemplazable. | Hito 0 |
 | Estilos | Tailwind v4, con los tokens de color como `@theme`. Sin Bootstrap ni bibliotecas de componentes. | 2026-08-25 |
 | Correo transaccional | Sí, desde el hito 2: invitación y recuperación. | Hito 0 |
-| Avisos de negocio por correo | Diferidos: apertura, recordatorio y resultados. | Hito 0 |
-| Proveedor de correo | Sin definir. `MAIL_MAILER=log` por defecto; Mailtrap para pruebas, con credenciales propias del proyecto. | Hito 2 |
+| Idioma de los correos | `APP_LOCALE=es` con `lang/es.json`. Solo afecta a las cadenas que trae el framework —el andamiaje del correo y todo el de recuperación de contraseña, que lo arma Laravel—: el código de la app escribe en español directo y no usa traducciones. Antes el correo de recuperación salía entero en inglés. | 2026-08-26 |
+| Quién «no tiene correo» | `users.email` es NOT NULL y único, así que a quien no tiene casilla el importador le inventa `sin-correo.{codigo}@interno.local`. La regla vive en `User::scopeWithMailbox()` y `hasMailbox()`; nada debe mandar correo a ese dominio. | 2026-08-26 |
+| Íconos | En línea, sin biblioteca: `viewBox` de 24, `fill="none"`, `stroke="currentColor"`, trazo 1,8 y esquinas redondeadas. En las tarjetas de atajo van en una placa de acento que se enciende con la tarjeta; en las cifras van chicos y apagados en la esquina, porque ahí el contenido es el número. Grupos usa un organigrama y no siluetas humanas, para no confundirse con Directorio. | 2026-08-26 |
+| Filtrar por supervisor | Se puede en el padrón y en el directorio. En el directorio no existía: la caja de búsqueda mira nombre, correo y código **de la propia persona**, nunca el de su jefe. | 2026-08-26 |
+| Búsqueda de personas | `<app-buscador-personas>`, en los cuatro sitios donde se elige a alguien —filtro y editor de participantes, filtro y formulario del directorio—: mínimo 3 caracteres, 300 ms de teclado quieto, sugerencias del servidor con el código al lado. Reemplaza desplegables que no escalan. El del padrón cargaba **7.078 filas y 56 MB en cada página** del listado para llenar un `<select>` de 527 opciones; ahora son 12–16 ms y solo viajan las coincidencias. El código va junto al nombre porque hay homónimos: 527 supervisores con 434 nombres distintos. En un formulario de edición se le pasa `[inicial]` para que abra mostrando a quien ya está asignado: en blanco se leería como «sin supervisor» y guardar sin tocarlo lo borraría. Las coincidencias las arma `PersonSuggestions`; cada pantalla decide **dónde** buscar. En el formulario del directorio quedan fuera la propia persona y toda su cadena de supervisados: elegir a un subordinado crearía un ciclo y el guardado lo rechazaría, así que ni se ofrece. | 2026-08-26 |
+| Diálogos de dos caminos | Cuando un modal ofrece dos acciones afirmativas —«Abrir y notificar» / «Abrir sin notificar», y lo mismo al publicar— los botones **se apilan a lo ancho**, con el principal arriba. En una línea no entran: medido en navegador, piden 443 px y el modal ofrece 390. Se apilan en vez de ensanchar el modal para que todas las confirmaciones conserven el mismo ancho, y para que la fila no dependa del largo de las etiquetas. El orden del DOM es el visual, así el foco del teclado no va al revés. | 2026-08-26 |
+| Avisos de negocio por correo | **Los tres, hechos**: apertura, recordatorio y resultados. Ninguno se manda solo: los tres los dispara el administrador desde el listado, y apertura y publicación ofrecen «hacerlo avisando» o «hacerlo en silencio». | 2026-08-26 |
+| Correo en desarrollo | Mailpit, en el `docker-compose.yml`. Sin cuota y no entrega afuera: un envío a padrón completo no puede escaparse a casillas reales. Bandeja en <http://localhost:8025>. | 2026-08-26 |
+| Proveedor de correo en producción | **Sin definir.** Mailtrap gratuito (50 correos al mes) sirve solo para controlar cómo se ve el correo en clientes reales, no para envíos de verdad. Decisión bloqueante del hito de avisos. | Hito 2 |
 | Fotos de perfil | Todas nuevas. No se migra ninguna imagen de la intranet. | Hito 0 |
 | Roles | Tres, no dos: `super_admin`, `admin`, `collaborator`. El super admin **no es evaluable**, igual que en la intranet. | Hito 2 |
 | Versiones | Laravel 13 y Angular 22 (los `latest`). El plan decía Laravel 12, que es lo que corre la API E360. **Sin confirmar** si conviene fijar a 12. | Hito 1 |
@@ -392,17 +399,32 @@ deshacer sin querer:
 ## Deuda y pendientes conocidos
 
 - **Laravel 13 vs 12** — decisión abierta.
-- **Los tres avisos de negocio por correo** y el botón de recordatorio, junto
-  con la opción «abrir y notificar» del listado. La infraestructura de colas ya
-  está levantada: es agregar los jobs.
-- **Sin tests automatizados** todavía, pero ya no toda la verificación es por
-  HTTP: `docs/recorrido.mjs` pulsa cada control de cada pantalla con un
-  navegador real y reporta los que no producen efecto. Nació porque tres veces
-  se construyó una pantalla y nunca se le puso el enlace, y verificar por API
-  no lo detecta: la API responde perfecto, lo que falta es el clic.
-- **El selector de supervisor** en el formulario de personas solo ofrece a quienes
-  están en la página actual del listado. Sirve para el volumen de prueba, pero con
-  una nómina grande necesita un buscador con consulta al servidor.
+- **Los tres avisos por correo están hechos.** Comparten `NotifyRoster`, que
+  recorre el padrón por lotes de 500, y `EvaluationAudience`, que decide a
+  quién le toca cada uno. Los tres informan el alcance en el momento —«se avisa
+  a 120, 8 se quedan afuera»— con dos consultas con índice, antes de encolar.
+  - **Apertura** y **resultados** van a todo el padrón con casilla, y cada uno
+    ofrece los dos caminos: «Abrir y notificar» / «Abrir sin notificar», y lo
+    mismo al publicar.
+  - **Recordatorio**, con su botón «Recordar» en las evaluaciones abiertas, va
+    solo a quienes todavía no terminaron. Se puede repetir las veces que haga
+    falta.
+  - **Lo que hay que saber del recordatorio**: quién está pendiente sale de
+    `evaluation_users.tasks_completed`, que es una caché refrescada cuando la
+    persona abre su lista de tareas. Miente en dos casos —quien nunca entró al
+    portal, y quien respondió por fuera (`dev:responder`)— y por eso el texto
+    del correo no acusa a nadie: dice que *figuran* tareas sin responder y
+    ofrece ignorarlo. La alternativa, preguntarle a Evaluación 360 por cada
+    persona, son cientos de peticiones remotas por envío. El detalle está en
+    `EvaluationAudience::pendientesConCorreo()`.
+- **Casi sin tests automatizados.** Hay uno: `buscador-personas.spec.ts`, que
+  cubre el contrato de tecleo del buscador —mínimo de caracteres, espera,
+  cancelación de la consulta vieja, fallo de red—. Se eligió eso y no otra cosa
+  porque es la parte que no se ve mirando la pantalla. Corre con `ng test`
+  (vitest, ya configurado). Se borró `app.spec.ts`, que era andamiaje de
+  `ng new` comprobando un `Hello, frontend` que no existe desde hace meses.
+  El resto de la verificación sigue siendo por navegador: `docs/recorrido.mjs`
+  pulsa cada control de cada pantalla y reporta los que no producen efecto.
 - **Las fotos de perfil** todavía no se pueden subir: el modelo tiene `avatar_path`
   y el respaldo son las iniciales, pero falta la pantalla de carga.
 
@@ -425,7 +447,8 @@ docker compose up -d
 docker compose exec php php artisan migrate --seed   # solo la primera vez
 ```
 
-Frontend en <http://localhost:4200>, API en <http://localhost:8081>.
+Frontend en <http://localhost:4200>, API en <http://localhost:8081>,
+bandeja de correo en <http://localhost:8025>.
 Las cuentas de prueba y su organigrama están en el `README.md` de la raíz —
 todas con la contraseña `password`.
 

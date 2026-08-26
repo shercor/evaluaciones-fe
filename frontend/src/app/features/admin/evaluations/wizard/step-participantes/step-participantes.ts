@@ -1,7 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { debounceTime } from 'rxjs';
+import { debounceTime, map } from 'rxjs';
 import { DirectoryService, ElementoCatalogo } from '../../../../../core/api/directory.service';
 import {
   ListadoParticipantes,
@@ -9,6 +9,10 @@ import {
   WizardService,
 } from '../../../../../core/api/wizard.service';
 import { mensajeDeError } from '../../../../../core/http/api-error';
+import {
+  BuscadorPersonas,
+  PersonaSugerida,
+} from '../../../../../shared/buscador-personas/buscador-personas';
 
 /**
  * Paso 3 · Depurar participantes.
@@ -19,7 +23,7 @@ import { mensajeDeError } from '../../../../../core/http/api-error';
  */
 @Component({
   selector: 'app-step-participantes',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, BuscadorPersonas],
   templateUrl: './step-participantes.html',
 })
 export class StepParticipantes {
@@ -47,7 +51,6 @@ export class StepParticipantes {
   protected readonly confirmandoCascada = signal<Participante | null>(null);
 
   protected readonly editando = signal<Participante | null>(null);
-  protected readonly supervisoresPosibles = signal<{ id: number; nombre: string }[]>([]);
   protected readonly guardando = signal(false);
   protected readonly errorFormulario = signal<string | null>(null);
 
@@ -59,8 +62,15 @@ export class StepParticipantes {
     participate: [''],
   });
 
-  /** Supervisores que figuran en este padrón, para el filtro. */
-  protected readonly supervisoresDelPadron = signal<{ id: number; nombre: string }[]>([]);
+  /**
+   * La consulta que alimenta el buscador del filtro.
+   *
+   * Va como propiedad y no como método porque el componente la recibe como
+   * entrada: si fuera `this.buscarSupervisoresDelPadron.bind(this)` en la
+   * plantilla, se crearía una función nueva en cada detección de cambios.
+   */
+  protected readonly consultarSupervisores = (termino: string) =>
+    this.api.buscarSupervisoresDelPadron(this.id, termino).pipe(map((r) => r.data));
 
   /** Columna y sentido del orden. */
   protected readonly orden = signal<{ campo: string; desc: boolean }>({
@@ -102,6 +112,9 @@ export class StepParticipantes {
     supervisor_id: [''],
   });
 
+  /** Para poder vaciarlo desde «Limpiar»: el control guarda su propio texto. */
+  private readonly filtroSupervisor = viewChild<BuscadorPersonas>('filtroSupervisor');
+
   private pagina = 1;
 
   constructor() {
@@ -137,7 +150,6 @@ export class StepParticipantes {
           this.participantes.set(r.data);
           this.meta.set(r.meta);
           this.cambiosPendientes.set(r.cambios_pendientes);
-          this.supervisoresDelPadron.set(r.supervisores ?? []);
           this.cargando.set(false);
         },
         error: (e) => {
@@ -152,6 +164,16 @@ export class StepParticipantes {
     this.buscar();
   }
 
+  /**
+   * El buscador entrega la persona; el filtro viaja como id.
+   *
+   * No hace falta llamar a `buscar()`: tocar el control dispara el
+   * `valueChanges` del formulario, que es por donde se relee siempre.
+   */
+  protected filtrarPorSupervisor(persona: PersonaSugerida | null): void {
+    this.filtros.patchValue({ supervisor_id: persona ? String(persona.id) : '' });
+  }
+
   protected limpiarFiltros(): void {
     this.filtros.reset({
       search: '',
@@ -160,6 +182,8 @@ export class StepParticipantes {
       supervisor_id: '',
       participate: '',
     });
+
+    this.filtroSupervisor()?.limpiar();
   }
 
   // -- Participación ------------------------------------------------
@@ -238,21 +262,32 @@ export class StepParticipantes {
       job_position_id: String(p.cargo?.id ?? ''),
       supervisor_id: String(p.supervisor?.id ?? ''),
     });
-
-    this.buscarSupervisores('');
   }
 
-  protected buscarSupervisores(termino: string): void {
-    const p = this.editando();
-    if (!p) return;
+  /**
+   * El supervisor que ya tiene, para que el buscador abra mostrándolo.
+   *
+   * El listado no trae el código de esa persona —no lo necesita para pintar la
+   * tabla—, así que va en `null`: el nombre alcanza para reconocer a quién
+   * está asignado, y en cuanto se escribe algo las sugerencias sí lo traen.
+   */
+  protected readonly supervisorActual = computed<PersonaSugerida | null>(() => {
+    const s = this.editando()?.supervisor;
 
-    this.api.buscarSupervisores(this.id, termino, p.user_id).subscribe({
-      next: (r) => this.supervisoresPosibles.set(r.data),
-    });
-  }
+    return s ? { id: s.id, nombre: s.nombre, codigo: null } : null;
+  });
 
-  protected alBuscarSupervisor(evento: Event): void {
-    this.buscarSupervisores((evento.target as HTMLInputElement).value);
+  /**
+   * Candidatos para el editor: gente del padrón, sin la persona que se edita
+   * —nadie puede ser su propio supervisor—.
+   */
+  protected readonly consultarCandidatos = (termino: string) =>
+    this.api
+      .buscarSupervisores(this.id, termino, this.editando()?.user_id ?? 0)
+      .pipe(map((r) => r.data));
+
+  protected asignarSupervisor(persona: PersonaSugerida | null): void {
+    this.formulario.patchValue({ supervisor_id: persona ? String(persona.id) : '' });
   }
 
   protected cerrarEdicion(): void {

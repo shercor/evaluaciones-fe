@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Notifications\DirectoryInvitation;
+use App\Services\PersonSuggestions;
 use App\Services\SupervisionChain;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,7 +43,7 @@ class UserController extends Controller
             });
         }
 
-        foreach (['branch_office_id', 'job_position_id', 'role'] as $filtro) {
+        foreach (['branch_office_id', 'job_position_id', 'role', 'supervisor_id'] as $filtro) {
             if ($request->filled($filtro)) {
                 $query->where($filtro, $request->input($filtro));
             }
@@ -79,6 +80,49 @@ class UserController extends Controller
                 'per_page' => $pagina->perPage(),
                 'total' => $pagina->total(),
             ],
+        ]);
+    }
+
+    /**
+     * Quiénes supervisan a alguien, para el filtro del listado.
+     *
+     * Solo aparece gente que tiene al menos un supervisado: ofrecer la nómina
+     * entera daría opciones que no devuelven ninguna fila.
+     */
+    public function supervisorOptions(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => PersonSuggestions::para(
+                User::whereIn('id', User::query()->whereNotNull('supervisor_id')->select('supervisor_id')),
+                $request->string('search')->trim()->toString(),
+            ),
+        ]);
+    }
+
+    /**
+     * Candidatos a supervisor, para el buscador del formulario.
+     *
+     * Antes el formulario ofrecía **solo a las personas de la página actual**
+     * del listado —lo decía el propio texto de ayuda—, así que asignar a
+     * alguien de la página 40 era imposible.
+     *
+     * Quedan fuera la propia persona y toda su cadena de supervisados: elegir a
+     * un subordinado crearía un ciclo, y aunque `update()` lo rechaza después,
+     * es mejor no ofrecer una opción que se va a negar.
+     */
+    public function supervisorCandidates(Request $request): JsonResponse
+    {
+        $consulta = User::query()->active();
+
+        if ($excluir = $request->integer('exclude')) {
+            $consulta->whereNotIn('id', [$excluir, ...$this->chain->allSuperviseeIds($excluir)]);
+        }
+
+        return response()->json([
+            'data' => PersonSuggestions::para(
+                $consulta,
+                $request->string('search')->trim()->toString(),
+            ),
         ]);
     }
 
@@ -180,7 +224,7 @@ class UserController extends Controller
      */
     public function resendInvitation(User $user): JsonResponse
     {
-        if (blank($user->email) || str_ends_with($user->email, '@interno.local')) {
+        if (! $user->hasMailbox()) {
             throw ValidationException::withMessages([
                 'email' => 'Esta persona no tiene correo. Generale una contraseña temporal.',
             ]);

@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { PersonaSugerida } from '../../shared/buscador-personas/buscador-personas';
 import { Role, User } from '../auth/user.model';
 
 export interface Paginacion {
@@ -21,6 +22,7 @@ export interface FiltrosPersonas {
   search?: string;
   branch_office_id?: number | '';
   job_position_id?: number | '';
+  supervisor_id?: number | '';
   role?: Role | '';
   active?: '' | '1' | '0';
   page?: number;
@@ -72,6 +74,40 @@ export class DirectoryService {
   private readonly base = '/api/admin';
 
   // -- Personas -----------------------------------------------------
+
+  /**
+   * Quiénes supervisan a alguien, para el filtro del listado.
+   *
+   * Es un conjunto distinto del de [buscarPosiblesSupervisores]: acá solo
+   * aparece gente con al menos un supervisado, porque el resto daría filtros
+   * sin resultados.
+   */
+  buscarSupervisores(search: string): Observable<{ data: PersonaSugerida[] }> {
+    return this.http.get<{ data: PersonaSugerida[] }>(`${this.base}/users/supervisores`, {
+      params: new HttpParams().set('search', search),
+    });
+  }
+
+  /**
+   * Candidatos a supervisor de alguien, para el formulario.
+   *
+   * `excluir` deja fuera a la propia persona y a toda su cadena de
+   * supervisados, que crearían un ciclo.
+   */
+  buscarPosiblesSupervisores(
+    search: string,
+    excluir?: number,
+  ): Observable<{ data: PersonaSugerida[] }> {
+    let params = new HttpParams().set('search', search);
+
+    if (excluir) {
+      params = params.set('exclude', String(excluir));
+    }
+
+    return this.http.get<{ data: PersonaSugerida[] }>(`${this.base}/users/posibles-supervisores`, {
+      params,
+    });
+  }
 
   listarPersonas(filtros: FiltrosPersonas = {}): Observable<ListadoPersonas> {
     let params = new HttpParams();

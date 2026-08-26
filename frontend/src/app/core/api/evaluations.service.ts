@@ -6,6 +6,7 @@ import { Observable } from 'rxjs';
 export type AccionEvaluacion =
   | 'open'
   | 'close'
+  | 'remind'
   | 'publish'
   | 'delete'
   | 'restore'
@@ -90,16 +91,34 @@ export class EvaluationsService {
     return this.http.get<{ data: Evaluacion }>(`${this.base}/${id}/estado`);
   }
 
-  abrir(id: number) {
-    return this.transicion(id, 'abrir');
+  /**
+   * Abre el proceso. Con `notificar` en true, además avisa por correo a todo
+   * el padrón; sin él, se abre en silencio.
+   */
+  abrir(id: number, notificar = false) {
+    return this.transicion(id, 'abrir', { notificar });
   }
 
   cerrar(id: number) {
     return this.transicion(id, 'cerrar');
   }
 
-  publicar(id: number) {
-    return this.transicion(id, 'publicar');
+  /**
+   * Recuerda por correo a quienes todavía no terminaron sus tareas.
+   *
+   * No cambia el estado del proceso, pero devuelve la fila al día igual que
+   * las demás acciones: así el listado se refresca por un solo camino.
+   */
+  recordar(id: number) {
+    return this.transicion(id, 'recordar');
+  }
+
+  /**
+   * Publica los resultados. Con `notificar` en true, además avisa por correo
+   * a todo el padrón; sin él, se publica en silencio.
+   */
+  publicar(id: number, notificar = false) {
+    return this.transicion(id, 'publicar', { notificar });
   }
 
   desactivar(id: number) {
@@ -113,10 +132,11 @@ export class EvaluationsService {
   private transicion(
     id: number,
     accion: string,
+    cuerpo: Record<string, unknown> = {},
   ): Observable<{ message: string; data: Evaluacion }> {
     return this.http.post<{ message: string; data: Evaluacion }>(
       `${this.base}/${id}/${accion}`,
-      {},
+      cuerpo,
     );
   }
 }

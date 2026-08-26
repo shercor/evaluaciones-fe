@@ -543,6 +543,18 @@
   .btn-quiet   { @apply bg-surface text-ink-2 border-rule hover:border-accent hover:text-accent; }
   .btn-peligro { @apply bg-danger text-white border-transparent hover:bg-danger-hover; }
 
+  /*
+    Acción afirmativa secundaria: ejecuta algo, pero no es la opción esperada.
+    Nace del diálogo de «Abrir y notificar», donde hay dos botones que hacen
+    cosas y uno que cancela.
+
+    Va perfilada en el color de acento, no en gris: con `btn-quiet` quedaría
+    idéntica a «Cancelar», y dos botones iguales que hacen cosas opuestas
+    —uno abre el proceso, el otro no hace nada— es justamente el error que
+    hay que evitar.
+  */
+  .btn-secundario { @apply bg-transparent text-accent border-accent hover:bg-accent hover:text-accent-ink; }
+
   /* Botón chico, para acciones dentro de una fila de tabla. */
   /*
     Botón chico, para acciones dentro de una fila.
@@ -573,8 +585,15 @@
     @apply w-full rounded-md border border-rule bg-surface px-3 py-2
            text-sm text-ink transition-colors duration-150
            placeholder:text-ink-3 focus:border-accent focus:outline-none;
-    min-height: var(--alto-control);
   }
+  /*
+    Alto **exacto**, no un mínimo, y por la misma razón que en `.btn`: con
+    `min-height` el `<select>` se pasaba 1 px del piso —su caja de contenido
+    es más alta que la de un `<input>` con el mismo relleno— y cualquier barra
+    de filtros quedaba con los desplegables un pelo más altos que las cajas de
+    texto. Medido en navegador: 39 px contra 38.
+  */
+  .field input, .field select { height: var(--alto-control); }
   .field textarea { min-height: calc(var(--alto-control) * 2.5); }
 
   /*
@@ -592,6 +611,46 @@
   .field input[aria-invalid='true'] { @apply border-danger; }
   .field .error { @apply text-xs text-danger; }
   .pista { @apply text-xs text-ink-3; }
+
+  /*
+    Buscador de personas con sugerencias.
+
+    El campo mide **exactamente lo mismo** que cualquier otro `.field`: el
+    desplegable va posicionado, fuera de flujo, así que no empuja nada ni
+    desalinea la barra de filtros donde vive.
+  */
+  .buscador { @apply relative; }
+  .buscador-caja { @apply relative; }
+  /* Sitio para la ×, para que no se monte sobre el texto escrito. */
+  .buscador-caja input { @apply pr-9; }
+  .buscador-limpiar {
+    @apply absolute right-2 top-1/2 grid size-6 -translate-y-1/2 place-items-center
+           rounded-full text-base leading-none text-ink-3 cursor-pointer
+           hover:bg-surface-2 hover:text-ink;
+  }
+
+  .sugerencias {
+    @apply absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto
+           rounded-md border border-rule bg-surface py-1 shadow-flotante;
+  }
+  .sugerencias ul { @apply m-0 list-none p-0; }
+
+  .sugerencia {
+    @apply flex items-baseline justify-between gap-3 px-3 py-2 text-sm
+           text-ink cursor-pointer;
+  }
+  /*
+    El resaltado es uno solo y lo lleva el teclado: `mouseenter` mueve el mismo
+    índice. Con un `:hover` aparte se ven dos filas marcadas a la vez y no se
+    sabe cuál elige el Enter.
+  */
+  .sugerencia.resaltada { @apply bg-accent-soft text-accent; }
+  .sugerencia-nombre { @apply truncate; }
+  .sugerencia-codigo { @apply shrink-0 text-xs text-ink-3 tabular-nums; }
+  .sugerencia.resaltada .sugerencia-codigo { @apply text-accent; }
+
+  .sugerencia-nota { @apply m-0 px-3 py-2 text-xs text-ink-3; }
+  .sugerencia-fallo { @apply text-danger; }
 
   .alert { @apply mb-5 rounded-md border-l-4 px-4 py-3 text-sm; }
   .alert-error { @apply border-danger bg-danger-soft text-danger; }
@@ -642,6 +701,26 @@
   .modal h2 { @apply mb-4 text-lg font-semibold; }
   .modal .nota { @apply text-sm text-ink-3; }
   .acciones-modal { @apply mt-6 flex flex-wrap justify-end gap-2 border-t border-rule pt-5; }
+
+  /*
+    Diálogos con dos caminos afirmativos: los botones se apilan a lo ancho.
+
+    En una línea no entran. Medido en un navegador real sobre el CSS
+    compilado: «Cancelar» + «Publicar sin notificar» + «Publicar y notificar»
+    piden 443 px y el modal ofrece 390, así que el principal caía solo a una
+    segunda línea y parecía un error de maquetación. A «Abrir» le pasaba lo
+    mismo por 10 px.
+
+    Se apilan en vez de ensanchar el modal para que todos los diálogos
+    conserven el mismo ancho —dos confirmaciones de anchos distintos es la
+    inconsistencia que hay que evitar— y porque así la fila deja de depender
+    de lo largas que sean las etiquetas: no se puede volver a romper.
+
+    El orden visual es el del DOM (principal arriba, cancelar abajo), no un
+    `column-reverse`: si no, el foco del teclado recorrería los botones al
+    revés de como se ven.
+  */
+  .acciones-apiladas { @apply flex-col items-stretch; }
   .ancho-form { @apply max-w-3xl; }
   .grilla-form { @apply grid gap-x-5 sm:grid-cols-2; }
   .ancho-doble { @apply sm:col-span-2; }
@@ -1047,6 +1126,19 @@
            transition-all duration-200
            hover:-translate-y-0.5 hover:border-accent hover:shadow-alzado;
   }
+  /*
+    El ícono va en una placa, no suelto: sobre la tarjeta blanca un trazo
+    apoyado en el fondo se lee como un dibujo perdido, y la placa lo convierte
+    en el ancla visual de la tarjeta. Se enciende con el mismo gesto que la
+    flecha, para que la tarjeta reaccione como una sola pieza.
+  */
+  .atajo-icono {
+    @apply mb-1.5 grid size-11 place-items-center rounded-lg bg-accent-soft
+           text-accent transition-colors duration-200
+           group-hover:bg-accent group-hover:text-accent-ink;
+  }
+  .atajo-icono svg { @apply size-6; }
+
   .atajo-titulo { @apply text-base font-semibold text-ink; }
   .atajo-texto { @apply text-sm text-ink-2; }
   .atajo-flecha {
@@ -1317,6 +1409,16 @@
     @apply flex flex-col gap-1 rounded-card border border-rule bg-surface p-5
            shadow-suave no-underline transition-all duration-200;
   }
+  /*
+    Acá el contenido es el número, así que el ícono se aparta: chico, apagado
+    y en la esquina. Da silueta para distinguir cuatro tarjetas iguales de un
+    vistazo, sin disputarle la mirada a la cifra.
+  */
+  .cifra-icono {
+    @apply pointer-events-none absolute right-4 top-4 text-ink-3/40;
+  }
+  .cifra-icono svg { @apply size-5; }
+
   .cifra-valor { @apply font-display text-3xl font-bold leading-none text-ink; }
   .cifra-nombre { @apply text-xs text-ink-2; }
 
@@ -1325,6 +1427,7 @@
     @apply border-warn/40 bg-warn-soft/40 hover:-translate-y-0.5 hover:shadow-alzado;
   }
   .cifra--alerta .cifra-valor { @apply text-warn; }
+  .cifra--alerta .cifra-icono { @apply text-warn/50; }
 
   /* --- Selector de apariencia --- */
 

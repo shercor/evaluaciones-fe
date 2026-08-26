@@ -1,7 +1,7 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { debounceTime } from 'rxjs';
+import { debounceTime, map } from 'rxjs';
 import {
   DirectoryService,
   ElementoCatalogo,
@@ -10,6 +10,10 @@ import {
 } from '../../../../core/api/directory.service';
 import { User } from '../../../../core/auth/user.model';
 import { mensajeDeError } from '../../../../core/http/api-error';
+import {
+  BuscadorPersonas,
+  PersonaSugerida,
+} from '../../../../shared/buscador-personas/buscador-personas';
 import { Skeleton } from '../../../../shared/skeleton/skeleton';
 
 /**
@@ -20,7 +24,7 @@ import { Skeleton } from '../../../../shared/skeleton/skeleton';
  */
 @Component({
   selector: 'app-people',
-  imports: [ReactiveFormsModule, RouterLink, Skeleton],
+  imports: [ReactiveFormsModule, RouterLink, Skeleton, BuscadorPersonas],
   templateUrl: './people.html',
 })
 export class People {
@@ -48,6 +52,7 @@ export class People {
     search: [''],
     branch_office_id: [''],
     job_position_id: [''],
+    supervisor_id: [''],
     role: [''],
     active: [''],
   });
@@ -62,6 +67,9 @@ export class People {
     job_position_id: [''],
     supervisor_id: [''],
   });
+
+  /** Para poder vaciarlo desde «Limpiar»: el control guarda su propio texto. */
+  private readonly filtroSupervisor = viewChild<BuscadorPersonas>('filtroSupervisor');
 
   private pagina = 1;
 
@@ -110,9 +118,46 @@ export class People {
       search: '',
       branch_office_id: '',
       job_position_id: '',
+      supervisor_id: '',
       role: '',
       active: '',
     });
+
+    this.filtroSupervisor()?.limpiar();
+  }
+
+  // -- Supervisor: filtro y formulario -------------------------------
+
+  /** Quiénes supervisan a alguien. Alimenta el filtro del listado. */
+  protected readonly consultarSupervisores = (termino: string) =>
+    this.directorio.buscarSupervisores(termino).pipe(map((r) => r.data));
+
+  /**
+   * Candidatos para el formulario. Excluye a la persona que se edita y a su
+   * cadena, que crearían un ciclo; de una persona nueva (`id === 0`) no hay
+   * nada que excluir.
+   */
+  protected readonly consultarPosiblesSupervisores = (termino: string) => {
+    const id = this.editando()?.id;
+
+    return this.directorio
+      .buscarPosiblesSupervisores(termino, id && id > 0 ? id : undefined)
+      .pipe(map((r) => r.data));
+  };
+
+  /** El supervisor que ya tiene, para que el buscador abra mostrándolo. */
+  protected readonly supervisorActual = computed<PersonaSugerida | null>(() => {
+    const s = this.editando()?.supervisor;
+
+    return s ? { id: s.id, nombre: s.full_name, codigo: null } : null;
+  });
+
+  protected filtrarPorSupervisor(persona: PersonaSugerida | null): void {
+    this.filtros.patchValue({ supervisor_id: persona ? String(persona.id) : '' });
+  }
+
+  protected asignarSupervisor(persona: PersonaSugerida | null): void {
+    this.formulario.patchValue({ supervisor_id: persona ? String(persona.id) : '' });
   }
 
   // -- Edición ------------------------------------------------------

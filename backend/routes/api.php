@@ -103,6 +103,10 @@ Route::middleware('auth:sanctum')->group(function () {
             // -- Directorio: personas --------------------------------
             Route::get('users', [UserController::class, 'index']);
             Route::post('users', [UserController::class, 'store']);
+            // Van antes de `users/{user}`: si no, «supervisores» entraría por el
+            // parámetro y el enlace de modelo respondería 404.
+            Route::get('users/supervisores', [UserController::class, 'supervisorOptions']);
+            Route::get('users/posibles-supervisores', [UserController::class, 'supervisorCandidates']);
             Route::get('users/{user}', [UserController::class, 'show']);
             Route::put('users/{user}', [UserController::class, 'update']);
             Route::post('users/{user}/toggle-active', [UserController::class, 'toggleActive']);
@@ -122,6 +126,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('evaluaciones/{id}/estado', [EvaluationController::class, 'status'])->whereNumber('id');
             Route::post('evaluaciones/{id}/abrir', [EvaluationController::class, 'open'])->whereNumber('id');
             Route::post('evaluaciones/{id}/cerrar', [EvaluationController::class, 'close'])->whereNumber('id');
+            Route::post('evaluaciones/{id}/recordar', [EvaluationController::class, 'remind'])->whereNumber('id');
             Route::post('evaluaciones/{id}/publicar', [EvaluationController::class, 'publish'])->whereNumber('id');
             Route::post('evaluaciones/{id}/desactivar', [EvaluationController::class, 'destroy'])->whereNumber('id');
             Route::post('evaluaciones/{id}/reactivar', [EvaluationController::class, 'restore'])->whereNumber('id');
@@ -144,6 +149,7 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::post('participantes/participacion', [EvaluationWizardController::class, 'setParticipation']);
                     Route::post('participantes/detalle', [EvaluationWizardController::class, 'updateParticipant']);
                     Route::get('participantes/supervisores', [EvaluationWizardController::class, 'supervisorOptions']);
+                    Route::get('participantes/supervisores-del-padron', [EvaluationWizardController::class, 'rosterSupervisorOptions']);
 
                     Route::get('previsualizacion', [EvaluationWizardController::class, 'preview']);
                     Route::post('previsualizacion/excluir', [EvaluationWizardController::class, 'excludeOrphans']);

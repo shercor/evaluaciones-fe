@@ -51,15 +51,18 @@
         }
       </select>
     </div>
-    <div class="field">
-      <label for="p-supervisor">Supervisor</label>
-      <select id="p-supervisor" formControlName="supervisor_id">
-        <option value="">Todos</option>
-        @for (s of supervisoresDelPadron(); track s.id) {
-          <option [value]="s.id">{{ s.nombre }}</option>
-        }
-      </select>
-    </div>
+    <!--
+      Buscador y no desplegable: en un padrón grande hay 527 supervisores, que
+      ni se recorren con la vista ni tiene sentido traer en cada página.
+    -->
+    <app-buscador-personas
+      #filtroSupervisor
+      idControl="p-supervisor"
+      etiqueta="Supervisor"
+      placeholder="Nombre o código"
+      [buscar]="consultarSupervisores"
+      (elegida)="filtrarPorSupervisor($event)"
+    />
     <div class="field">
       <label for="p-participa">Participación</label>
       <select id="p-participa" formControlName="participate">
@@ -249,26 +252,23 @@
           </select>
         </div>
 
-        <div class="field">
-          <label for="e-buscar-sup">Buscar supervisor</label>
-          <input
-            id="e-buscar-sup"
-            type="search"
-            (input)="alBuscarSupervisor($event)"
-            placeholder="Escribí un nombre"
-          />
-        </div>
+        <!--
+          El mismo control que el filtro de arriba. Antes eran dos campos —una
+          caja de búsqueda y un desplegable— para elegir una sola cosa, y el
+          desplegable solo ofrecía las primeras 20 personas del padrón.
 
-        <div class="field">
-          <label for="e-supervisor">Supervisor</label>
-          <select id="e-supervisor" formControlName="supervisor_id">
-            <option value="">Sin supervisor</option>
-            @for (s of supervisoresPosibles(); track s.id) {
-              <option [value]="s.id">{{ s.nombre }}</option>
-            }
-          </select>
-          <span class="pista">Solo personas del padrón. No se permite crear ciclos.</span>
-        </div>
+          Abre mostrando el supervisor asignado: en blanco se leería como que
+          no tiene, y guardar sin tocarlo lo habría borrado.
+        -->
+        <app-buscador-personas
+          idControl="e-supervisor"
+          etiqueta="Supervisor"
+          placeholder="Nombre o código"
+          [inicial]="supervisorActual()"
+          [buscar]="consultarCandidatos"
+          (elegida)="asignarSupervisor($event)"
+        />
+        <p class="pista -mt-2">Solo personas del padrón. No se permite crear ciclos.</p>
 
         <div class="acciones-modal">
           <button type="button" class="btn btn-quiet" (click)="cerrarEdicion()">Cancelar</button>

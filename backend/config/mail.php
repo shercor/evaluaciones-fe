@@ -115,4 +115,24 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Plantillas de los correos
+    |--------------------------------------------------------------------------
+    |
+    | Sin esta clave el framework usa únicamente sus propias vistas y las de
+    | `resources/views/vendor/mail` quedan ignoradas en silencio: se publican,
+    | se editan, y el correo sigue saliendo igual. Declararla es lo que hace
+    | que nuestra cabecera y nuestro pie tengan efecto.
+    |
+    */
+
+    'markdown' => [
+        'theme' => env('MAIL_MARKDOWN_THEME', 'default'),
+
+        'paths' => [
+            resource_path('views/vendor/mail'),
+        ],
+    ],
+
 ];

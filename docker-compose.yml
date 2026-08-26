@@ -35,6 +35,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   # ---------------------------------------------------------------
   # Servidor web del backend
@@ -72,6 +74,26 @@ services:
       retries: 20
 
   # ---------------------------------------------------------------
+  # Bandeja de correo para desarrollo. Atrapa TODO lo que se envía y
+  # no entrega nada afuera: es la red de seguridad para que un envío
+  # a padrón completo no termine en casillas reales.
+  #
+  # Sin cuota, a diferencia de Mailtrap, que se reserva para el
+  # control final de cómo se ve el correo en Gmail y Outlook.
+  # ---------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: ep_mailpit
+    ports:
+      - "${MAILPIT_WEB_PORT:-8025}:8025"   # bandeja web
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"  # SMTP
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------
   # Worker de colas. Hoy procesa poco; queda levantado desde el
   # inicio para que sumar los avisos por correo sea solo agregar jobs.
   # ---------------------------------------------------------------
@@ -88,6 +110,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
 volumes:
   mysql_data:

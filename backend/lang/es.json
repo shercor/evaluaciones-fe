@@ -1,0 +1,11 @@
+{
+    "Hello!": "¡Hola!",
+    "Whoops!": "¡Ups!",
+    "Regards,": "Saludos,",
+    "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": "Si el botón «:actionText» no te funciona, copiá y pegá esta dirección\nen tu navegador:",
+    "Reset your password": "Recuperá tu contraseña",
+    "You are receiving this email because we received a password reset request for your account.": "Recibís este correo porque se pidió recuperar la contraseña de tu cuenta.",
+    "Reset Password": "Definir una contraseña nueva",
+    "This password reset link will expire in :count minutes.": "El enlace vence en :count minutos.",
+    "If you did not request a password reset, no further action is required.": "Si no lo pediste vos, podés ignorar este mensaje: no hay nada que hacer."
+}

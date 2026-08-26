@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { PersonaSugerida } from '../../shared/buscador-personas/buscador-personas';
 
 export interface TipoFormulario {
   id: number;
@@ -59,8 +60,6 @@ export interface ListadoParticipantes {
     participando: number;
   };
   cambios_pendientes: number;
-  /** Quiénes figuran como supervisor en este padrón, para filtrar. */
-  supervisores: { id: number; nombre: string }[];
 }
 
 export interface IntegranteGrupo {
@@ -232,16 +231,34 @@ export class WizardService {
     );
   }
 
+  /**
+   * Candidatos a supervisor para el editor: gente del padrón que participa,
+   * sin contar a la persona que se está editando.
+   */
   buscarSupervisores(
     id: number,
     search: string,
     excluir: number,
-  ): Observable<{ data: { id: number; nombre: string }[] }> {
+  ): Observable<{ data: PersonaSugerida[] }> {
     const params = new HttpParams().set('search', search).set('exclude', String(excluir));
 
-    return this.http.get<{ data: { id: number; nombre: string }[] }>(
+    return this.http.get<{ data: PersonaSugerida[] }>(
       `${this.base}/${id}/participantes/supervisores`,
       { params },
+    );
+  }
+
+  /**
+   * Quiénes figuran como supervisor en el padrón, para el filtro del listado.
+   *
+   * Es un conjunto distinto del anterior —acá solo aparece quien tiene gente a
+   * cargo— y por eso son dos consultas y no una con un parámetro: ofrecer a
+   * todo el padrón daría opciones que no devuelven ninguna fila.
+   */
+  buscarSupervisoresDelPadron(id: number, search: string): Observable<{ data: PersonaSugerida[] }> {
+    return this.http.get<{ data: PersonaSugerida[] }>(
+      `${this.base}/${id}/participantes/supervisores-del-padron`,
+      { params: new HttpParams().set('search', search) },
     );
   }
 

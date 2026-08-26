@@ -180,6 +180,16 @@
                 @if (puede(e, 'close')) {
                   <button type="button" class="mini" (click)="pedirCerrar(e)">Cerrar</button>
                 }
+                @if (puede(e, 'remind')) {
+                  <button
+                    type="button"
+                    class="mini"
+                    title="Avisar por correo a quienes todavía no responden"
+                    (click)="pedirRecordar(e)"
+                  >
+                    Recordar
+                  </button>
+                }
                 @if (puede(e, 'publish')) {
                   <button type="button" class="mini" (click)="pedirPublicar(e)">Publicar</button>
                 }
@@ -239,19 +249,43 @@
         <p class="alert alert-error">{{ c.advertencia }}</p>
       }
 
-      <div class="acciones-modal">
-        <button type="button" class="btn btn-quiet" (click)="cancelarConfirmacion()">
-          Cancelar
-        </button>
-        <button
-          type="button"
-          class="btn"
-          [class.btn-primary]="!c.peligrosa"
-          [class.btn-peligro]="c.peligrosa"
-          (click)="c.ejecutar()"
-        >
-          {{ c.etiquetaBoton }}
-        </button>
+      <!--
+        Con dos caminos afirmativos los tres botones no entran en una línea, así
+        que se apilan. Las dos ramas existen para que el orden del DOM sea el
+        orden visual en cada caso: el foco del teclado tiene que recorrer los
+        botones como se ven.
+      -->
+      <div class="acciones-modal" [class.acciones-apiladas]="!!c.secundaria">
+        @if (c.secundaria; as s) {
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="!c.peligrosa"
+            [class.btn-peligro]="c.peligrosa"
+            (click)="c.ejecutar()"
+          >
+            {{ c.etiquetaBoton }}
+          </button>
+          <button type="button" class="btn btn-secundario" (click)="s.ejecutar()">
+            {{ s.etiqueta }}
+          </button>
+          <button type="button" class="btn btn-quiet" (click)="cancelarConfirmacion()">
+            Cancelar
+          </button>
+        } @else {
+          <button type="button" class="btn btn-quiet" (click)="cancelarConfirmacion()">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [class.btn-primary]="!c.peligrosa"
+            [class.btn-peligro]="c.peligrosa"
+            (click)="c.ejecutar()"
+          >
+            {{ c.etiquetaBoton }}
+          </button>
+        }
       </div>
     </div>
   </div>

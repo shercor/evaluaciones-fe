@@ -8,10 +8,12 @@ use App\Enums\EvaluationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Evaluation;
 use App\Models\EvaluationUser;
+use App\Models\User;
 use App\Services\ParticipantChanges;
 use App\Services\ParticipantRoster;
 use App\Services\ParticipationEditor;
 use App\Services\ParticipationSubmission;
+use App\Services\PersonSuggestions;
 use App\Services\SupervisorGroups;
 use App\Support\E360\Resources\EvaluationsApi;
 use App\Support\E360\Resources\GroupsApi;
@@ -384,31 +386,34 @@ class EvaluationWizardController extends Controller
                 'participando' => $this->submission->countParticipating($evaluation),
             ],
             'cambios_pendientes' => $this->changes->count($evaluation),
-            // Quiénes figuran como supervisor en este padrón. Es la lista para
-            // filtrar: ofrecer a todo el padrón daría opciones sin resultados.
-            'supervisores' => $this->supervisorsInRoster($evaluation),
         ]);
     }
 
     /**
-     * Supervisores que realmente aparecen en el padrón, sin repetir.
+     * Supervisores que figuran en el padrón, para el filtro del listado.
      *
-     * @return array<int, array{id: int, nombre: string}>
+     * Antes esta lista viajaba **entera dentro de cada página** del listado:
+     * cargaba las 7.078 filas del padrón con su supervisor para quedarse con
+     * 527 nombres, 167 ms y 56 MB por petición, y llenaba un desplegable de
+     * 527 opciones que nadie puede recorrer con la vista. Ahora se busca por
+     * lo que se escribe y solo viajan las coincidencias.
+     *
+     * El `whereIn` con subconsulta se resuelve contra el índice de
+     * `supervisor_id`: no se instancia ni una fila del padrón.
      */
-    private function supervisorsInRoster(Evaluation $evaluation): array
+    public function rosterSupervisorOptions(Request $request, int $id): JsonResponse
     {
-        return EvaluationUser::query()
-            ->where('evaluation_id', $evaluation->id)
-            ->whereNotNull('supervisor_id')
-            ->with('supervisor:id,name,lastname')
-            ->get()
-            ->pluck('supervisor')
-            ->filter()
-            ->unique('id')
-            ->sortBy('name')
-            ->map(fn ($u) => ['id' => $u->id, 'nombre' => $u->fullName()])
-            ->values()
-            ->all();
+        $evaluation = $this->localFor($id);
+
+        return response()->json([
+            'data' => PersonSuggestions::para(
+                User::whereIn('id', EvaluationUser::query()
+                    ->where('evaluation_id', $evaluation->id)
+                    ->whereNotNull('supervisor_id')
+                    ->select('supervisor_id')),
+                $request->string('search')->trim()->toString(),
+            ),
+        ]);
     }
 
     public function setParticipation(Request $request, int $id): JsonResponse
@@ -476,26 +481,19 @@ class EvaluationWizardController extends Controller
     public function supervisorOptions(Request $request, int $id): JsonResponse
     {
         $evaluation = $this->localFor($id);
-        $buscar = $request->string('search')->trim()->toString();
-
-        $filas = EvaluationUser::query()
-            ->where('evaluation_id', $evaluation->id)
-            ->participating()
-            ->when($request->filled('exclude'), fn ($q) => $q->where('user_id', '!=', $request->integer('exclude')))
-            ->whereHas('user', function ($q) use ($buscar) {
-                if ($buscar !== '') {
-                    $q->where('name', 'like', "%{$buscar}%")->orWhere('lastname', 'like', "%{$buscar}%");
-                }
-            })
-            ->with('user:id,name,lastname')
-            ->limit(20)
-            ->get();
 
         return response()->json([
-            'data' => $filas->map(fn (EvaluationUser $f) => [
-                'id' => $f->user_id,
-                'nombre' => $f->user?->fullName(),
-            ])->values(),
+            'data' => PersonSuggestions::para(
+                User::whereIn('id', EvaluationUser::query()
+                    ->where('evaluation_id', $evaluation->id)
+                    ->participating()
+                    ->when(
+                        $request->filled('exclude'),
+                        fn ($q) => $q->where('user_id', '!=', $request->integer('exclude')),
+                    )
+                    ->select('user_id')),
+                $request->string('search')->trim()->toString(),
+            ),
         ]);
     }
 

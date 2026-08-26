@@ -1,0 +1,94 @@
+<!--
+  Patrón combobox: el foco no se mueve de la caja de texto. Las sugerencias se
+  señalan con `aria-activedescendant`, así el lector de pantalla las canta sin
+  que el tabulador tenga que recorrerlas una por una.
+
+  Todo lo que el control tiene para decir —«escribí dos letras más», «sin
+  coincidencias», «buscando»— vive **dentro del desplegable**, que está fuera
+  de flujo. Si fuera una línea de pista debajo del campo, este control sería
+  más alto que los de al lado y la barra de filtros quedaría escalonada.
+-->
+<div class="field buscador" (focusout)="alSalirElFoco($event)">
+  <label [attr.for]="idControl()">{{ etiqueta() }}</label>
+
+  <div class="buscador-caja">
+    <input
+      [attr.id]="idControl()"
+      type="text"
+      role="combobox"
+      autocomplete="off"
+      [placeholder]="placeholder()"
+      [value]="texto()"
+      [attr.aria-expanded]="desplegado()"
+      aria-autocomplete="list"
+      [attr.aria-controls]="idControl() + '-lista'"
+      [attr.aria-activedescendant]="
+        desplegado() && resaltada() >= 0 ? idControl() + '-op-' + resaltada() : null
+      "
+      (input)="alEscribir($event)"
+      (focus)="alEnfocar()"
+      (keydown)="alPulsar($event)"
+    />
+
+    @if (texto().length > 0) {
+      <button
+        type="button"
+        class="buscador-limpiar"
+        (click)="limpiarYEnfocar()"
+        [attr.aria-label]="'Limpiar ' + etiqueta()"
+      >
+        ×
+      </button>
+    }
+  </div>
+
+  @if (desplegado()) {
+    <div class="sugerencias">
+      @switch (estado()) {
+        @case ('escribiendo') {
+          <p class="sugerencia-nota">
+            Escribí {{ faltan() }} {{ faltan() === 1 ? 'carácter' : 'caracteres' }} más.
+          </p>
+        }
+        @case ('buscando') {
+          <p class="sugerencia-nota">Buscando…</p>
+        }
+        @case ('vacio') {
+          <p class="sugerencia-nota">Sin coincidencias.</p>
+        }
+        @case ('fallo') {
+          <p class="sugerencia-nota sugerencia-fallo">No se pudo buscar. Probá de nuevo.</p>
+        }
+        @default {
+          <ul role="listbox" [attr.id]="idControl() + '-lista'">
+            @for (p of sugerencias(); track p.id; let i = $index) {
+              <!--
+                `mousedown` con `preventDefault` para que al pulsar no se vaya
+                el foco de la caja: si se fuera, la lista se cerraría antes de
+                que llegara el `click`.
+              -->
+              <li
+                class="sugerencia"
+                role="option"
+                [attr.id]="idControl() + '-op-' + i"
+                [class.resaltada]="resaltada() === i"
+                [attr.aria-selected]="resaltada() === i"
+                (mousedown)="$event.preventDefault()"
+                (click)="elegir(p)"
+                (mouseenter)="resaltada.set(i)"
+              >
+                <span class="sugerencia-nombre">{{ p.nombre }}</span>
+                @if (p.codigo) {
+                  <span class="sugerencia-codigo">{{ p.codigo }}</span>
+                }
+              </li>
+            }
+          </ul>
+          @if (sugerencias().length >= tope()) {
+            <p class="sugerencia-nota">Hay más. Afiná la búsqueda para verlas.</p>
+          }
+        }
+      }
+    </div>
+  }
+</div>
