@@ -94,7 +94,6 @@ class ResultsApi
         return $this->client->tenant('GET', "/api/evaluaciones/{$evaluationId}/preguntas/{$questionId}/detalles", $query);
     }
 
-
     // -- Monitoreo ------------------------------------------------------
 
     public function monitorMetrics(int $evaluationId): E360Response

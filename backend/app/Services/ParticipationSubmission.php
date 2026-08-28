@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Evaluation;
 use App\Models\EvaluationUser;
+use App\Models\User;
 use App\Support\E360\E360Response;
 use App\Support\E360\Resources\ParticipantsApi;
 use Illuminate\Support\Facades\Log;
@@ -59,7 +60,7 @@ class ParticipationSubmission
             ->reject(fn ($id) => isset($incluidos[$id]));
 
         if ($supervisoresFaltantes->isNotEmpty()) {
-            $datos = \App\Models\User::whereIn('id', $supervisoresFaltantes)
+            $datos = User::whereIn('id', $supervisoresFaltantes)
                 ->get(['id', 'name', 'lastname']);
 
             foreach ($datos as $supervisor) {

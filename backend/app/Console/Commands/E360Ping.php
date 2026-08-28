@@ -42,7 +42,8 @@ class E360Ping extends Command
         }
 
         $this->components->twoColumnDetail('URL base', $client->baseUrl());
-        $this->components->twoColumnDetail('Cabecera host', $client->tenantHost());
+        $this->components->twoColumnDetail('Cabecera host — plano tenant', $client->tenantHost());
+        $this->components->twoColumnDetail('Cabecera host — plano central', $client->centralHost());
         $this->components->info('Configuración completa.');
 
         // --- 2. Plano central -------------------------------------------

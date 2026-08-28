@@ -35,11 +35,8 @@ class ParticipantsApi
         return $this->client->tenant('GET', "/api/participantes/{$participationId}");
     }
 
-
-
     public function finishedEvaluations(int $userId): E360Response
     {
         return $this->client->tenant('GET', "/api/participantes/{$userId}/evaluaciones-finalizadas");
     }
-
 }

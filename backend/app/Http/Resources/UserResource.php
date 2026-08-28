@@ -31,6 +31,11 @@ class UserResource extends JsonResource
             'role_label' => $this->role->label(),
             'is_administrative' => $this->role->isAdministrative(),
             'active' => $this->active,
+            // Por qué está inactiva. Desde que la nómina sincroniza bajas, una
+            // persona puede quedar inactiva sin que nadie haya pulsado nada, y
+            // «Inactiva» a secas manda a buscar en el historial de cargas.
+            'deactivation_reason' => $this->deactivationReason(),
+            'deactivated_at' => $this->deactivated_at?->toIso8601String(),
             'must_set_password' => $this->must_set_password,
             'avatar_url' => $this->avatarUrl(),
             'branch_office' => $this->whenLoaded('branchOffice', fn () => [

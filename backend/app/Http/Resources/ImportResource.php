@@ -24,11 +24,18 @@ class ImportResource extends JsonResource
         return [
             'id' => $this->id,
             'filename' => $this->filename,
+            // Qué se cargó: «nomina», «sucursales» o «cargos».
+            'destino' => $this->destino,
             'status' => $this->status,
             'rows_total' => $this->rows_total,
             'rows_created' => $this->rows_created,
             'rows_updated' => $this->rows_updated,
             'rows_failed' => $this->rows_failed,
+            // Filas que vinieron marcadas como inactivas y no había a quién
+            // dar de baja: ni entran ni son un rechazo.
+            'rows_skipped' => $this->rows_skipped,
+            'rows_deactivated' => $this->rows_deactivated,
+            'rows_reactivated' => $this->rows_reactivated,
             'error' => $this->error,
             // Con qué homologación se cargó, o `null` si vino con el formato
             // del sistema. La pantalla lo usa para distinguir las dos cargas

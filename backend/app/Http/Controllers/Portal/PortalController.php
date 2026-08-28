@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Portal;
 use App\Http\Controllers\Controller;
 use App\Models\Evaluation;
 use App\Models\EvaluationUser;
+use App\Support\E360\E360Response;
 use App\Support\E360\Resources\ParticipantsApi;
 use App\Support\E360\Resources\ResultsApi;
 use App\Support\E360\Resources\TasksApi;
@@ -368,7 +369,7 @@ class PortalController extends Controller
         ];
     }
 
-    private function bloque(\App\Support\E360\E360Response $r): array
+    private function bloque(E360Response $r): array
     {
         if ($r->failed()) {
             return ['titulo' => null, 'promedio' => null, 'resultado' => null, 'error' => $r->message];

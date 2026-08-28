@@ -52,7 +52,7 @@ final class CatalogResolver
     public function __construct(private readonly bool $simular = false) {}
 
     /**
-     * @return array{0: int|null, 1: string|null}  el id, o el motivo del rechazo
+     * @return array{0: int|null, 1: string|null} el id, o el motivo del rechazo
      */
     public function resolver(string $catalogo, string $codigo, string $nombre): array
     {
@@ -73,7 +73,7 @@ final class CatalogResolver
             }
 
             $id = $this->indice[$catalogo]['codigos'][$valor]
-                ?? $this->indice[$catalogo]['nombres'][$this->clave($valor)]
+                ?? $this->indice[$catalogo]['nombres'][self::clave($valor)]
                 ?? null;
 
             if ($id !== null) {
@@ -121,7 +121,7 @@ final class CatalogResolver
 
     private function crear(string $catalogo, string $codigo, string $nombre): ?int
     {
-        $this->pendientes[$catalogo][$this->clave($codigo.'|'.$nombre)] =
+        $this->pendientes[$catalogo][self::clave($codigo.'|'.$nombre)] =
             $codigo === '' ? $nombre : "{$nombre} ({$codigo})";
 
         if ($this->simular) {
@@ -184,7 +184,7 @@ final class CatalogResolver
         }
 
         if ($nombre !== '') {
-            $this->indice[$catalogo]['nombres'][$this->clave($nombre)] = $id;
+            $this->indice[$catalogo]['nombres'][self::clave($nombre)] = $id;
         }
     }
 
@@ -195,8 +195,13 @@ final class CatalogResolver
      * «SUCURSAL ÑUÑOA» y «Sucursal Ñuñoa» como la misma. Si acá se comparara
      * literal, el índice diría «no existe», se crearía la fila, y la base la
      * aceptaría: dos sucursales que para el motor son la misma.
+     *
+     * Es pública porque `CatalogImportService` compara los mismos nombres: uno
+     * crea las sucursales que nombra la nómina y el otro las que trae la
+     * planilla del catálogo, así que si compararan distinto se duplicarían
+     * entre ellos.
      */
-    private function clave(string $valor): string
+    public static function clave(string $valor): string
     {
         $sin = (string) iconv('UTF-8', 'ASCII//TRANSLIT', $valor);
 

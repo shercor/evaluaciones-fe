@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Password;
@@ -18,7 +19,7 @@ use Illuminate\Support\Facades\Password;
  *
  * Va por la cola: importar 800 personas no puede quedarse esperando 800 SMTP.
  */
-class DirectoryInvitation extends Notification implements \Illuminate\Contracts\Queue\ShouldQueue
+class DirectoryInvitation extends Notification implements ShouldQueue
 {
     use Queueable;
 

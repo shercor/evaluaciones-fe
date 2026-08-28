@@ -6,9 +6,15 @@
   <!-- ------------------------------------------------ Paso 1: el archivo -->
   @case ('archivo') {
     <p class="explica">
-      Subí la planilla como la tengas. Lo único obligatorio es que la
-      <b>primera fila traiga los nombres de las columnas</b>: en el paso siguiente vas a decir cuál
-      es cuál. No importa el orden, ni que sobren columnas, ni cómo se llamen.
+      @if (autoAvanzar()) {
+        Subí la planilla. Como ya trae los encabezados del sistema, las columnas se conectan solas
+        y vas a pasar derecho al resumen. Si alguna no encaja, te lo vamos a preguntar antes de
+        seguir.
+      } @else {
+        Subí la planilla como la tengas. Lo único obligatorio es que la
+        <b>primera fila traiga los nombres de las columnas</b>: en el paso siguiente vas a decir
+        cuál es cuál. No importa el orden, ni que sobren columnas, ni cómo se llamen.
+      }
     </p>
 
     <div class="carga">
@@ -24,7 +30,7 @@
         [disabled]="!archivo() || ocupada()"
         (click)="analizar()"
       >
-        {{ ocupada() ? 'Leyendo…' : 'Leer las columnas' }}
+        {{ ocupada() ? 'Leyendo…' : autoAvanzar() ? 'Leer la planilla' : 'Leer las columnas' }}
       </button>
     </div>
   }
@@ -38,47 +44,82 @@
         columna elegida: sirven para confirmar que es la que pensabas.
       </p>
 
-      <div class="homologacion">
-        @for (c of columnas(); track c.clave) {
-          <div
-            class="field campo-homologado"
-            [class.sin-conectar]="c.obligatoria && !mapa()[c.clave]"
-          >
-            <label [for]="'campo-' + c.clave">
-              {{ c.etiqueta }}
-              @if (c.obligatoria) {
-                <span class="chip chip-pendiente">Obligatoria</span>
+      @if (autoAvanzar()) {
+        <p class="alert alert-aviso" role="alert">
+          <b>Esta planilla no trae todas las columnas con el nombre que el sistema espera</b>, así
+          que no se pudo conectar sola. Lo que sí reconoció ya está puesto abajo; completá lo que
+          falte y seguí. No hace falta cambiar el archivo.
+        </p>
+      }
+
+      <!--
+        Cuántas quedan. Antes había que contarlas a ojo entre diez
+        desplegables, y las obligatorias sin conectar solo se descubrían al
+        intentar seguir.
+      -->
+      <div class="avance-mapa">
+        <span
+          ><b>{{ conectadas() }}</b> de {{ columnas().length }} columnas conectadas</span
+        >
+        <span class="barra" role="presentation">
+          <span [style.width.%]="avance()"></span>
+        </span>
+      </div>
+
+      @for (g of grupos(); track g.titulo) {
+        <section class="grupo-campos">
+          @if (agrupar()) {
+            <p class="grupo-titulo">
+              <b>{{ g.titulo }}</b>
+              @if (g.ayuda) {
+                <span>{{ g.ayuda }}</span>
               }
-            </label>
+            </p>
+          }
 
-            <!--
-              Lo elegido se marca en cada `option` y no con `[value]` en el
-              `select`: el valor del select se aplica antes de que existan las
-              opciones, así que la sugerencia quedaba puesta en el modelo pero
-              el desplegable seguía mostrando «No está en mi planilla». Peor
-              que no sugerir nada: dice una cosa y hace otra.
-            -->
-            <select [id]="'campo-' + c.clave" (change)="conectar(c.clave, $event)">
-              <option value="" [selected]="!mapa()[c.clave]">— No está en mi planilla —</option>
-              @for (h of b.headers; track h.clave) {
-                <option [value]="h.clave" [selected]="mapa()[c.clave] === h.clave">
-                  {{ h.etiqueta }}
-                </option>
-              }
-            </select>
+          <div class="homologacion">
+            @for (c of g.campos; track c.clave) {
+              <div
+                class="field campo-homologado"
+                [class.sin-conectar]="c.obligatoria && !mapa()[c.clave]"
+              >
+                <label [for]="'campo-' + c.clave">
+                  {{ c.etiqueta }}
+                  @if (c.obligatoria) {
+                    <span class="chip chip-pendiente">Obligatoria</span>
+                  }
+                </label>
 
-            <span class="pista">{{ c.ayuda }}</span>
+                <!--
+                  Lo elegido se marca en cada `option` y no con `[value]` en el
+                  `select`: el valor del select se aplica antes de que existan las
+                  opciones, así que la sugerencia quedaba puesta en el modelo pero
+                  el desplegable seguía mostrando «No está en mi planilla». Peor
+                  que no sugerir nada: dice una cosa y hace otra.
+                -->
+                <select [id]="'campo-' + c.clave" (change)="conectar(c.clave, $event)">
+                  <option value="" [selected]="!mapa()[c.clave]">— No está en mi planilla —</option>
+                  @for (h of b.headers; track h.clave) {
+                    <option [value]="h.clave" [selected]="mapa()[c.clave] === h.clave">
+                      {{ h.etiqueta }}
+                    </option>
+                  }
+                </select>
 
-            @if (ejemplosDe(c.clave).length > 0) {
-              <p class="ejemplos">
-                @for (e of ejemplosDe(c.clave); track e) {
-                  <span class="dato">{{ e }}</span>
+                <span class="pista">{{ c.ayuda }}</span>
+
+                @if (ejemplosDe(c.clave).length > 0) {
+                  <p class="ejemplos">
+                    @for (e of ejemplosDe(c.clave); track e) {
+                      <span class="dato">{{ e }}</span>
+                    }
+                  </p>
                 }
-              </p>
+              </div>
             }
           </div>
-        }
-      </div>
+        </section>
+      }
 
       @if (faltantes().length > 0) {
         <p class="alert alert-error" role="alert">
@@ -87,7 +128,11 @@
             <b>{{ f }}</b
             >{{ ultimo ? '.' : ', ' }}
           }
-          Sin eso no se puede identificar a la persona.
+          @if (esNomina()) {
+            Sin eso no se puede identificar a la persona.
+          } @else {
+            Sin eso no hay con qué crear {{ queEsCadaFila() }}.
+          }
         </p>
       }
 
@@ -119,8 +164,17 @@
     @if (resumen(); as r) {
       <p class="explica">
         Así van a quedar los datos en el sistema. <b>Todavía no se importó nada.</b>
+        @if (columnasAutomaticas()) {
+          Tu planilla ya traía los encabezados del sistema, así que las columnas se conectaron
+          solas: abajo se ve con cuál quedó cada campo.
+        }
       </p>
 
+      <!--
+        Lo que entra y lo que sale, en la misma fila. La nómina no es una
+        carga sino una sincronización, y contar solo lo que entra deja la
+        mitad de lo que va a pasar fuera de la vista.
+      -->
       <div class="marcadores">
         <div class="marcador">
           <b>{{ r.filas_totales }}</b>
@@ -134,14 +188,79 @@
           <b>{{ r.se_actualizaran }}</b>
           <span>Se van a actualizar</span>
         </div>
+        @if (reactivaciones() > 0) {
+          <div class="marcador ok">
+            <b>{{ reactivaciones() }}</b>
+            <span>Vuelven de una baja</span>
+          </div>
+        }
+        @if (esNomina()) {
+          <div class="marcador" [class.baja]="(bajas()?.total ?? 0) > 0">
+            <b>{{ bajas()?.total ?? 0 }}</b>
+            <span>Se dan de baja</span>
+          </div>
+        }
         <div class="marcador" [class.mal]="r.filas_con_problemas > 0">
           <b>{{ r.filas_con_problemas }}</b>
           <span>Se van a rechazar</span>
         </div>
+        @if (omitidas() > 0) {
+          <div class="marcador apagado">
+            <b>{{ omitidas() }}</b>
+            <span>Se omiten</span>
+          </div>
+        }
       </div>
 
+      <!-- ---------------------------------------- Lo que bloquea, primero -->
+      @if (codigosFaltantes(); as faltan) {
+        <div class="alert alert-error" role="alert">
+          <b>Hay códigos que el sistema no conoce.</b> Conectaste la columna del código sin la del
+          nombre, y con un código suelto no hay con qué crear la sucursal o el cargo. Las filas que
+          los usan no van a entrar. Se arregla de tres maneras: cargando esos códigos con su nombre
+          desde <b>Sucursales</b> o <b>Cargos</b> —ahí también se puede subir una planilla—,
+          conectando acá también la columna con el nombre, o agregándolos a mano.
+
+          @if (faltan.sucursales.length > 0) {
+            <p class="catalogo-nuevo">
+              <em>Sucursales:</em>
+              @for (c of faltan.sucursales; track c) {
+                <span class="dato">{{ c }}</span>
+              }
+            </p>
+          }
+
+          @if (faltan.cargos.length > 0) {
+            <p class="catalogo-nuevo">
+              <em>Cargos:</em>
+              @for (c of faltan.cargos; track c) {
+                <span class="dato">{{ c }}</span>
+              }
+            </p>
+          }
+        </div>
+      }
+
+      @if (estadosIlegibles().length > 0) {
+        <div class="alert alert-error" role="alert">
+          <b>Hay estados que no se entienden.</b> La columna que conectaste como «Sigue en la
+          empresa» trae valores que no se pueden leer ni como que la persona sigue ni como que se
+          fue, y esas filas se rechazan: adivinar acá es decidir en silencio si alguien queda dentro
+          o fuera del directorio.
+
+          <p class="catalogo-nuevo">
+            @for (e of estadosIlegibles(); track e.valor) {
+              <span class="dato">{{ e.valor }} ×{{ e.veces }}</span>
+            }
+          </p>
+
+          Se espera algo del tipo <b>1/0</b>, <b>SI/NO</b> o <b>Activo/Baja</b>. Si esa no era la
+          columna correcta, volvé al paso anterior y desconectala.
+        </div>
+      }
+
+      <!-- ------------------------ Verificar la homologación con datos reales -->
       @if (r.muestra.length > 0) {
-        <!-- Cómo queda cada dato: esto es lo que hay que mirar de verdad -->
         <h3>Cómo van a quedar</h3>
         <p class="explica">
           Las primeras {{ r.muestra.length }} filas que entran, con tus datos puestos debajo del
@@ -175,37 +294,138 @@
         </div>
       }
 
+      <!-- ------------------------------------- La única decisión del paso -->
+      @if (esNomina()) {
+        <h3>Sincronizar el directorio</h3>
+
+        <div class="decision" [class.riesgo]="riesgoDeCobertura()">
+          <label class="tarjeta-opcion">
+            <input
+              type="checkbox"
+              [checked]="sincronizarBajas()"
+              (change)="alternarSincronizar($event)"
+            />
+            <span class="marca-opcion" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m5 13 4 4L19 7" />
+              </svg>
+            </span>
+            <span class="opcion-texto">
+              <b>Dar de baja a quien no viene en esta planilla</b>
+              <span>
+                Deja el directorio igual que la nómina. Nadie se borra: quedan inactivos, con la
+                fecha y el motivo, y vuelven a activarse solos si reaparecen en la carga siguiente.
+                Las cuentas de administrador y la tuya no se tocan nunca.
+              </span>
+            </span>
+          </label>
+
+          <div class="decision-consecuencia">
+            @if (ausentes() === 0) {
+              El archivo nombra a todas las personas del directorio que una planilla puede dar de
+              baja. <b>No hay bajas por ausencia.</b>
+            } @else {
+              @if (cobertura(); as c) {
+                Esta planilla nombra a <b>{{ c.nombradas_en_archivo }}</b> de las
+                <b>{{ c.sincronizables }}</b> personas del directorio ({{ c.porcentaje }}%).
+              }
+              Si dejás la casilla puesta se van a dar de baja
+              <b>{{ ausentes() }}</b>
+              {{ ausentes() === 1 ? 'persona' : 'personas' }}:
+
+              <span class="lista-bajas">
+                @for (p of muestraAusentes(); track p.codigo) {
+                  <span class="dato">{{ p.nombre || p.codigo }}</span>
+                }
+                @if (ausentes() > muestraAusentes().length) {
+                  <span class="dato">y {{ ausentes() - muestraAusentes().length }} más</span>
+                }
+              </span>
+
+              @if (riesgoDeCobertura()) {
+                <p class="catalogo-nuevo">
+                  <b
+                    >Este archivo cubre una parte chica del directorio. Si es la nómina de una
+                    sucursal y no la de la empresa entera, destildá la casilla.</b
+                  >
+                </p>
+              }
+            }
+          </div>
+        </div>
+
+        @if ((bajas()?.porOrigen ?? 0) > 0) {
+          <p class="alert alert-aviso" role="alert">
+            Además, <b>{{ bajas()!.porOrigen }}</b>
+            {{ bajas()!.porOrigen === 1 ? 'persona viene marcada' : 'personas vienen marcadas' }}
+            como inactivas en la planilla y se dan de baja aunque no sincronices. Eso lo decide la
+            columna «Sigue en la empresa».
+          </p>
+        }
+      }
+
+      <!-- ------------------------------------------ Lo que hay que mirar -->
       @if (sinUsar().length > 0) {
         <p class="explica">
           Columnas de tu planilla que no se van a usar: {{ sinUsar().join(', ') }}.
         </p>
       }
 
-      @if (codigosFaltantes(); as faltan) {
-        <div class="alert alert-error" role="alert">
-          <b>Hay códigos que el sistema no conoce.</b> Conectaste la columna del código sin la del
-          nombre, y con un código suelto no hay con qué crear la sucursal o el cargo. Las filas que
-          los usan no van a entrar. Se arregla de dos maneras: cargándolos en Directorio, o
-          conectando también la columna con el nombre.
+      @if (estadoVacio() > 0) {
+        <p class="alert alert-aviso" role="alert">
+          <b>{{ estadoVacio() }}</b> filas traen la columna de estado vacía. Se toman como personas
+          que <b>siguen en la empresa</b>: ante la duda no se da de baja a nadie.
+        </p>
+      }
 
-          @if (faltan.sucursales.length > 0) {
-            <p class="catalogo-nuevo">
-              <em>Sucursales:</em>
-              @for (c of faltan.sucursales; track c) {
-                <span class="dato">{{ c }}</span>
-              }
-            </p>
+      @if (codigosRepetidos().length > 0) {
+        <p class="alert alert-aviso" role="alert">
+          <b>Hay códigos repetidos en el archivo.</b>
+          @for (c of codigosRepetidos(); track c.codigo) {
+            <span class="dato">{{ c.codigo }} ×{{ c.veces }}</span>
           }
+          No detiene la importación y no duplica a nadie —el código es la identidad, así que la
+          última fila de cada uno pisa a las anteriores— pero si eran personas distintas, una de las
+          dos se pierde. Corregí el archivo antes de seguir.
+        </p>
+      }
 
-          @if (faltan.cargos.length > 0) {
-            <p class="catalogo-nuevo">
-              <em>Cargos:</em>
-              @for (c of faltan.cargos; track c) {
-                <span class="dato">{{ c }}</span>
-              }
-            </p>
+      @if (nombresRepetidos().length > 0) {
+        <p class="alert alert-aviso" role="alert">
+          <b>Hay nombres repetidos en el archivo.</b>
+          @for (n of nombresRepetidos(); track n.nombre) {
+            <span class="dato">{{ n.nombre }} ×{{ n.veces }}</span>
           }
-        </div>
+          Son una sola fila, no dos: la segunda no agrega nada. Si eran distintas, corregí el
+          archivo antes de seguir.
+        </p>
+      }
+
+      <!--
+        Entrar sin sucursal o sin cargo es válido, pero casi siempre significa
+        que quedó una columna sin conectar en el paso anterior. Sin este aviso
+        se descubre al armar la primera evaluación, con el directorio ya
+        cargado.
+      -->
+      @if (sinCatalogo(); as falta) {
+        <p class="alert alert-aviso" role="alert">
+          @if (falta.sinSucursal > 0) {
+            <b>{{ falta.sinSucursal }} de {{ falta.todas }}</b> entran <b>sin sucursal</b>.
+          }
+          @if (falta.sinCargo > 0) {
+            <b>{{ falta.sinCargo }} de {{ falta.todas }}</b> entran <b>sin cargo</b>.
+          }
+          Se puede importar así y completarlo después, pero si tu planilla trae esa columna, volvé
+          al paso anterior y conectala: sin sucursal no entran en ninguna evaluación salvo por «Sin
+          Sucursal».
+        </p>
       }
 
       @if (catalogoNuevo(); as nuevo) {
@@ -241,22 +461,20 @@
         </div>
       }
 
-      @if (r.sin_correo > 0) {
+      @if (sinCorreo() > 0) {
         <p class="alert alert-ok">
-          {{ r.sin_correo }}
-          {{ r.sin_correo === 1 ? 'persona no trae correo' : 'personas no traen correo' }}: van a
+          {{ sinCorreo() }}
+          {{ sinCorreo() === 1 ? 'persona no trae correo' : 'personas no traen correo' }}: van a
           quedar con una contraseña temporal para descargar y entregar en mano.
         </p>
       }
 
-      @if (codigosRepetidos().length > 0) {
-        <p class="alert alert-error" role="alert">
-          <b>Hay códigos repetidos en el archivo.</b>
-          @for (c of codigosRepetidos(); track c.codigo) {
-            <span class="dato">{{ c.codigo }} ×{{ c.veces }}</span>
-          }
-          No detiene la importación, pero la última fila de cada uno pisa a las anteriores: si son
-          personas distintas, corregí el archivo antes de seguir.
+      @if (omitidas() > 0) {
+        <p class="explica">
+          {{ omitidas() }}
+          {{ omitidas() === 1 ? 'fila viene marcada' : 'filas vienen marcadas' }} como inactivas y
+          no hay a quién dar de baja: no están en el directorio o ya estaban inactivas. No se crean
+          para desactivarlas acto seguido.
         </p>
       }
 
@@ -273,7 +491,7 @@
               <tr>
                 <th class="num">Línea</th>
                 <th>Código</th>
-                <th>Persona</th>
+                <th>{{ esNomina() ? 'Persona' : 'Nombre' }}</th>
                 <th>Motivo</th>
               </tr>
             </thead>
@@ -298,25 +516,37 @@
         }
       }
 
+      <!--
+        La casilla de invitaciones se elige en el paso 1 y desde acá no se ve.
+        Recordarla en el momento de confirmar es lo que evita descubrir que no
+        se mandó ninguna cuando ya entraron 800 personas.
+      -->
+      @if (esNomina()) {
+        <p class="explica">
+          @if (enviarInvitaciones()) {
+            Se va a enviar la invitación por correo a quien traiga dirección.
+          } @else {
+            <b>No se van a enviar invitaciones.</b> Quien tenga correo entra sin contraseña hasta
+            que se la reenvíes desde el directorio.
+          }
+        </p>
+      }
+
       <div class="acciones-paso">
         <button type="button" class="btn btn-quiet" (click)="volverAlMapa()">
-          Corregir las columnas
+          {{ columnasAutomaticas() ? 'Revisar las columnas' : 'Corregir las columnas' }}
         </button>
         <button
           type="button"
           class="btn btn-primary"
-          [disabled]="ocupada() || r.filas_validas === 0"
+          [disabled]="ocupada() || (r.filas_validas === 0 && (bajas()?.total ?? 0) === 0)"
           (click)="importar()"
         >
-          @if (ocupada()) {
-            Importando…
-          } @else {
-            Importar {{ r.filas_validas }} {{ r.filas_validas === 1 ? 'fila' : 'filas' }}
-          }
+          {{ ocupada() ? 'Importando…' : etiquetaImportar() }}
         </button>
       </div>
 
-      @if (r.filas_validas === 0) {
+      @if (r.filas_validas === 0 && (bajas()?.total ?? 0) === 0) {
         <p class="explica">
           Ninguna fila pasa las validaciones: revisá la homologación o el archivo.
         </p>

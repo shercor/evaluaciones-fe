@@ -27,10 +27,13 @@ class E360Client
 
     private string $apiHost;
 
+    private string $apiHostSinPuerto;
+
     public function __construct(private readonly array $config)
     {
         $this->baseUrl = rtrim((string) ($config['base_url'] ?? ''), '/');
         $this->apiHost = $this->hostFromUrl($this->baseUrl);
+        $this->apiHostSinPuerto = $this->hostFromUrl($this->baseUrl, conPuerto: false);
     }
 
     /**
@@ -65,7 +68,7 @@ class E360Client
      * comprueba al arrancar (ver E360ServiceProvider) y en el comando de
      * diagnóstico.
      *
-     * @return array<int, string>  Claves faltantes; vacío si está todo.
+     * @return array<int, string> Claves faltantes; vacío si está todo.
      */
     public function missingConfiguration(): array
     {
@@ -97,6 +100,24 @@ class E360Client
         return $this->config['tenant_codename'].'.'.$this->apiHost;
     }
 
+    /**
+     * El `host` del plano central, que va **sin el puerto**.
+     *
+     * Evaluación 360 compara el dominio entrante contra su lista de dominios
+     * centrales tal como llega, y `172.17.0.1:81` no coincide con
+     * `172.17.0.1`. Sin esta cabecera, Guzzle manda el host con el puerto —el
+     * de la URL— y la API contesta «Dominio no encontrado»: el mismo mensaje
+     * que da un tenant inexistente, así que el error apunta al token central
+     * cuando el problema es el puerto.
+     *
+     * El plano tenant no sufre esto porque la API lo resuelve por el
+     * subdominio, y ese no cambia por llevar el puerto detrás.
+     */
+    public function centralHost(): string
+    {
+        return $this->apiHostSinPuerto;
+    }
+
     public function baseUrl(): string
     {
         return $this->baseUrl;
@@ -117,6 +138,7 @@ class E360Client
     {
         return [
             'token' => (string) ($this->config['tokens']['central'] ?? ''),
+            'host' => $this->centralHost(),
             'Accept' => 'application/json',
         ];
     }
@@ -218,16 +240,21 @@ class E360Client
      *
      * Equivale al helper `UrlHost()` de la intranet: si no hay esquema,
      * devuelve la entrada tal cual, que es como estaba configurado en local.
+     *
+     * Con `conPuerto: false` devuelve solo el host, que es lo que necesita el
+     * plano central —ver `centralHost()`—.
      */
-    private function hostFromUrl(string $url): string
+    private function hostFromUrl(string $url, bool $conPuerto = true): string
     {
         $parsed = parse_url($url);
 
         if (isset($parsed['scheme'], $parsed['host'])) {
-            return $parsed['host'].(isset($parsed['port']) ? ':'.$parsed['port'] : '');
+            return $parsed['host'].($conPuerto && isset($parsed['port']) ? ':'.$parsed['port'] : '');
         }
 
-        return ltrim($url, '/');
+        $host = ltrim($url, '/');
+
+        return $conPuerto ? $host : (strtok($host, ':') ?: $host);
     }
 
     /**

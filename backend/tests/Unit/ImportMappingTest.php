@@ -6,6 +6,9 @@ namespace Tests\Unit;
 
 use App\Models\BranchOffice;
 use App\Models\User;
+use App\Services\CatalogImportSchema;
+use App\Services\CatalogImportService;
+use App\Services\DirectoryImportSchema;
 use App\Services\ImportMapping;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -29,7 +32,9 @@ class ImportMappingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->mapper = app(ImportMapping::class);
+        // Con el esquema de la nómina: es de lo que habla esta prueba. El
+        // homologador ya no sabe por su cuenta qué se está cargando.
+        $this->mapper = new ImportMapping(app(DirectoryImportSchema::class));
     }
 
     /** @param  array<int, string>  $claves */
@@ -138,7 +143,7 @@ class ImportMappingTest extends TestCase
         // un aviso distinto del que corresponde.
         $this->assertSame(
             ['codigo', 'nombre', 'apellido', 'correo', 'cargo', 'cargo_codigo',
-                'sucursal', 'sucursal_codigo', 'codigo_supervisor'],
+                'sucursal', 'sucursal_codigo', 'codigo_supervisor', 'activo'],
             array_keys($filas[0]),
         );
         $this->assertSame('77001', $filas[0]['codigo']);
@@ -254,6 +259,45 @@ class ImportMappingTest extends TestCase
 
         $this->assertSame([], $resumen['sucursales_nuevas']);
         $this->assertSame(0, $resumen['filas_con_problemas']);
+    }
+
+    public function test_cuenta_las_filas_que_entran_sin_sucursal_y_sin_cargo(): void
+    {
+        // Es el descuido más caro de la homologación: olvidarse de conectar
+        // una de las dos. Nada falla, las personas entran igual, y se descubre
+        // recién al armar la primera evaluación.
+        $resumen = $this->mapper->ensayar([
+            $this->fila('77001', ['sucursal' => 'Sucursal Norte', 'cargo' => 'Vendedor']),
+            $this->fila('77002', ['sucursal' => 'Sucursal Norte']),
+            $this->fila('77003', ['cargo_codigo' => 'C-1', 'cargo' => 'Cajero']),
+            $this->fila('77004'),
+            // Una fila rechazada no se cuenta: no va a entrar de ninguna manera.
+            $this->fila('', ['nombre' => '']),
+        ]);
+
+        $this->assertSame(2, $resumen['sin_sucursal']);
+        $this->assertSame(2, $resumen['sin_cargo']);
+    }
+
+    public function test_homologa_tambien_una_planilla_de_sucursales(): void
+    {
+        // El mismo homologador con otro esquema: dos columnas en vez de nueve,
+        // y sus propios sinónimos —«local», «cod_local»— que en una planilla
+        // de personas significarían otra cosa.
+        $mapper = new ImportMapping(new CatalogImportSchema(app(CatalogImportService::class), 'sucursales'));
+
+        $sugerencia = $mapper->sugerir(array_map(
+            fn (string $c) => ['clave' => $c, 'etiqueta' => $c],
+            ['cod_local', 'nombre_local', 'region'],
+        ));
+
+        $this->assertSame('cod_local', $sugerencia['codigo']);
+        $this->assertSame('nombre_local', $sugerencia['nombre']);
+
+        // Y no acepta una homologación sin el nombre, que es la única
+        // obligatoria: con un código suelto no hay con qué crear la sucursal.
+        $this->expectException(ValidationException::class);
+        $mapper->validar(['codigo' => 'cod_local'], [['clave' => 'cod_local', 'etiqueta' => 'cod_local']]);
     }
 
     /**

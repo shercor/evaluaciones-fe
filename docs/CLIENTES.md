@@ -15,7 +15,7 @@ los cargos que sembró el seeder.
 | Cliente | Base de datos | Tenant en E360 | Contenido |
 |---------|---------------|----------------|-----------|
 | `demo` | `evaluacion_personal` | `portal-pruebas` | La empresa de prueba de siempre |
-| `flippy` | `flippy` | `flippy` *(sin registrar)* | Vacía: dos cuentas y nada más |
+| `flippy` | `flippy` | `flippy` | Vacía: dos cuentas y nada más |
 
 Las cuentas de Flippy, las dos con la contraseña `password`:
 
@@ -91,6 +91,11 @@ docker compose exec php php artisan db:seed --class=EmptyCompanySeeder --force
 `EmptyCompanySeeder` crea las dos cuentas y **nada más**: ni sucursales, ni
 cargos, ni personas. La importación crea las sucursales y los cargos que no
 existan, así que sembrarlos de antemano ensuciaría la prueba.
+
+Si la nómina que vas a cargar trae **el código de la sucursal y no su nombre**,
+cargá primero el catálogo desde Directorio → Sucursales → «Importar planilla»:
+con un código suelto no hay con qué crear la sucursal y esas filas se rechazan
+una por una.
 
 ---
 

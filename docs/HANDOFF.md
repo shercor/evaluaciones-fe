@@ -131,6 +131,87 @@ la empresa y no pueden quedar ahí para siempre—.
   Excel guardó como número llegaba como `123.0` y no coincidía con el `123` que
   ya estaba en el directorio, duplicando a la persona.
 
+**Cargar las sucursales y los cargos desde su propia planilla** (2026-08-26).
+La misma pantalla de homologación, con otro destino: se elige al subir el
+archivo y queda anotado en el borrador. Está en Directorio → Sucursales (o
+Cargos) → «Importar planilla».
+
+Existe por un caso concreto: la nómina que trae **el código de la sucursal y no
+su nombre**. Con un código suelto no hay con qué crear la sucursal, así que esas
+filas se rechazan una por una y la única salida era cargar 129 sucursales a
+mano. Cargando el catálogo antes, esa misma nómina entra sin tocar nada.
+
+- **El código manda.** Si la fila trae un código ya cargado, es esa fila y se le
+  actualiza el nombre: reimportar el catálogo entero cada mes es idempotente.
+- **El nombre alcanza cuando no hay código**, y sirve para el caso inverso: la
+  nómina ya creó las sucursales por su nombre y esta planilla viene a ponerles
+  el código que les faltaba. Es la costura que une las dos planillas.
+- **Nada se renombra a algo que ya existe**, ni se le cambia el código a una
+  fila que ya tiene otro. Las dos cosas son casi siempre un error de la planilla
+  y las dos dejan duplicados que después hay que desenredar a mano, así que la
+  fila se rechaza diciendo con qué chocó.
+- **El resumen sale del mismo plan que ejecuta la importación**, no de una copia
+  de las reglas: `CatalogImportService::planificar()` decide qué se hace con
+  cada fila y el ensayo solo cuenta lo que decidió.
+
+**Sincronizar el directorio con la nómina** (2026-08-27). Hasta acá una
+importación solo sumaba. Ahora el directorio puede quedar **igual** que la
+planilla: quien viene se crea o se actualiza, y quien no viene se da de baja.
+
+Nada se borra nunca. La baja es `active = false` más tres columnas nuevas en
+`users` —`deactivated_at`, `deactivated_reason` y `deactivated_import_id`— que
+son las que permiten contestar «¿y por qué está inactiva?» sin adivinar. Borrar
+la fila se lleva por delante su historial de evaluaciones, la jefatura de
+quienes le reportan y las respuestas que dio; y la mitad de las veces la
+persona vuelve en la nómina del mes siguiente porque estaba con licencia. Quien
+reaparece se reactiva sola y sin la historia de baja encima.
+
+Hay dos maneras de salir del directorio y se cuentan por separado porque se
+arreglan distinto:
+
+- **La columna «Sigue en la empresa»**, opcional y homologable. Acepta `1/0`,
+  `SI/NO`, `Activo/Baja` y una lista larga de variantes, porque cada sistema de
+  Recursos Humanos escribe lo mismo distinto. Lo que **no** hay es una regla del
+  tipo «cualquier cosa que no sea vacío es verdadero»: con esa regla una columna
+  que diga `BAJA` deja activo a todo el mundo y la sincronización no da de baja
+  a nadie sin que nada avise. Un valor que no se entiende —`PASIVO`, una fecha
+  de finiquito— **rechaza la fila mostrando el valor**, porque adivinar acá es
+  decidir en silencio si alguien queda dentro o fuera. Quien viene de baja y no
+  está en el directorio no se crea para desactivarlo acto seguido: se omite.
+- **No venir en el archivo**, que va detrás de una casilla apagada por omisión.
+  Es la que puede hacer daño: una nómina de una sucursal subida con la casilla
+  puesta desactiva al resto de la empresa. Por eso la casilla vive en el paso
+  del resumen, con **el número de personas a las que alcanza y una muestra de
+  sus nombres al lado**, y se pone en ámbar cuando el archivo cubre menos de
+  tres cuartos del directorio. Ese número se calcula esté marcada o no: mostrar
+  la consecuencia solo después de elegir no sirve de nada.
+
+Tres cuentas quedan siempre fuera de cualquier baja automática: los
+administradores, los super administradores y quien está importando. No es
+delicadeza —una importación distraída que desactive al único administrador deja
+el sistema sin nadie que pueda entrar a arreglarlo— y la nómina de Recursos
+Humanos no es el lugar desde el que se decide quién administra el portal.
+Tampoco se toca a quien no tiene código interno: si nunca entró por una
+planilla, ninguna planilla puede decidir que se fue.
+
+Una fila **rechazada** cuenta como presente. Que la planilla nombre a esa
+persona es lo que importa; darla de baja por «no vino» sería castigarla por un
+error de tipeo en otra columna.
+
+Cada baja por ausencia queda registrada persona por persona en `import_rows`,
+con `line = 0` porque no sale de ninguna línea del archivo —sale de que no hay
+ninguna—. «Se dieron de baja 34» es un número que nadie puede verificar ni
+revertir.
+
+**Dos personas no pueden compartir el correo** (2026-08-27). El código es la
+identidad, así que una fila con un correo que ya es de **otro** código no es la
+misma persona repetida: son dos personas y una de las dos está mal. La fila se
+rechaza diciendo de quién es esa casilla y con qué código. Antes llegaba al
+`INSERT` y reventaba contra el índice único, así que la pantalla mostraba cinco
+líneas de `SQLSTATE[23000]` con el nombre de la base y del host adentro, y el
+resumen previo no lo había anticipado. El mismo choque dentro del propio archivo
+—dos filas con códigos distintos y la misma casilla— también se avisa antes.
+
 **Los dos caminos para la contraseña.** Con correo se envía invitación; sin
 correo se genera una temporal que el administrador descarga en CSV y entrega en
 mano. Los dos terminan en `must_set_password`.
@@ -350,10 +431,22 @@ queda en blanco— sin ningún error de compilación que lo delate.
 | Nada de adivinar si es código o nombre | Se evaluó detectarlo mirando los valores —«si son números, son ids»— y se descartó: una sucursal puede llamarse «2024» y un código puede ser «Casa Matriz». No hace falta, porque la homologación ya permite **decirlo**: hay un campo «Sucursal» y otro «Código de la sucursal», y conectar una columna a uno u otro es la declaración. Lo que sí se adivina es la **sugerencia** inicial, que se puede corregir y no importa nada por su cuenta. | 2026-08-26 |
 | El catálogo entero en memoria | `CatalogResolver` carga las sucursales y los cargos una vez por importación. Antes era un `firstOrCreate` por fila: en una nómina de 7.000 personas, 14.000 consultas para resolver 129 sucursales y 16 cargos. | 2026-08-26 |
 | Variantes de escritura | El resumen previo **lista qué sucursales y cargos se van a crear**, ordenados alfabéticamente para que «Suc. Norte» quede al lado de «Sucursal Norte» y se vea que son la misma escrita distinto. El cotejo de MySQL ya perdona mayúsculas y acentos; lo que no perdona son las redacciones. | 2026-08-26 |
+| Los catálogos también se importan | Sucursales y cargos se cargan de tres maneras y las tres conviven: a mano, de refilón cuando la nómina trae el nombre en texto, y desde su propia planilla. La tercera es la que faltaba: sin ella, una nómina que trae el **código** y no el nombre se rechaza entera y la única salida es cargar 129 sucursales a mano. Va por la misma pantalla de homologación, con un destino distinto. | 2026-08-26 |
+| El destino vive en el borrador | Se elige al subir el archivo y no viaja de nuevo en los pasos siguientes. Si viajara, el resumen podría calcularse con un esquema y la importación ejecutarse con otro, que es exactamente lo que la pantalla promete que no pasa. | 2026-08-26 |
+| Un homologador, tres destinos | `ImportMapping` dejó de saber qué se está cargando: eso lo pone el `ImportSchema` que recibe —nómina, sucursales o cargos—. Duplicar la pantalla para los catálogos habría sido más rápido y habría garantizado que a los seis meses una corrección estuviera en una sola de las dos. | 2026-08-26 |
+| El resumen y la importación, un solo plan | En los catálogos `planificar()` decide fila por fila qué se hace, y tanto el ensayo como la importación recorren esa decisión. Un ensayo con su propia copia de las reglas empieza a mentir el día que se corrige una de las dos, y miente en la única pantalla que existe para avisar antes de tocar nada. | 2026-08-26 |
+| Aviso de quién entra sin sucursal ni cargo | El resumen cuenta cuántas personas entran con esos campos vacíos. Es válido y no bloquea, pero casi siempre significa una columna sin conectar en el paso anterior, y sin el aviso se descubre semanas después: al armar la primera evaluación con medio directorio sin cargo. | 2026-08-26 |
 | Otro cliente es otra base | El sistema atiende a una empresa por instalación, así que probar con otra empresa es otra base entera y no un filtro por columna. Cambiar de una a otra mueve tres valores del `.env` —la base y el par del tenant de E360—, y el par va junto a propósito: con la base nueva y el tenant viejo, la empresa nueva estaría mirando las evaluaciones de la anterior. | 2026-08-26 |
 | Un solo importador para los dos caminos | La homologación traduce las claves de cada fila y le entrega el resultado a `DirectoryImportService`, que es el mismo de siempre. Un segundo importador en paralelo sería la manera más rápida de que los dos caminos se comporten distinto —uno idempotente y el otro no, uno que arma la jerarquía al final y el otro no—. | 2026-08-26 |
 | El borrador es de quien lo subió | No alcanza con que las dos personas sean administradoras: mientras el borrador existe, la nómina completa de la empresa está en el disco del servidor y su id es la única llave. | 2026-08-26 |
 | Dos campos del sistema no pueden compartir columna | Se rechaza con nombre y apellido: «la columna X está conectada a "Nombre" y "Apellido"». Es siempre un descuido de quien elige en dos desplegables seguidos, y si pasara en silencio se descubriría con el directorio ya cargado. Se avisa en el navegador mientras se elige, y el servidor lo vuelve a comprobar. | 2026-08-26 |
+| La baja es `active = false`, no un borrado | Con `SoftDeletes` de Laravel la fila desaparece de toda consulta: la jefatura de quienes le reportan queda colgando, el historial de evaluaciones deja de resolver el nombre y hay que auditar cada consulta a `users`. Con `active = false` no se rompe nada —los scopes ya excluían a los inactivos desde el primer día— y las tres columnas de auditoría dan lo único que faltaba: cuándo, por qué y con qué carga. | 2026-08-27 |
+| La casilla de bajas va apagada y con el número al lado | Es la única opción de la pantalla que puede sacar gente del directorio. Encendida por omisión, cualquier planilla parcial subida de apuro desactiva a media empresa; sin el número de a cuántas personas alcanza, la decisión se toma a ciegas. Por eso vive en el paso del resumen y no en el del archivo: ahí el número existe. | 2026-08-27 |
+| Un estado que no se entiende rechaza la fila | La tentación es tratar cualquier cosa que no sea vacío como «sigue en la empresa». Con esa regla una columna que diga `BAJA` deja activo a todo el mundo y la sincronización que se acaba de pedir no da de baja a nadie, en silencio. Rechazar mostrando el valor es la única respuesta honesta cuando lo que se está decidiendo es si una persona queda dentro o fuera. | 2026-08-27 |
+| Una fila rechazada cuenta como presente | La lista de «quién vino» se llena antes de validar. Una fila que no pasa por un correo mal escrito igual nombra a esa persona, y darla de baja por ausente sería castigarla por un error de tipeo en otra columna. | 2026-08-27 |
+| Las cuentas administrativas no se dan de baja por planilla | Una importación distraída que desactive al único administrador deja el sistema sin nadie que pueda entrar a arreglarlo. La nómina de Recursos Humanos tampoco es el lugar desde el que se decide quién administra el portal. | 2026-08-27 |
+| Una sola barra de pasos | La pantalla numeraba sus secciones —«1 · Elegí el archivo», «2 · Resultado»— mientras la homologación corría sus tres pasos adentro sin decirlo: dos progresos en la misma vista y ninguno completo. Ahora hay una sola barra, con el largo del camino elegido, y reutiliza la línea de tiempo del asistente de evaluaciones en vez de inventar otra. | 2026-08-27 |
+| El SQL no llega a la pantalla | `ImportRowException` separa el dato mal puesto —que se explica y se corrige en la planilla— de la falla del sistema, que va al log. Antes las dos salían por el mismo lado y un índice único violado se mostraba como `SQLSTATE[23000] ... (Connection: mysql, Host: mysql, Database: flippy)`. | 2026-08-27 |
 | El rol no se importa | Se probó traducirlo del castellano —«Administrador», «Empleado»— y funcionaba, pero el dato no es universal: cada planilla llama de otra manera a algo que en el sistema son tres valores, y equivocarse ahí reparte permisos de administración. Ahora **todo el mundo entra como colaborador** y los administradores se nombran a mano en el directorio, que son dos o tres por empresa. La contrapartida está cubierta: al **actualizar**, la importación no toca el rol, así que volver a cargar la nómina no devuelve a los administradores a colaborador. | 2026-08-26 |
 | Códigos repetidos dentro del archivo | No son un error —la última fila actualiza a la anterior— pero casi siempre son un descuido, y en silencio se pierde una persona. El resumen los lista antes de importar. | 2026-08-26 |
 | `/storage` en el proxy de Angular | Laravel arma la dirección de la foto con el host de la petición, que en desarrollo es el del servidor de Angular (4200) y no el de nginx. Sin ese reenvío en `proxy.conf.json`, la foto se guarda perfecta y **se ve rota**: el servidor de desarrollo responde el `index.html` en vez de la imagen. Apareció recién al mirar la pantalla; por API todo daba 200. | 2026-08-26 |
@@ -484,7 +577,11 @@ deshacer sin querer:
   rechazan y qué dice el resumen antes de tocar nada. Las tres pruebas de
   prioridad de la sugerencia nacieron de fallos que encontraron ellas mismas.
   `ImportHousekeepingTest` cubre la limpieza, que es trabajo invisible: si un
-  día deja de correr, no se nota hasta que molesta. Corre con `ng test`
+  día deja de correr, no se nota hasta que molesta. `CatalogImportTest` cubre
+  con qué fila del catálogo se corresponde cada línea de la planilla —
+  equivocarse ahí no falla, crea una sucursal de más y se descubre semanas
+  después— y `CatalogImportFlowTest` recorre la historia entera por HTTP:
+  cargar las sucursales y después la nómina que solo trae sus códigos. Corre con `ng test`
   (vitest, ya configurado). Se borró `app.spec.ts`, que era andamiaje de
   `ng new` comprobando un `Hello, frontend` que no existe desde hace meses.
   El resto de la verificación sigue siendo por navegador: `docs/recorrido.mjs`

@@ -34,7 +34,7 @@ class ParticipationEditor
      * Cambia si una persona participa.
      *
      * @param  bool  $withSupervisees  arrastrar a toda su cadena de supervisados
-     * @return array<int, int>  ids de las personas afectadas
+     * @return array<int, int> ids de las personas afectadas
      */
     public function setParticipation(
         Evaluation $evaluation,

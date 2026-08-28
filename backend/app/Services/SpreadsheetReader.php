@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
+use Maatwebsite\Excel\Concerns\Import;
 use Maatwebsite\Excel\Facades\Excel;
 
 /**
@@ -26,6 +27,15 @@ class SpreadsheetReader
 {
     /** Candidatos a separador, en orden de probabilidad. */
     private const DELIMITERS = [',', ';', "\t", '|'];
+
+    /**
+     * La huella que deja un UTF-8 codificado dos veces.
+     *
+     * `Ã` o `Â` seguidas de un carácter de la mitad alta de Latin-1. En
+     * castellano esa combinación no existe: «Ã¡» no es una palabra de ningún
+     * idioma, es siempre una «á» que pasó dos veces por la misma conversión.
+     */
+    private const DOBLE_CODIFICACION = '/[\x{00C2}\x{00C3}][\x{0080}-\x{00BF}]/u';
 
     /**
      * @return array<int, array<string, mixed>>
@@ -179,7 +189,57 @@ class SpreadsheetReader
                 : rtrim(rtrim(number_format($valor, 10, '.', ''), '0'), '.');
         }
 
-        return trim((string) $valor);
+        return trim($this->aUtf8((string) $valor));
+    }
+
+    /**
+     * Deja el texto en UTF-8 de verdad, venga como venga.
+     *
+     * Dos averías distintas, las dos habituales en una planilla que pasó por
+     * Excel, y las dos silenciosas: entran, se guardan y se descubren meses
+     * después mirando el directorio.
+     *
+     * **Windows-1252.** Excel en español guarda CSV en la codificación del
+     * sistema, no en UTF-8. Ahí una `á` es el byte `E1`, que no es UTF-8
+     * válido: la base lo rechaza o lo reemplaza, y de paso `iconv` no puede
+     * normalizar los encabezados.
+     *
+     * **UTF-8 doblemente codificado.** El caso que apareció de verdad. Alguien
+     * abre en Excel un CSV que ya era UTF-8, Excel lo interpreta como ANSI y
+     * al guardarlo escribe cada byte como si fuera un carácter: los dos bytes
+     * de `á` —`C3 A1`— se convierten en cuatro, y «Sánchez» queda escrito
+     * «SÃ¡nchez». El texto resultante es UTF-8 perfectamente válido, así que
+     * nada se queja: solo se ve mal.
+     *
+     * El deshacer del segundo caso es deliberadamente cauto. Solo se aplica si
+     * el texto trae una de las secuencias que delatan la avería —`Ã¡`, `Ã©`,
+     * `Ã±`, `Â°`…— **y** además el resultado de deshacerla vuelve a ser UTF-8
+     * válido. Con esas dos condiciones juntas, un apellido que de verdad lleve
+     * una `Ã` no se toca.
+     */
+    private function aUtf8(string $texto): string
+    {
+        if ($texto === '') {
+            return $texto;
+        }
+
+        // Caso 1: no es UTF-8. Windows-1252 y no ISO-8859-1 porque es lo que
+        // escribe Excel, y porque incluye las comillas y los guiones largos
+        // que ISO no tiene y que en una planilla aparecen todo el tiempo.
+        if (! mb_check_encoding($texto, 'UTF-8')) {
+            return mb_convert_encoding($texto, 'UTF-8', 'Windows-1252');
+        }
+
+        // Caso 2: es UTF-8 válido, pero lo es dos veces.
+        if (preg_match(self::DOBLE_CODIFICACION, $texto) !== 1) {
+            return $texto;
+        }
+
+        $deshecho = @mb_convert_encoding($texto, 'Windows-1252', 'UTF-8');
+
+        return $deshecho !== false && $deshecho !== '' && mb_check_encoding($deshecho, 'UTF-8')
+            ? $deshecho
+            : $texto;
     }
 
     // -----------------------------------------------------------------
@@ -198,6 +258,12 @@ class SpreadsheetReader
         // Excel antepone un BOM: si no se saca, el primer encabezado queda
         // con basura invisible adelante y esa columna nunca coincide.
         $contenido = preg_replace('/^\xEF\xBB\xBF/', '', $contenido) ?? $contenido;
+
+        // Sobre el contenido entero y antes de partirlo en celdas: los
+        // separadores son ASCII, así que convertir acá es equivalente a
+        // hacerlo celda por celda y además alcanza a los encabezados, que se
+        // normalizan con `iconv` y con bytes inválidos no sobreviven.
+        $contenido = $this->aUtf8($contenido);
 
         $manejador = fopen('php://temp', 'r+');
         fwrite($manejador, $contenido);
@@ -245,7 +311,7 @@ class SpreadsheetReader
         // `toArray` exige un objeto que implemente la interfaz marcadora del
         // paquete, aunque no se use ninguna de sus capacidades: acá solo se
         // quieren las celdas crudas.
-        $hojas = Excel::toArray(new class implements \Maatwebsite\Excel\Concerns\Import {}, $ruta);
+        $hojas = Excel::toArray(new class implements Import {}, $ruta);
 
         return $hojas[0] ?? [];
     }

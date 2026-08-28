@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Models\BranchOffice;
 use App\Models\Evaluation;
 use App\Models\EvaluationUser;
 use App\Models\User;
@@ -154,7 +155,7 @@ class ParticipantRoster
     }
 
     /**
-     * @return array<int, int|null>  ids elegidos; null significa «Sin Sucursal»
+     * @return array<int, int|null> ids elegidos; null significa «Sin Sucursal»
      */
     public function branchOfficeIds(Evaluation $evaluation): array
     {
@@ -184,7 +185,7 @@ class ParticipantRoster
 
         $opciones = [];
 
-        $sucursales = \App\Models\BranchOffice::active()->orderBy('name')->get(['id', 'name']);
+        $sucursales = BranchOffice::active()->orderBy('name')->get(['id', 'name']);
 
         foreach ($sucursales as $sucursal) {
             $total = (int) ($conteos[$sucursal->id] ?? 0);

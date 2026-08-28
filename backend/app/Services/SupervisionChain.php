@@ -112,7 +112,7 @@ class SupervisionChain
      * persona sería el mismo N+1 que tenía la intranet.
      *
      * @param  array<int, int>  $supervisorIds
-     * @return array<int, int>  id de la persona => cantidad de supervisados
+     * @return array<int, int> id de la persona => cantidad de supervisados
      */
     public function countSuperviseesFor(array $supervisorIds): array
     {

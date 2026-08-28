@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -21,7 +22,7 @@ use Illuminate\Notifications\Notification;
  * Va por la cola, como [DirectoryInvitation]: abrir un proceso de 7.092
  * personas no puede quedarse esperando 7.092 conexiones SMTP.
  */
-class EvaluationOpened extends Notification implements \Illuminate\Contracts\Queue\ShouldQueue
+class EvaluationOpened extends Notification implements ShouldQueue
 {
     use Queueable;
 

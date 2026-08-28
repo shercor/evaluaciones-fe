@@ -33,6 +33,29 @@ class User extends Authenticatable
      */
     public const INTERNAL_MAIL_DOMAIN = '@interno.local';
 
+    /**
+     * Por qué una persona quedó inactiva.
+     *
+     * La baja del directorio es `active = false`, no un borrado: una persona
+     * borrada se lleva por delante su historial de evaluaciones, la jefatura
+     * de quienes le reportan y las respuestas que dio. Estos motivos son lo
+     * que permite contestar «¿y por qué está inactiva?» sin adivinar, y sobre
+     * todo distinguir la baja que decidió una persona de la que decidió una
+     * importación.
+     */
+    public const BAJA_AUSENTE = 'ausente_en_origen';
+
+    public const BAJA_INACTIVA_EN_ORIGEN = 'inactiva_en_origen';
+
+    public const BAJA_MANUAL = 'manual';
+
+    /** @var array<string, string> */
+    public const MOTIVOS_DE_BAJA = [
+        self::BAJA_AUSENTE => 'No vino en la última nómina importada',
+        self::BAJA_INACTIVA_EN_ORIGEN => 'La nómina la trae marcada como inactiva',
+        self::BAJA_MANUAL => 'Dada de baja a mano desde el directorio',
+    ];
+
     protected $fillable = [
         'external_code',
         'name',
@@ -41,6 +64,9 @@ class User extends Authenticatable
         'password',
         'role',
         'active',
+        'deactivated_at',
+        'deactivated_reason',
+        'deactivated_import_id',
         'must_set_password',
         'avatar_path',
         'branch_office_id',
@@ -61,6 +87,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'role' => Role::class,
             'active' => 'boolean',
+            'deactivated_at' => 'datetime',
             'must_set_password' => 'boolean',
         ];
     }
@@ -111,6 +138,32 @@ class User extends Authenticatable
     }
 
     /**
+     * A quiénes puede dar de baja una sincronización de nómina.
+     *
+     * Tres exclusiones, y ninguna es un escrúpulo:
+     *
+     *  - **Los administradores.** No vienen en la nómina de Recursos Humanos
+     *    —o vienen, pero su cuenta se creó a mano— y desactivarlos deja el
+     *    sistema sin nadie que pueda volver a entrar a arreglarlo. Es la
+     *    forma más rápida de que una importación distraída cierre la puerta
+     *    con la llave adentro.
+     *  - **Quien no tiene código interno.** Si nunca entró por una planilla,
+     *    ninguna planilla puede decidir que se fue.
+     *  - **Quien ya está inactivo.** No hay nada que dar de baja, y volver a
+     *    escribirle la fecha borraría cuándo se fue de verdad.
+     *
+     * Quien ejecuta la importación se excluye aparte, en el importador: acá
+     * no se sabe quién es.
+     */
+    public function scopeDeactivatableByPayroll(Builder $query): Builder
+    {
+        return $query->where('active', true)
+            ->whereNotNull('external_code')
+            ->where('external_code', '!=', '')
+            ->whereNotIn('role', [Role::ADMIN->value, Role::SUPER_ADMIN->value]);
+    }
+
+    /**
      * Quienes tienen una casilla real, a la que se le puede escribir.
      *
      * `email` es NOT NULL y único, así que a quien no tiene correo el
@@ -145,6 +198,52 @@ class User extends Authenticatable
     {
         return ! blank($this->email)
             && ! str_ends_with($this->email, self::INTERNAL_MAIL_DOMAIN);
+    }
+
+    /**
+     * Da de baja sin borrar.
+     *
+     * Vive en el modelo y no en el importador porque la baja se decide desde
+     * dos lugares —la sincronización de la nómina y el botón del directorio—
+     * y las tres columnas tienen que quedar coherentes en los dos casos. Con
+     * la regla escrita dos veces, el día que se agregue una cuarta columna
+     * una de las dos se va a olvidar.
+     */
+    public function deactivate(string $reason, ?int $importId = null): void
+    {
+        $this->forceFill([
+            'active' => false,
+            'deactivated_at' => now(),
+            'deactivated_reason' => $reason,
+            'deactivated_import_id' => $importId,
+        ])->save();
+    }
+
+    /**
+     * Reincorpora a quien había quedado de baja.
+     *
+     * Limpia el motivo y la fecha a propósito: quien vuelve a la nómina vuelve
+     * sin historia de baja encima, y dejar `deactivated_at` puesto en alguien
+     * activo es la clase de dato contradictorio que después nadie sabe leer.
+     */
+    public function reactivate(): void
+    {
+        $this->forceFill([
+            'active' => true,
+            'deactivated_at' => null,
+            'deactivated_reason' => null,
+            'deactivated_import_id' => null,
+        ])->save();
+    }
+
+    /** Cómo se le explica a una persona por qué esta otra está inactiva. */
+    public function deactivationReason(): ?string
+    {
+        if ($this->active) {
+            return null;
+        }
+
+        return self::MOTIVOS_DE_BAJA[$this->deactivated_reason] ?? null;
     }
 
     public function fullName(): string

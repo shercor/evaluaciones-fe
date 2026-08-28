@@ -21,16 +21,27 @@ use App\Enums\EvaluationStatus;
 class EvaluationActions
 {
     public const OPEN = 'open';
+
     public const CLOSE = 'close';
+
     public const REMIND = 'remind';
+
     public const PUBLISH = 'publish';
+
     public const DELETE = 'delete';
+
     public const RESTORE = 'restore';
+
     public const EDIT = 'edit';
+
     public const PARTICIPANTS = 'participants';
+
     public const CONTINUE_CREATION = 'continue_creation';
+
     public const PREVIEW_FORMS = 'preview_forms';
+
     public const MONITOR = 'monitor';
+
     public const DASHBOARD = 'dashboard';
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -19,7 +20,7 @@ use Illuminate\Notifications\Notification;
  * queda reenviable, indexada en el buzón y visible en la notificación del
  * teléfono. Para verla hay que entrar y estar autenticado.
  */
-class ResultsPublished extends Notification implements \Illuminate\Contracts\Queue\ShouldQueue
+class ResultsPublished extends Notification implements ShouldQueue
 {
     use Queueable;
 

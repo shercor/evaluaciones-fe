@@ -44,6 +44,7 @@ class LargeCompanySeeder extends Seeder
 {
     /** Cuánta gente de piso hay por sucursal, como mínimo y como máximo. */
     private const PISO_MIN = 35;
+
     private const PISO_MAX = 75;
 
     private const SUCURSALES = 120;

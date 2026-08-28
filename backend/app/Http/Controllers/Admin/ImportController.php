@@ -8,7 +8,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ImportResource;
 use App\Models\Import;
 use App\Models\ImportRow;
+use App\Services\DirectoryImportSchema;
 use App\Services\DirectoryImportService;
+use App\Services\ImportSchemas;
 use App\Services\SpreadsheetReader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,12 +24,19 @@ class ImportController extends Controller
     public function __construct(
         private readonly SpreadsheetReader $reader,
         private readonly DirectoryImportService $importer,
+        private readonly DirectoryImportSchema $esquema,
     ) {}
 
-    /** Historial de cargas. */
+    /**
+     * Historial de cargas de nómina.
+     *
+     * Solo las de nómina: las de sucursales y cargos comparten tabla pero se
+     * ven en la pantalla del catálogo que cargaron, donde tienen sentido.
+     */
     public function index(): JsonResponse
     {
         $imports = Import::with('user:id,name,lastname')
+            ->where('destino', ImportSchemas::NOMINA)
             ->latest()
             ->paginate(15);
 
@@ -46,6 +55,7 @@ class ImportController extends Controller
         $request->validate([
             'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:10240'],
             'send_invitations' => ['sometimes', 'boolean'],
+            'sincronizar_bajas' => ['sometimes', 'boolean'],
         ]);
 
         $archivo = $request->file('file');
@@ -53,6 +63,7 @@ class ImportController extends Controller
         $import = Import::create([
             'user_id' => $request->user()->id,
             'filename' => $archivo->getClientOriginalName(),
+            'destino' => ImportSchemas::NOMINA,
             'status' => Import::PENDING,
         ]);
 
@@ -67,11 +78,15 @@ class ImportController extends Controller
             ], 422);
         }
 
-        $import = $this->importer->import(
-            $filas,
-            $import,
-            $request->boolean('send_invitations', true),
-        );
+        $import = $this->importer->import($filas, $import, [
+            'enviar_invitaciones' => $request->boolean('send_invitations', true),
+            // Apagado por omisión, igual que en el camino homologado: es la
+            // única opción que puede sacar gente del directorio. Este camino
+            // no tiene resumen previo, así que la pantalla avisa antes de
+            // mandarla puesta.
+            'sincronizar_bajas' => $request->boolean('sincronizar_bajas'),
+            'ejecutor_id' => $request->user()->id,
+        ]);
 
         return response()->json([
             'message' => $this->mensajeFinal($import),
@@ -158,9 +173,14 @@ class ImportController extends Controller
             // Las columnas de código van vacías a propósito en la primera
             // fila y llenas en las otras: se ve que son opcionales y que,
             // cuando están, viajan **junto** al nombre.
-            fputcsv($salida, ['RUT-100', 'Ana', 'Pérez', 'ana.perez@empresa.cl', 'Gerente General', '', 'Casa Matriz', '', '']);
-            fputcsv($salida, ['RUT-101', 'Luis', 'Gómez', 'luis.gomez@empresa.cl', 'Supervisor', 'SUP', 'Sucursal Norte', 'SUC-N', 'RUT-100']);
-            fputcsv($salida, ['RUT-102', 'Sofía', 'Díaz', '', 'Vendedor', 'VEND', 'Sucursal Norte', 'SUC-N', 'RUT-101']);
+            //
+            // La última columna es el estado. La cuarta fila viene en `0`
+            // para que se vea qué hace: esa persona no se crea, y si estaba
+            // en el directorio se da de baja.
+            fputcsv($salida, ['RUT-100', 'Ana', 'Pérez', 'ana.perez@empresa.cl', 'Gerente General', '', 'Casa Matriz', '', '', '1']);
+            fputcsv($salida, ['RUT-101', 'Luis', 'Gómez', 'luis.gomez@empresa.cl', 'Supervisor', 'SUP', 'Sucursal Norte', 'SUC-N', 'RUT-100', '1']);
+            fputcsv($salida, ['RUT-102', 'Sofía', 'Díaz', '', 'Vendedor', 'VEND', 'Sucursal Norte', 'SUC-N', 'RUT-101', '1']);
+            fputcsv($salida, ['RUT-103', 'Marta', 'Rojas', '', 'Vendedor', 'VEND', 'Sucursal Norte', 'SUC-N', 'RUT-101', '0']);
 
             fclose($salida);
         }, 'plantilla-nomina.csv', [
@@ -170,22 +190,13 @@ class ImportController extends Controller
 
     // -----------------------------------------------------------------
 
+    /**
+     * El texto lo arma el esquema de la nómina, que es el mismo que usa la
+     * carga homologada: para quien mira la pantalla terminó una importación,
+     * y las dos tienen que contarlo igual.
+     */
     private function mensajeFinal(Import $import): string
     {
-        $partes = [];
-
-        if ($import->rows_created > 0) {
-            $partes[] = "{$import->rows_created} creadas";
-        }
-        if ($import->rows_updated > 0) {
-            $partes[] = "{$import->rows_updated} actualizadas";
-        }
-        if ($import->rows_failed > 0) {
-            $partes[] = "{$import->rows_failed} rechazadas";
-        }
-
-        return $partes === []
-            ? 'La planilla no tenía filas para procesar.'
-            : 'Importación terminada: '.implode(', ', $partes).'.';
+        return $this->esquema->mensajeFinal($import);
     }
 }

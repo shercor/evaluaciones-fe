@@ -40,14 +40,30 @@ export interface ElementoCatalogo {
 
 export type TipoCatalogo = 'sucursales' | 'cargos';
 
+/**
+ * Qué se está cargando con una planilla.
+ *
+ * Los tres pasan por la misma pantalla de homologación y por el mismo
+ * endpoint: lo único que cambia es qué columnas pide el sistema y qué cuenta
+ * el resumen.
+ */
+export type DestinoImportacion = 'nomina' | TipoCatalogo;
+
 export interface ResumenImportacion {
   id: number;
   filename: string;
+  destino: DestinoImportacion;
   status: string;
   rows_total: number;
   rows_created: number;
   rows_updated: number;
   rows_failed: number;
+  /** Filas inactivas sin nada que hacer: ni entran ni son un rechazo. */
+  rows_skipped: number;
+  /** Personas que quedaron inactivas: por venir de baja o por no venir. */
+  rows_deactivated: number;
+  /** Personas que estaban de baja y volvieron a aparecer en la nómina. */
+  rows_reactivated: number;
   error: string | null;
   has_passwords: boolean;
   created_at: string | null;
@@ -76,6 +92,7 @@ export interface ColumnaSistema {
 export interface BorradorHomologacion {
   id: number;
   filename: string;
+  destino: DestinoImportacion;
   rows_total: number;
   headers: ColumnaArchivo[];
 }
@@ -87,29 +104,73 @@ export interface FilaDeMuestra extends Record<string, string | number> {
   linea: number;
 }
 
+/**
+ * El resumen previo, antes de tocar nada.
+ *
+ * Lo que sale en los dos destinos está arriba; lo de más abajo lo trae solo la
+ * nómina o solo un catálogo, y por eso es opcional. La pantalla es la misma y
+ * muestra lo que haya.
+ */
 export interface ResumenHomologacion {
   filas_totales: number;
   filas_validas: number;
   filas_con_problemas: number;
   se_crearan: number;
   se_actualizaran: number;
-  sin_correo: number;
   /** Código repetido dentro del archivo => cuántas veces aparece. */
   codigos_repetidos: Record<string, number>;
-  /** Sucursales y cargos que la planilla va a crear porque todavía no existen. */
-  sucursales_nuevas: string[];
-  cargos_nuevos: string[];
-  /** Códigos que la planilla usa y no están cargados: bloquean su fila. */
-  sucursales_faltantes: string[];
-  cargos_faltantes: string[];
   muestra: FilaDeMuestra[];
   problemas: { linea: number; codigo: string; nombre: string; motivos: string[] }[];
   problemas_omitidos: number;
+
+  // -- Solo la nómina ----------------------------------------------
+  sin_correo?: number;
+  /** Personas que entran sin sucursal o sin cargo: casi siempre, una columna sin conectar. */
+  sin_sucursal?: number;
+  sin_cargo?: number;
+  /** Sucursales y cargos que la planilla va a crear porque todavía no existen. */
+  sucursales_nuevas?: string[];
+  cargos_nuevos?: string[];
+  /** Códigos que la planilla usa y no están cargados: bloquean su fila. */
+  sucursales_faltantes?: string[];
+  cargos_faltantes?: string[];
+
+  // -- Lo que sale del directorio ----------------------------------
+  /** Personas de baja que vuelven a quedar activas por venir en el archivo. */
+  se_reactivaran?: number;
+  /** Si se conectó la columna de estado. Sin ella no hay bajas por origen. */
+  columna_activo_conectada?: boolean;
+  /** Filas con la columna de estado conectada pero vacía: se toman como activas. */
+  activo_vacio?: number;
+  /** Valor que no se entiende como estado => cuántas filas lo traen. */
+  activo_ilegible?: Record<string, number>;
+  /** Se dan de baja porque la planilla las trae inactivas. */
+  bajas_por_origen?: number;
+  /** Venían inactivas pero no había a quién dar de baja. */
+  omitidas_por_inactivas?: number;
+  /** Se darían de baja por no venir en el archivo, si se sincroniza. */
+  bajas_por_ausencia?: number;
+  muestra_ausentes?: { codigo: string; nombre: string }[];
+  /**
+   * Qué parte del directorio cubre este archivo.
+   *
+   * Es el par de números con el que se decide si corresponde sincronizar las
+   * bajas: una planilla que nombra a 40 de 900 personas casi nunca es la
+   * nómina completa, y sincronizarla desactivaría a las otras 860.
+   */
+  cobertura?: { nombradas_en_archivo: number; sincronizables: number };
+
+  // -- Solo un catálogo --------------------------------------------
+  /** Nombre repetido dentro del archivo => cuántas veces aparece. */
+  nombres_repetidos?: Record<string, number>;
 }
 
+export type ResultadoFila = 'created' | 'updated' | 'failed' | 'deactivated' | 'skipped';
+
 export interface FilaImportacion {
+  /** Línea del archivo. Va en 0 en una baja por ausencia: no sale de ninguna. */
   line: number;
-  outcome: 'created' | 'updated' | 'failed';
+  outcome: ResultadoFila;
   error: string | null;
   payload: Record<string, string | null>;
   has_temporary_password: boolean;
@@ -275,10 +336,12 @@ export class DirectoryService {
   importar(
     archivo: File,
     enviarInvitaciones: boolean,
+    sincronizarBajas = false,
   ): Observable<{ message: string; data: ResumenImportacion }> {
     const cuerpo = new FormData();
     cuerpo.append('file', archivo);
     cuerpo.append('send_invitations', enviarInvitaciones ? '1' : '0');
+    cuerpo.append('sincronizar_bajas', sincronizarBajas ? '1' : '0');
 
     return this.http.post<{ message: string; data: ResumenImportacion }>(
       `${this.base}/importaciones`,
@@ -295,13 +358,17 @@ export class DirectoryService {
    * después solo viajan las decisiones, no el archivo de nuevo: así lo que
    * alguien aprueba en el resumen y lo que termina importándose son lo mismo.
    */
-  analizarPlanilla(archivo: File): Observable<{
+  analizarPlanilla(
+    archivo: File,
+    destino: DestinoImportacion = 'nomina',
+  ): Observable<{
     data: BorradorHomologacion;
     columnas_sistema: ColumnaSistema[];
     sugerencia: Homologacion;
   }> {
     const cuerpo = new FormData();
     cuerpo.append('file', archivo);
+    cuerpo.append('destino', destino);
 
     return this.http.post<{
       data: BorradorHomologacion;
@@ -310,10 +377,17 @@ export class DirectoryService {
     }>(`${this.base}/importaciones/homologacion`, cuerpo);
   }
 
-  /** Paso 2: qué pasaría con esta homologación, sin importar nada. */
+  /**
+   * Paso 2: qué pasaría con esta homologación, sin importar nada.
+   *
+   * `sincronizarBajas` viaja también acá y no solo al importar: el resumen
+   * tiene que estar calculado con **las mismas** opciones con las que después
+   * se confirma, o la frase «se van a dar de baja 34 personas» no vale.
+   */
   resumenHomologacion(
     id: number,
     mapping: Homologacion,
+    sincronizarBajas = false,
   ): Observable<{
     data: BorradorHomologacion;
     mapping: Record<string, string>;
@@ -325,7 +399,10 @@ export class DirectoryService {
       mapping: Record<string, string>;
       sin_usar: string[];
       resumen: ResumenHomologacion;
-    }>(`${this.base}/importaciones/homologacion/${id}/resumen`, { mapping });
+    }>(`${this.base}/importaciones/homologacion/${id}/resumen`, {
+      mapping,
+      sincronizar_bajas: sincronizarBajas,
+    });
   }
 
   /** Paso 3: importar de verdad. */
@@ -333,10 +410,15 @@ export class DirectoryService {
     id: number,
     mapping: Homologacion,
     enviarInvitaciones: boolean,
+    sincronizarBajas = false,
   ): Observable<{ message: string; data: ResumenImportacion }> {
     return this.http.post<{ message: string; data: ResumenImportacion }>(
       `${this.base}/importaciones/homologacion/${id}/importar`,
-      { mapping, send_invitations: enviarInvitaciones },
+      {
+        mapping,
+        send_invitations: enviarInvitaciones,
+        sincronizar_bajas: sincronizarBajas,
+      },
     );
   }
 

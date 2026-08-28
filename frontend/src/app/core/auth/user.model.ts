@@ -22,6 +22,9 @@ export interface User {
   role_label: string;
   is_administrative: boolean;
   active: boolean;
+  /** Por qué está inactiva, ya redactado. `null` si está activa. */
+  deactivation_reason?: string | null;
+  deactivated_at?: string | null;
   must_set_password: boolean;
   avatar_url: string | null;
   branch_office?: Named | null;

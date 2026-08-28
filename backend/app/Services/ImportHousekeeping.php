@@ -29,7 +29,7 @@ final class ImportHousekeeping
     /**
      * Tira las planillas subidas que nadie llegó a importar.
      *
-     * @return int  cuántas se borraron
+     * @return int cuántas se borraron
      */
     public function borrarBorradores(int $horas): int
     {
@@ -56,7 +56,7 @@ final class ImportHousekeeping
      * referencia: un borrador vive 24 horas, así que un archivo más viejo que
      * eso no le sirve a nadie, ni siquiera a otra base.
      *
-     * @return int  cuántos se borraron
+     * @return int cuántos se borraron
      */
     public function barrerArchivosHuerfanos(int $horas): int
     {
@@ -80,7 +80,7 @@ final class ImportHousekeeping
      * No borra la fila —el registro de qué pasó con cada línea es la auditoría
      * de la importación y eso se queda— sino solo la contraseña.
      *
-     * @return int  cuántas se olvidaron
+     * @return int cuántas se olvidaron
      */
     public function olvidarContrasenas(int $dias): int
     {

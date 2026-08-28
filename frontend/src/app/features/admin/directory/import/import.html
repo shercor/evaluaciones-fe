@@ -2,8 +2,9 @@
   <div>
     <h1 class="pagina-titulo">Importar nómina</h1>
     <p class="pagina-intro">
-      Cargá la planilla de Recursos Humanos. Una fila con errores no voltea el archivo: se importa
-      todo lo demás y se explica qué se rechazó.
+      El directorio queda como la planilla: quien viene se crea o se actualiza, y —si lo pedís—
+      quien no viene se da de baja. Nadie se borra nunca, y una fila con errores no voltea el
+      archivo.
     </p>
   </div>
   <div class="acciones-encabezado">
@@ -11,109 +12,309 @@
   </div>
 </header>
 
+<!--
+  Una sola barra de pasos para los dos caminos. El largo cambia porque los
+  caminos son distintos: con el formato del sistema se importa directo, con
+  otro formato hay que conectar columnas y revisar un resumen antes.
+-->
+<ol class="linea-tiempo" aria-label="Pasos de la importación">
+  @for (paso of pasos(); track paso; let i = $index) {
+    <li
+      class="hito"
+      [class.es-recorrido]="i + 1 <= pasoActual()"
+      [class.es-actual]="i + 1 === pasoActual()"
+      [class.es-cumplido]="i + 1 < pasoActual()"
+      [class.es-disponible]="i + 1 > pasoActual()"
+      [attr.aria-current]="i + 1 === pasoActual() ? 'step' : null"
+    >
+      <span class="hito-punto" aria-hidden="true">
+        @if (i + 1 < pasoActual()) {
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m5 13 4 4L19 7" />
+          </svg>
+        } @else {
+          {{ i + 1 }}
+        }
+      </span>
+      <span class="hito-etiqueta">{{ paso }}</span>
+    </li>
+  }
+</ol>
+
 @if (error()) {
   <p class="alert alert-error" role="alert">{{ error() }}</p>
 }
 
-<!-- Carga -->
-<section class="bloque">
-  <h2>1 · Elegí el archivo</h2>
+<!-- ====================================================== La carga ===== -->
+@if (!resultado()) {
+  <section class="bloque">
+    @if (pasoActual() === 1) {
+      <div class="cabecera-bloque">
+        <div>
+          <h2>¿Qué formato tiene tu planilla?</h2>
+          <p>
+            Si la armaste con la plantilla del sistema, se importa directo. Si viene como la tenía
+            Recursos Humanos, el asistente te va a preguntar qué columna es cuál.
+          </p>
+        </div>
+      </div>
 
-  <div class="opciones-modo" role="group" aria-label="Formato de la planilla">
-    <button
-      type="button"
-      class="mini"
-      [class.activo]="modo() === 'formato-propio'"
-      (click)="cambiarModo('formato-propio')"
-    >
-      Tiene el formato del sistema
-    </button>
-    <button
-      type="button"
-      class="mini"
-      [class.activo]="modo() === 'homologar'"
-      (click)="cambiarModo('homologar')"
-    >
-      Tiene otro formato
-    </button>
-  </div>
+      <div class="opciones-formato" role="radiogroup" aria-label="Formato de la planilla">
+        <label class="tarjeta-opcion">
+          <input
+            type="radio"
+            name="formato"
+            [checked]="modo() === 'formato-propio'"
+            (change)="elegirModo('formato-propio', $event)"
+          />
+          <span class="marca-opcion redonda" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m5 13 4 4L19 7" />
+            </svg>
+          </span>
+          <span class="opcion-texto">
+            <b>Tiene el formato del sistema</b>
+            <span>
+              Los encabezados son los que espera el sistema. Se importa en un paso, sin resumen
+              previo.
+            </span>
+          </span>
+        </label>
 
-  <label class="recordar">
-    <input
-      type="checkbox"
-      [checked]="enviarInvitaciones()"
-      (change)="alternarInvitaciones($event)"
-    />
-    <span>Enviar invitación por correo a quienes tengan dirección</span>
-  </label>
+        <label class="tarjeta-opcion">
+          <input
+            type="radio"
+            name="formato"
+            [checked]="modo() === 'homologar'"
+            (change)="elegirModo('homologar', $event)"
+          />
+          <span class="marca-opcion redonda" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m5 13 4 4L19 7" />
+            </svg>
+          </span>
+          <span class="opcion-texto">
+            <b>Tiene otro formato</b>
+            <span>
+              La planilla viene como la tengas. Vas a conectar cada columna y ver un resumen de qué
+              va a pasar <b>antes</b> de tocar el directorio.
+            </span>
+          </span>
+        </label>
+      </div>
 
-  @if (modo() === 'homologar') {
-    <app-homologacion
-      [enviarInvitaciones]="enviarInvitaciones()"
-      (importada)="recibirImportacion($event)"
-    />
-  } @else {
-    <p class="explica">
-      Acepta CSV y Excel. Las columnas que entiende son
-      <code>codigo</code>, <code>nombre</code>, <code>apellido</code>, <code>correo</code>,
-      <code>cargo</code>, <code>cargo_codigo</code>, <code>sucursal</code>,
-      <code>sucursal_codigo</code> y <code>codigo_supervisor</code>. Los acentos y las mayúsculas
-      del encabezado no importan.
-    </p>
+      <!--
+        Las opciones van bajo su propio título. Sin él quedaban cuatro
+        tarjetas en una grilla de 2×2 donde la fila de arriba es una elección
+        excluyente y la de abajo dos interruptores sueltos: la forma de la
+        marca lo distingue —redonda contra cuadrada— pero no alcanza.
+      -->
+      <h3>Opciones de esta carga</h3>
 
-    <p class="explica">
-      El <b>código</b> es la identidad de cada persona: si ya existe se actualiza, si no se crea.
-      Reimportar la misma planilla no duplica a nadie.
-    </p>
+      <div class="opciones-carga">
+        <label class="tarjeta-opcion">
+          <input
+            type="checkbox"
+            [checked]="enviarInvitaciones()"
+            (change)="alternarInvitaciones($event)"
+          />
+          <span class="marca-opcion" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="3.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m5 13 4 4L19 7" />
+            </svg>
+          </span>
+          <span class="opcion-texto">
+            <b>Enviar la invitación por correo</b>
+            <span>
+              Quien traiga dirección recibe un enlace para definir su contraseña. Quien no, queda
+              con una temporal que se descarga al terminar.
+            </span>
+          </span>
+        </label>
 
-    <p class="explica">
-      Con las sucursales y los cargos la regla es:
-      <b
-        >si la planilla trae el nombre, se crea lo que falte; si trae solo el código, tiene que
-        estar cargado de antes</b
-      >
-      —con un código suelto no hay con qué nombrarlo—. Las columnas de código son opcionales.
-    </p>
+        <!--
+          La sincronización de bajas solo se ofrece acá, en el camino sin
+          resumen, con la advertencia puesta y una confirmación aparte. En el
+          camino homologado la casilla vive en el paso 3, al lado del número
+          de personas a las que alcanza, que es donde se puede decidir.
+        -->
+        @if (modo() === 'formato-propio') {
+          <label class="tarjeta-opcion">
+            <input
+              type="checkbox"
+              [checked]="sincronizarBajas()"
+              (change)="alternarSincronizar($event)"
+            />
+            <span class="marca-opcion" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m5 13 4 4L19 7" />
+              </svg>
+            </span>
+            <span class="opcion-texto">
+              <b>Dar de baja a quien no venga en la planilla</b>
+              <span>
+                Deja el directorio igual que la nómina. Por este camino
+                <b>no se puede ver a cuántas personas alcanza</b> antes de hacerlo: si querés verlo,
+                importá por «Tiene otro formato».
+              </span>
+            </span>
+          </label>
+        }
+      </div>
+    }
 
-    <p class="explica">
-      El <b>rol no se importa</b>: todo el mundo entra como colaborador. Los administradores se
-      nombran después, uno por uno, desde el directorio. Volver a importar la nómina no se los
-      quita.
-    </p>
-
-    <p>
-      <a [href]="urlPlantilla()" class="btn btn-quiet">Descargar planilla de ejemplo</a>
-    </p>
-
-    <div class="carga">
-      <input
-        type="file"
-        id="archivo"
-        accept=".csv,.txt,.xlsx,.xls"
-        (change)="seleccionar($event)"
+    @if (modo() === 'homologar') {
+      <app-homologacion
+        [enviarInvitaciones]="enviarInvitaciones()"
+        (importada)="recibirImportacion($event)"
       />
+    } @else {
+      <details class="desplegable">
+        <summary>Qué columnas entiende el sistema</summary>
 
-      <button
-        type="button"
-        class="btn btn-primary"
-        [disabled]="!archivo() || subiendo()"
-        (click)="subir()"
-      >
-        {{ subiendo() ? 'Procesando…' : 'Importar' }}
-      </button>
+        <p class="explica">
+          Acepta CSV y Excel. Las columnas son <code>codigo</code>, <code>nombre</code>,
+          <code>apellido</code>, <code>correo</code>, <code>cargo</code>, <code>cargo_codigo</code>,
+          <code>sucursal</code>, <code>sucursal_codigo</code>, <code>codigo_supervisor</code> y
+          <code>activo</code>. Los acentos y las mayúsculas del encabezado no importan.
+        </p>
+
+        <p class="explica">
+          El <b>código</b> es la identidad de cada persona: si ya existe se actualiza, si no se
+          crea. Reimportar la misma planilla no duplica a nadie, y si el mismo código aparece dos
+          veces en el archivo, la última fila pisa a la anterior.
+        </p>
+
+        <p class="explica">
+          <b>activo</b> es opcional y sirve para las bajas: acepta <code>1/0</code>,
+          <code>SI/NO</code> o <code>Activo/Baja</code>. Quien venga en falso no se crea, y si
+          estaba en el directorio se da de baja. Si tu planilla ya trae solo gente vigente, no hace
+          falta.
+        </p>
+
+        <p class="explica">
+          Con las sucursales y los cargos la regla es:
+          <b
+            >si la planilla trae el nombre, se crea lo que falte; si trae solo el código, tiene que
+            estar cargado de antes</b
+          >
+          —con un código suelto no hay con qué nombrarlo—.
+        </p>
+
+        <p class="explica">
+          El <b>rol no se importa</b>: todo el mundo entra como colaborador. Los administradores se
+          nombran después, uno por uno, desde el directorio. Volver a importar la nómina no se los
+          quita, y ninguna baja automática los toca.
+        </p>
+
+        <p>
+          <a [href]="urlPlantilla()" class="btn btn-quiet">Descargar planilla de ejemplo</a>
+        </p>
+      </details>
+
+      <div class="carga">
+        <input
+          type="file"
+          id="archivo"
+          accept=".csv,.txt,.xlsx,.xls"
+          (change)="seleccionar($event)"
+        />
+
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="!archivo() || subiendo()"
+          (click)="intentarSubir()"
+        >
+          {{ subiendo() ? 'Procesando…' : 'Importar' }}
+        </button>
+      </div>
+    }
+  </section>
+}
+
+<!--
+  Confirmar una sincronización a ciegas. Este camino importa y da de baja en
+  la misma petición, sin haber mostrado nunca a cuántas personas alcanza, así
+  que lo mínimo es decirlo con todas las letras antes.
+-->
+@if (confirmandoSincronizacion()) {
+  <div class="modal-fondo" (click)="cancelarConfirmacion()">
+    <div class="modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <h2>Vas a dar de baja gente sin verla antes</h2>
+
+      <p class="explica">
+        Al importar,
+        <b>toda persona del directorio que no esté en esta planilla va a quedar inactiva</b>. Por
+        este camino no hay resumen previo, así que el número recién se sabe al terminar.
+      </p>
+
+      <p class="explica">
+        No se borra a nadie: quedan inactivos, con la fecha y el motivo, y vuelven a activarse solos
+        si aparecen en la carga siguiente. Las cuentas de administrador y la tuya no se tocan.
+      </p>
+
+      <p class="explica">
+        Si querés ver a cuántas personas alcanza <b>antes</b> de hacerlo, cancelá e importá por
+        «Tiene otro formato»: ese camino lo muestra en un resumen.
+      </p>
+
+      <div class="acciones-modal">
+        <button type="button" class="btn btn-quiet" (click)="cancelarConfirmacion()">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-peligro" (click)="subir()">
+          Importar y sincronizar
+        </button>
+      </div>
     </div>
-  }
+  </div>
+}
 
-  <p class="explica nota-clave">
-    Quien no tenga correo queda con una <b>contraseña temporal</b> que vas a poder descargar al
-    terminar, para entregarla en mano.
-  </p>
-</section>
-
-<!-- Resultado -->
+<!-- ==================================================== El resultado ==== -->
 @if (resultado(); as r) {
   <section class="bloque">
-    <h2>2 · Resultado</h2>
+    <div class="cabecera-bloque">
+      <div>
+        <h2>Resultado</h2>
+        <p>{{ r.filename }}</p>
+      </div>
+    </div>
 
     @if (mensaje()) {
       <p class="alert alert-ok" role="status">{{ mensaje() }}</p>
@@ -132,14 +333,40 @@
         <b>{{ r.rows_updated }}</b>
         <span>Actualizadas</span>
       </div>
+      @if (r.rows_reactivated > 0) {
+        <div class="marcador ok">
+          <b>{{ r.rows_reactivated }}</b>
+          <span>Volvieron de una baja</span>
+        </div>
+      }
+      <div class="marcador" [class.baja]="r.rows_deactivated > 0">
+        <b>{{ r.rows_deactivated }}</b>
+        <span>Dadas de baja</span>
+      </div>
       <div class="marcador" [class.mal]="r.rows_failed > 0">
         <b>{{ r.rows_failed }}</b>
         <span>Rechazadas</span>
       </div>
+      @if (r.rows_skipped > 0) {
+        <div class="marcador apagado">
+          <b>{{ r.rows_skipped }}</b>
+          <span>Omitidas</span>
+        </div>
+      }
     </div>
 
+    @if (r.rows_deactivated > 0) {
+      <p class="alert alert-aviso" role="alert">
+        <b>{{ r.rows_deactivated }}</b>
+        {{ r.rows_deactivated === 1 ? 'persona quedó inactiva' : 'personas quedaron inactivas' }}.
+        No se borró a nadie: están en el directorio con su historial intacto y vuelven a activarse
+        solas si aparecen en la próxima nómina. Para verlas o reactivarlas a mano, filtrá por
+        <b>Inactivas</b> en el directorio.
+      </p>
+    }
+
     @if (r.error) {
-      <p class="alert alert-error" role="alert">
+      <p class="alert alert-aviso" role="alert">
         <b>Avisos sobre el organigrama:</b> {{ r.error }}
       </p>
     }
@@ -152,22 +379,19 @@
     }
 
     <div class="filtro-filas">
-      <button
-        type="button"
-        class="mini"
-        [class.activo]="filtroFilas() === 'todas'"
-        (click)="cambiarFiltro('todas')"
-      >
-        Todas las filas
-      </button>
-      <button
-        type="button"
-        class="mini"
-        [class.activo]="filtroFilas() === 'failed'"
-        (click)="cambiarFiltro('failed')"
-      >
-        Solo las rechazadas
-      </button>
+      @for (f of filtros(); track f.clave) {
+        <button
+          type="button"
+          class="mini"
+          [class.activo]="filtroFilas() === f.clave"
+          (click)="cambiarFiltro(f.clave)"
+        >
+          {{ f.etiqueta }}
+          @if (f.cuenta !== null) {
+            <span class="cuenta-suave">{{ f.cuenta }}</span>
+          }
+        </button>
+      }
     </div>
 
     @if (filas().length === 0) {
@@ -185,17 +409,14 @@
             </tr>
           </thead>
           <tbody>
-            @for (f of filas(); track f.line) {
+            @for (f of filas(); track f.line + '-' + f.payload['codigo']) {
               <tr>
-                <td class="num">{{ f.line }}</td>
+                <!-- Una baja por ausencia no sale de ninguna línea del archivo. -->
+                <td class="num">{{ f.line || '—' }}</td>
                 <td>{{ f.payload['codigo'] || '—' }}</td>
                 <td>{{ f.payload['nombre'] }} {{ f.payload['apellido'] }}</td>
                 <td>
-                  @if (f.outcome === 'failed') {
-                    <span class="chip chip-error">{{ etiquetaResultado(f) }}</span>
-                  } @else {
-                    <span class="chip chip-ok">{{ etiquetaResultado(f) }}</span>
-                  }
+                  <span class="chip" [class]="chipDe(f)">{{ etiquetaResultado(f) }}</span>
                 </td>
                 <td>
                   @if (f.error) {
@@ -212,10 +433,17 @@
         </table>
       </div>
     }
+
+    <div class="acciones-paso">
+      <a class="btn btn-quiet" routerLink="/admin/directorio">Ver el directorio</a>
+      <button type="button" class="btn btn-primary" (click)="otraCarga()">
+        Importar otra planilla
+      </button>
+    </div>
   </section>
 }
 
-<!-- Historial -->
+<!-- ====================================================== Historial ===== -->
 @if (historial().length > 0) {
   <section class="bloque">
     <h2>Cargas anteriores</h2>
@@ -228,6 +456,7 @@
             <th>Quién</th>
             <th class="num">Creadas</th>
             <th class="num">Actualizadas</th>
+            <th class="num">Bajas</th>
             <th class="num">Rechazadas</th>
             <th class="acciones"></th>
           </tr>
@@ -244,6 +473,7 @@
               <td>{{ h.user ?? '—' }}</td>
               <td class="num">{{ h.rows_created }}</td>
               <td class="num">{{ h.rows_updated }}</td>
+              <td class="num">{{ h.rows_deactivated }}</td>
               <td class="num">{{ h.rows_failed }}</td>
               <td class="acciones">
                 <button type="button" class="mini" (click)="verImportacion(h)">Ver detalle</button>

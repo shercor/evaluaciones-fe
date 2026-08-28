@@ -15,6 +15,7 @@ use App\Services\ParticipationEditor;
 use App\Services\ParticipationSubmission;
 use App\Services\PersonSuggestions;
 use App\Services\SupervisorGroups;
+use App\Support\E360\E360Response;
 use App\Support\E360\Resources\EvaluationsApi;
 use App\Support\E360\Resources\GroupsApi;
 use App\Support\E360\Resources\TemplatesApi;
@@ -291,7 +292,7 @@ class EvaluationWizardController extends Controller
         ]);
     }
 
-    private function errorDeApi(\App\Support\E360\E360Response $respuesta): JsonResponse
+    private function errorDeApi(E360Response $respuesta): JsonResponse
     {
         return response()->json(
             ['message' => $respuesta->message ?? 'No se pudo consultar la evaluación.'],

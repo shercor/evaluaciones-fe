@@ -7,6 +7,7 @@ import {
   TipoCatalogo,
 } from '../../../../core/api/directory.service';
 import { mensajeDeError } from '../../../../core/http/api-error';
+import { Homologacion } from '../import/homologacion/homologacion';
 
 /**
  * Sucursales y cargos.
@@ -14,10 +15,15 @@ import { mensajeDeError } from '../../../../core/http/api-error';
  * Un solo componente para los dos: tienen la misma forma —código, nombre,
  * activo— y duplicarlo solo garantizaría que se desincronicen. El tipo llega
  * por la ruta.
+ *
+ * Se pueden cargar de tres maneras y las tres conviven: a mano acá, de refilón
+ * cuando la nómina trae el nombre en texto, o desde su propia planilla. La
+ * tercera es la que hace falta cuando la nómina trae **el código y no el
+ * nombre**: sin el catálogo cargado antes, esas filas se rechazan una por una.
  */
 @Component({
   selector: 'app-catalog',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, Homologacion],
   templateUrl: './catalog.html',
 })
 export class Catalog {
@@ -32,6 +38,9 @@ export class Catalog {
   protected readonly cargando = signal(true);
   protected readonly error = signal<string | null>(null);
   protected readonly aviso = signal<string | null>(null);
+
+  /** El panel de importación, cerrado hasta que alguien lo pide. */
+  protected readonly importando = signal(false);
 
   protected readonly editando = signal<ElementoCatalogo | null>(null);
   protected readonly guardando = signal(false);
@@ -135,6 +144,24 @@ export class Catalog {
       },
       error: (e) => this.error.set(mensajeDeError(e)),
     });
+  }
+
+  protected alternarImportacion(): void {
+    this.importando.update((abierto) => !abierto);
+  }
+
+  /**
+   * Terminó una carga desde planilla.
+   *
+   * Se relee el listado en vez de agregar las filas de la respuesta: la
+   * importación pudo crear unas, renombrar otras y rechazar el resto, y
+   * rearmarlo acá sería repetir del lado del navegador lo que el servidor ya
+   * resolvió.
+   */
+  protected importada(evento: { mensaje: string }): void {
+    this.importando.set(false);
+    this.aviso.set(evento.mensaje);
+    this.cargar();
   }
 
   protected descartarAviso(): void {

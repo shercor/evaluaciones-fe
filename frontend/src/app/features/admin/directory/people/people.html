@@ -159,7 +159,18 @@
             <td>{{ p.role_label }}</td>
             <td>
               @if (!p.active) {
-                <span class="chip chip-error">Inactiva</span>
+                <!--
+                  El motivo va en el `title` y no al lado: la columna es
+                  angosta y el chip tiene que seguir leyéndose de un vistazo.
+                  Desde que la nómina da de baja sola, «Inactiva» a secas
+                  obligaba a abrir el historial de cargas para saber por qué.
+                -->
+                <span class="chip chip-error" [title]="p.deactivation_reason ?? 'Inactiva'">
+                  Inactiva
+                </span>
+                @if (p.deactivation_reason) {
+                  <span class="pista">{{ p.deactivation_reason }}</span>
+                }
               } @else if (p.must_set_password) {
                 <span class="chip chip-pendiente">Sin contraseña</span>
               } @else {

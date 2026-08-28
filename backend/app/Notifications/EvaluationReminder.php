@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
@@ -22,7 +23,7 @@ use Illuminate\Notifications\Notification;
  * Evaluación 360 por cada persona, y el número estaría viejo para cuando la
  * cola llegue a mandar el correo.
  */
-class EvaluationReminder extends Notification implements \Illuminate\Contracts\Queue\ShouldQueue
+class EvaluationReminder extends Notification implements ShouldQueue
 {
     use Queueable;
 

@@ -738,6 +738,17 @@
   .alert-ok {
     @apply border-accent bg-accent-soft text-accent;
   }
+  /*
+    El nivel del medio, que faltaba.
+
+    Con solo dos niveles —rojo para lo que bloquea y violeta para todo lo
+    demás— el resumen de una importación queda plano: «34 personas se van a
+    dar de baja» se ve igual que «3 no traen correo». Ámbar es para lo que no
+    impide seguir pero hay que leer antes de confirmar.
+  */
+  .alert-aviso {
+    @apply border-warn bg-warn-soft text-warn;
+  }
 
   .chip {
     @apply inline-flex items-center rounded px-2 py-0.5 text-xs font-bold whitespace-nowrap;
@@ -806,6 +817,17 @@
   }
   .explica {
     @apply max-w-3xl text-sm text-ink-2;
+  }
+  /*
+    Dos explicaciones seguidas necesitan aire entre ellas.
+
+    `.explica` no lleva margen propio a propósito —así cada vista decide dónde
+    ponerla— pero eso hace que dos seguidas se peguen y se lean como un solo
+    párrafo largo. Es lo que hacía que el paso 1 de la importación pareciera un
+    muro: eran cuatro explicaciones distintas sin nada que las separara.
+  */
+  .explica + .explica {
+    @apply mt-3;
   }
   .sub {
     @apply mt-6 mb-2 text-base font-semibold;
@@ -1444,8 +1466,23 @@
     @apply my-5 flex flex-wrap items-center gap-4 rounded-md border border-dashed
            border-rule bg-surface-2 p-5;
   }
+  /*
+    El selector de archivo, a la altura del botón que tiene al lado.
+
+    Un `input[type=file]` sin estilar mide 20 px de alto contra los 38 del
+    botón: en la misma fila queda un control flotando dentro de otro. El
+    relleno del botón interno lo pone el navegador, así que la altura va en la
+    caja y el contenido se centra.
+  */
   .carga input[type='file'] {
-    @apply min-w-56 flex-1 text-sm;
+    @apply min-w-56 flex-1 rounded-md border border-rule bg-surface px-3
+           text-sm text-ink-2 content-center;
+    height: var(--alto-control);
+  }
+  .carga input[type='file']::file-selector-button {
+    @apply mr-3 cursor-pointer rounded border border-rule bg-surface-2
+           px-2.5 py-1 text-xs text-ink-2 transition-colors duration-150
+           hover:border-accent hover:text-accent;
   }
   .carga .recordar {
     @apply mb-0;
@@ -1473,6 +1510,13 @@
   .marcador.mal b {
     @apply text-danger;
   }
+  /* Lo que sale del directorio. Ni bueno ni un error: hay que mirarlo. */
+  .marcador.baja b {
+    @apply text-warn;
+  }
+  .marcador.apagado b {
+    @apply text-ink-3;
+  }
   /* Fila de botones que elige entre dos vistas del mismo bloque: el filtro
      del resultado y, en la carga, el formato de la planilla. Mismo rol, misma
      definición, para que no se vean distintos a diez píxeles de distancia. */
@@ -1485,7 +1529,142 @@
     @apply ml-0;
   }
 
+  /*
+    Elegir el formato de la planilla. Son dos caminos distintos —uno importa
+    directo, el otro abre un asistente de tres pasos— y eso no cabe en dos
+    botones chicos: la decisión merece el mismo peso visual que cualquier otra
+    opción que se prende entera.
+  */
+  .opciones-formato {
+    @apply mb-5 grid gap-3;
+    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  }
+  .opciones-formato .tarjeta-opcion {
+    @apply items-start;
+  }
+  /* La marca de una opción **excluyente** es redonda, como su radio. */
+  .marca-opcion.redonda {
+    @apply rounded-full;
+  }
+
+  /* Título y explicación dentro de una tarjeta que se elige entera. */
+  .opcion-texto {
+    @apply flex flex-col gap-1;
+  }
+  .opcion-texto b {
+    @apply text-sm font-semibold text-ink;
+  }
+  .opcion-texto span {
+    @apply text-xs leading-relaxed text-ink-2;
+  }
+
+  /*
+    Referencia que se abre solo si hace falta.
+
+    El paso 1 tenía cuatro párrafos explicando qué columnas entiende el
+    sistema y qué pasa con los códigos, antes de dejar tocar nada. Todo eso
+    sigue estando y se lee igual de bien; lo que cambia es que ya no se
+    interpone entre alguien y el botón.
+  */
+  .desplegable {
+    @apply mb-4 rounded-md border border-rule bg-surface-2 px-4 py-3 text-sm;
+  }
+  .desplegable > summary {
+    @apply cursor-pointer font-semibold text-ink-2 select-none;
+  }
+  .desplegable > summary:hover {
+    @apply text-accent;
+  }
+  .desplegable > summary::marker {
+    @apply text-ink-3;
+  }
+  .desplegable > *:not(summary) {
+    @apply mt-3;
+  }
+  .desplegable .explica:last-child,
+  .desplegable p:last-child {
+    @apply mb-0;
+  }
+
+  /* Las casillas de una carga, todas con la misma forma. */
+  .opciones-carga {
+    @apply my-5 grid gap-3;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+  }
+  .opciones-carga .tarjeta-opcion {
+    @apply items-start;
+  }
+
+  /*
+    Una decisión con su consecuencia pegada debajo.
+
+    Es para la única casilla de esta pantalla que puede sacar gente del
+    directorio. Separar «qué elegís» de «qué va a pasar» —la casilla arriba y
+    el número en otro aviso más abajo— es lo que hace que alguien la deje
+    puesta sin haber leído a cuántas personas afecta.
+  */
+  .decision {
+    @apply mb-5 rounded-card border border-rule bg-surface-2 p-4;
+  }
+  .decision .tarjeta-opcion {
+    @apply items-start;
+  }
+  .decision-consecuencia {
+    @apply mt-3 rounded-md border border-rule bg-surface px-4 py-3 text-sm text-ink-2;
+  }
+  .decision-consecuencia b {
+    @apply text-ink;
+  }
+  .decision-consecuencia .dato {
+    @apply mr-1.5 mt-1.5;
+  }
+  /* Cuando el archivo cubre una fracción chica del directorio. */
+  .decision.riesgo {
+    @apply border-warn bg-warn-soft;
+  }
+  .decision.riesgo .decision-consecuencia {
+    @apply border-warn/40;
+  }
+
   /* --- Homologación de una planilla con otro formato --- */
+
+  /*
+    Cuántos campos quedan por conectar. Es la única pregunta del paso 2 y
+    antes había que contarla a ojo entre catorce desplegables.
+  */
+  .avance-mapa {
+    @apply mt-4 mb-5 flex flex-wrap items-center gap-3 text-sm text-ink-2;
+  }
+  .avance-mapa .barra {
+    @apply h-1.5 min-w-40 flex-1 overflow-hidden rounded-full bg-surface-2;
+  }
+  .avance-mapa .barra > span {
+    @apply block h-full rounded-full bg-accent transition-all duration-300;
+  }
+
+  /*
+    Los campos se agrupan por para qué sirven. Catorce desplegables seguidos
+    son una lista; tres grupos de cuatro son una estructura, y se recorren sin
+    volver a leer cada etiqueta.
+  */
+  .grupo-campos {
+    @apply mb-6 last:mb-0;
+  }
+  .grupo-titulo {
+    @apply mb-2.5 flex flex-wrap items-baseline gap-2 border-b border-rule pb-1.5;
+  }
+  .grupo-titulo b {
+    @apply font-display text-sm font-semibold text-ink;
+  }
+  .grupo-titulo span {
+    @apply text-xs text-ink-3;
+  }
+
+  /* Quiénes quedarían fuera. Se nombran, no se cuentan: un número no se
+     puede verificar y tres apellidos conocidos sí. */
+  .lista-bajas {
+    @apply mt-2 flex flex-wrap gap-1.5;
+  }
 
   /* Una tarjeta por campo del sistema. El mínimo de 17rem es para que en el
      ancho de una tarjeta entren el desplegable y los ejemplos sin cortarse:
@@ -1493,7 +1672,16 @@
      columnas, que era la forma obvia y la que no deja ver los datos. */
   .homologacion {
     @apply mb-5 grid gap-4;
-    grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+    /*
+      `auto-fill` y no `auto-fit`.
+
+      Con `auto-fit` las pistas vacías se colapsan, así que el grupo que tiene
+      un solo campo —«Si sigue en la empresa»— estiraba su tarjeta a todo el
+      ancho: un desplegable de 300 px con su texto de ayuda flotando en un
+      rectángulo de 1.100. Con `auto-fill` la pista vacía se queda y esa
+      tarjeta mide lo mismo que todas las demás.
+    */
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   }
   .campo-homologado {
     @apply mb-0 rounded-md border border-rule bg-surface p-4;
@@ -2075,6 +2263,24 @@
   .vacio {
     @apply flex flex-col items-center gap-3 rounded-card border border-dashed
            border-rule bg-surface/40 px-6 py-14 text-center text-ink-3;
+  }
+
+  /*
+    Subtítulo dentro de una sección.
+
+    `h1..h3` van con `margin: 0` para que cada vista decida, pero un subtítulo
+    dentro de un bloque siempre quiere lo mismo: separarse de lo que viene
+    arriba y pegarse a lo que introduce. Sin esto, «Sincronizar el directorio»
+    quedaba tocando la tabla anterior y parecía su pie.
+  */
+  .bloque h3 {
+    @apply mt-8 mb-1.5 text-base font-semibold;
+  }
+  .bloque h3:first-child {
+    @apply mt-0;
+  }
+  .bloque h3 + .explica {
+    @apply mb-4;
   }
 
   /* Encabezado de sección con acento tipográfico. */

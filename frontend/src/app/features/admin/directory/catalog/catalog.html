@@ -4,6 +4,9 @@
     <p class="pagina-intro">{{ descripcion }}</p>
   </div>
   <div class="acciones-encabezado">
+    <button type="button" class="btn btn-quiet" (click)="alternarImportacion()">
+      {{ importando() ? 'Cerrar la planilla' : 'Importar planilla' }}
+    </button>
     <button type="button" class="btn btn-primary" (click)="abrirNuevo()">
       Agregar {{ singular }}
     </button>
@@ -12,28 +15,47 @@
 
 <nav class="pestanas">
   <a routerLink="/admin/directorio">Personas</a>
-  <a
-    routerLink="/admin/directorio/sucursales"
-    [class.activa]="tipo === 'sucursales'"
-    >Sucursales</a
-  >
+  <a routerLink="/admin/directorio/sucursales" [class.activa]="tipo === 'sucursales'">Sucursales</a>
   <a routerLink="/admin/directorio/cargos" [class.activa]="tipo === 'cargos'">Cargos</a>
 </nav>
 
 @if (aviso()) {
   <p class="alert alert-ok" role="status">
     {{ aviso() }}
-    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">×</button>
+    <button type="button" class="cerrar" (click)="descartarAviso()" aria-label="Descartar">
+      ×
+    </button>
   </p>
 }
 @if (error()) {
   <p class="alert alert-error" role="alert">{{ error() }}</p>
 }
 
+<!--
+  La misma pantalla de homologación que la nómina, con otro destino: se sube la
+  planilla como esté, se dice qué columna es el código y cuál el nombre, y se
+  revisa el resumen antes de tocar nada.
+-->
+@if (importando()) {
+  <section class="bloque">
+    <h2>Cargar {{ titulo.toLowerCase() }} desde una planilla</h2>
+    <p class="explica">
+      Sirve sobre todo cuando la planilla de personas trae <b>el código y no el nombre</b>: cargando
+      esto antes, esas filas dejan de rechazarse. Se puede repetir cuantas veces haga falta —lo que
+      ya está se reconoce por su código— y nada se guarda hasta que confirmes el resumen.
+    </p>
+
+    <app-homologacion [destino]="tipo" (importada)="importada($event)" />
+  </section>
+}
+
 @if (cargando()) {
   <p class="vacio">Cargando…</p>
 } @else if (elementos().length === 0) {
-  <p class="vacio">Todavía no hay {{ titulo.toLowerCase() }}. Se crean solas al importar la nómina.</p>
+  <p class="vacio">
+    Todavía no hay {{ titulo.toLowerCase() }}. Se crean solas al importar la nómina, si trae los
+    nombres en texto; si trae los códigos, cargalas antes con «Importar planilla».
+  </p>
 } @else {
   <div class="tabla-scroll">
     <table class="tabla">
@@ -49,7 +71,9 @@
       <tbody>
         @for (e of elementos(); track e.id) {
           <tr>
-            <td><b>{{ e.name }}</b></td>
+            <td>
+              <b>{{ e.name }}</b>
+            </td>
             <td>{{ e.external_code ?? '—' }}</td>
             <td class="num">{{ e.users_count ?? 0 }}</td>
             <td>
@@ -93,7 +117,9 @@
         <div class="field">
           <label for="c-codigo">Código interno</label>
           <input id="c-codigo" type="text" formControlName="external_code" placeholder="Opcional" />
-          <span class="pista">Sirve para reconocer la misma fila entre una importación y otra.</span>
+          <span class="pista"
+            >Sirve para reconocer la misma fila entre una importación y otra.</span
+          >
         </div>
 
         <div class="acciones-modal">

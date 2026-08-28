@@ -116,7 +116,6 @@ class EvaluationsApi
         return $this->client->tenant('GET', '/api/evaluaciones/estados');
     }
 
-
     public function forms(int $id): E360Response
     {
         return $this->client->tenant('GET', "/api/evaluaciones/{$id}/formularios");

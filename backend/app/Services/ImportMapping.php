@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -20,44 +19,17 @@ use Illuminate\Validation\ValidationException;
  * el lector ya dejó cada celda como cadena. Eso es lo que hace que esto sea
  * seguro de hacer sobre un archivo desconocido.
  *
- * Lo que este servicio **no** hace es importar. Su salida es exactamente la
- * misma forma que espera `DirectoryImportService`, así que el motor de
- * importación —con su fila a fila, su idempotencia por código y su jerarquía
- * resuelta al final— es el mismo para los dos caminos. Un segundo importador
- * en paralelo sería la manera más rápida de que los dos se comporten distinto.
+ * Lo que este servicio **no** hace es importar, ni saber qué se está
+ * importando. Eso lo pone el `ImportSchema` que recibe: la nómina, las
+ * sucursales o los cargos. Su salida es exactamente la forma que espera el
+ * importador de ese destino, así que el motor de importación —con su fila a
+ * fila, su idempotencia por código y sus avisos— es el mismo que el del camino
+ * con formato propio. Un segundo importador en paralelo sería la manera más
+ * rápida de que los dos se comporten distinto.
  */
 final class ImportMapping
 {
-    /** Cuántas filas de ejemplo se muestran en el resumen. */
-    private const FILAS_DE_MUESTRA = 8;
-
-    /** Cuántos problemas se detallan antes de resumirlos en un número. */
-    private const PROBLEMAS_DETALLADOS = 50;
-
-    /**
-     * Nombres con los que cada columna del sistema suele aparecer.
-     *
-     * No es adivinación seria: es un atajo para que quien homologa una
-     * planilla de 14 columnas no empiece de cero. Todo lo que se sugiere queda
-     * a la vista y se puede cambiar, y nada se importa sin que la persona
-     * confirme el resumen.
-     *
-     * @var array<string, array<int, string>>
-     */
-    private const SINONIMOS = [
-        'codigo' => ['codigo', 'code', 'rut', 'run', 'dni', 'ficha', 'n_ficha', 'numero_ficha', 'legajo', 'matricula', 'id', 'identificador', 'codigo_interno', 'codigo_empleado', 'cod_empleado', 'documento', 'cedula'],
-        'nombre' => ['nombre', 'nombres', 'name', 'first_name', 'primer_nombre', 'nombre_completo', 'nombre_empleado', 'nombre_trabajador'],
-        'apellido' => ['apellido', 'apellidos', 'last_name', 'surname', 'apellido_paterno', 'ape_paterno', 'apellidos_completos'],
-        'correo' => ['correo', 'email', 'e_mail', 'mail', 'correo_electronico', 'correo_corporativo', 'email_corporativo'],
-        'cargo' => ['cargo', 'puesto', 'position', 'job_title', 'titulo', 'funcion', 'rol_cargo', 'descripcion_cargo'],
-        'cargo_codigo' => ['codigo_cargo', 'cod_cargo', 'id_cargo', 'codigo_puesto', 'cod_puesto'],
-        'sucursal' => ['sucursal', 'local', 'tienda', 'branch', 'oficina', 'sede', 'establecimiento', 'centro_de_costo', 'centro_costo', 'ubicacion'],
-        'sucursal_codigo' => ['codigo_sucursal', 'cod_sucursal', 'id_sucursal', 'codigo_local', 'cod_local', 'id_local', 'codigo_sede', 'cod_sede'],
-        'codigo_supervisor' => ['codigo_supervisor', 'cod_supervisor', 'rut_supervisor', 'id_supervisor', 'supervisor', 'jefe', 'jefe_directo', 'jefatura', 'codigo_jefe', 'rut_jefe'],
-        'rol' => ['rol', 'role', 'perfil', 'tipo_usuario', 'tipo_de_usuario', 'permiso'],
-    ];
-
-    public function __construct(private readonly DirectoryImportService $importer) {}
+    public function __construct(private readonly ImportSchema $esquema) {}
 
     /**
      * Las columnas del sistema, para que la pantalla sepa qué pedir.
@@ -68,7 +40,7 @@ final class ImportMapping
     {
         $columnas = [];
 
-        foreach (DirectoryImportService::COLUMN_DEFINITIONS as $clave => $definicion) {
+        foreach ($this->esquema->definiciones() as $clave => $definicion) {
             $columnas[] = ['clave' => $clave] + $definicion;
         }
 
@@ -84,12 +56,13 @@ final class ImportMapping
      * dos veces.
      *
      * @param  array<int, array{clave: string, etiqueta: string}>  $encabezados
-     * @return array<string, string|null>  columna del sistema => columna del archivo
+     * @return array<string, string|null> columna del sistema => columna del archivo
      */
     public function sugerir(array $encabezados): array
     {
+        $sinonimos = $this->esquema->sinonimos();
         $disponibles = array_column($encabezados, 'clave');
-        $mapa = array_fill_keys(array_keys(DirectoryImportService::COLUMN_DEFINITIONS), null);
+        $mapa = array_fill_keys(array_keys($this->esquema->definiciones()), null);
 
         foreach ([true, false] as $exacta) {
             foreach ($mapa as $columna => $elegida) {
@@ -103,7 +76,7 @@ final class ImportMapping
                 // —recorriendo las columnas del archivo por fuera— gana la que
                 // aparezca antes en la planilla, y una que tenga las dos deja
                 // el código del jefe sin conectar y la jerarquía sin armar.
-                foreach (self::SINONIMOS[$columna] ?? [] as $sinonimo) {
+                foreach ($sinonimos[$columna] ?? [] as $sinonimo) {
                     foreach ($disponibles as $indice => $clave) {
                         if ($exacta ? $clave === $sinonimo : str_contains($clave, $sinonimo)) {
                             if (! $exacta && $this->esNombreExactoDeOtro($clave, $columna)) {
@@ -135,7 +108,7 @@ final class ImportMapping
      */
     private function esNombreExactoDeOtro(string $clave, string $columnaActual): bool
     {
-        foreach (self::SINONIMOS as $columna => $sinonimos) {
+        foreach ($this->esquema->sinonimos() as $columna => $sinonimos) {
             if ($columna !== $columnaActual && in_array($clave, $sinonimos, true)) {
                 return true;
             }
@@ -156,18 +129,19 @@ final class ImportMapping
      *
      * @param  array<string, string|null>  $mapa
      * @param  array<int, array{clave: string, etiqueta: string}>  $encabezados
-     * @return array<string, string>  la homologación limpia, sin las vacías
+     * @return array<string, string> la homologación limpia, sin las vacías
      *
      * @throws ValidationException
      */
     public function validar(array $mapa, array $encabezados): array
     {
+        $definiciones = $this->esquema->definiciones();
         $delArchivo = array_column($encabezados, 'etiqueta', 'clave');
         $limpio = [];
         $errores = [];
 
         foreach ($mapa as $columna => $origen) {
-            if (! isset(DirectoryImportService::COLUMN_DEFINITIONS[$columna])) {
+            if (! isset($definiciones[$columna])) {
                 $errores['mapping'][] = "«{$columna}» no es una columna del sistema.";
 
                 continue;
@@ -178,8 +152,8 @@ final class ImportMapping
             }
 
             if (! isset($delArchivo[$origen])) {
-                $etiqueta = DirectoryImportService::COLUMN_DEFINITIONS[$columna]['etiqueta'];
-                $errores['mapping'][] = "La columna «{$etiqueta}» apunta a un encabezado que ya no está en el archivo.";
+                $errores['mapping'][] = "La columna «{$definiciones[$columna]['etiqueta']}» apunta a "
+                    .'un encabezado que ya no está en el archivo.';
 
                 continue;
             }
@@ -187,7 +161,7 @@ final class ImportMapping
             $limpio[$columna] = $origen;
         }
 
-        foreach (DirectoryImportService::COLUMN_DEFINITIONS as $columna => $definicion) {
+        foreach ($definiciones as $columna => $definicion) {
             if ($definicion['obligatoria'] && ! isset($limpio[$columna])) {
                 $errores['mapping'][] = "Falta conectar «{$definicion['etiqueta']}», que es obligatoria.";
             }
@@ -195,7 +169,7 @@ final class ImportMapping
 
         foreach ($this->repetidos($limpio) as $origen => $columnas) {
             $nombres = array_map(
-                fn (string $c) => '«'.DirectoryImportService::COLUMN_DEFINITIONS[$c]['etiqueta'].'»',
+                fn (string $c) => '«'.$definiciones[$c]['etiqueta'].'»',
                 $columnas,
             );
 
@@ -212,7 +186,7 @@ final class ImportMapping
 
     /**
      * @param  array<string, string>  $mapa
-     * @return array<string, array<int, string>>  columna del archivo => columnas del sistema
+     * @return array<string, array<int, string>> columna del archivo => columnas del sistema
      */
     private function repetidos(array $mapa): array
     {
@@ -238,12 +212,13 @@ final class ImportMapping
      */
     public function aplicar(array $filas, array $mapa): array
     {
+        $columnas = array_keys($this->esquema->definiciones());
         $traducidas = [];
 
         foreach ($filas as $fila) {
             $nueva = [];
 
-            foreach (DirectoryImportService::COLUMNS as $columna) {
+            foreach ($columnas as $columna) {
                 $origen = $mapa[$columna] ?? null;
                 $nueva[$columna] = $origen === null ? '' : (string) ($fila[$origen] ?? '');
             }
@@ -257,132 +232,16 @@ final class ImportMapping
     /**
      * Ensaya la importación sin tocar nada.
      *
-     * Es el resumen que se muestra antes de confirmar, y tiene que responder
-     * dos preguntas distintas: **¿conecté bien las columnas?** —para eso están
-     * las filas de muestra, con los datos de verdad del archivo puestos bajo
-     * el nombre del campo del sistema— y **¿qué va a pasar?**, para lo que
-     * hacen falta los números: cuántas se crean, cuántas se actualizan y
-     * cuáles se van a rechazar, con su motivo y su número de línea.
-     *
-     * Las filas con problemas se informan pero **no detienen nada**: la
-     * importación es fila a fila y las buenas entran igual. Acá solo se
-     * adelanta la cuenta para que nadie se entere después.
+     * Lo contesta el esquema, que es quien sabe qué se está cargando. Sigue
+     * pasando por acá porque para la pantalla es un solo paso: «mostrame el
+     * resumen de esta homologación».
      *
      * @param  array<int, array<string, string>>  $filasMapeadas
+     * @param  array<string, mixed>  $opciones
      * @return array<string, mixed>
      */
-    public function ensayar(array $filasMapeadas): array
+    public function ensayar(array $filasMapeadas, array $opciones = []): array
     {
-        $muestra = [];
-        $problemas = [];
-        $codigos = [];
-        $repetidosEnArchivo = [];
-        $sinCorreo = 0;
-        $conProblemas = 0;
-
-        // El mismo resolvedor que usa la importación, pero sin escribir. Así
-        // el resumen no *parece* lo que va a pasar: lo calcula con el mismo
-        // código, incluidos los rechazos por un código de sucursal que no
-        // está cargado.
-        $catalogos = new CatalogResolver(simular: true);
-
-        foreach ($filasMapeadas as $indice => $fila) {
-            // +2: la primera línea es el encabezado y las planillas cuentan desde 1.
-            $linea = $indice + 2;
-            $normalizada = $this->importer->normalizar($fila);
-            $problemasFila = $this->importer->problemas($normalizada);
-
-            // Los catálogos se miran solo si la fila ya pasó lo básico: no
-            // tiene sentido avisar de la sucursal de una fila sin nombre.
-            if ($problemasFila === []) {
-                foreach (['sucursal', 'cargo'] as $catalogo) {
-                    [, $error] = $catalogos->resolver(
-                        $catalogo,
-                        (string) $normalizada[$catalogo.'_codigo'],
-                        (string) $normalizada[$catalogo],
-                    );
-
-                    if ($error !== null) {
-                        $problemasFila[] = $error;
-                    }
-                }
-            }
-
-            if ($problemasFila !== []) {
-                $conProblemas++;
-
-                if (count($problemas) < self::PROBLEMAS_DETALLADOS) {
-                    $problemas[] = [
-                        'linea' => $linea,
-                        'codigo' => $normalizada['codigo'],
-                        'nombre' => trim($normalizada['nombre'].' '.$normalizada['apellido']),
-                        'motivos' => $problemasFila,
-                    ];
-                }
-
-                continue;
-            }
-
-            if (blank($normalizada['correo'])) {
-                $sinCorreo++;
-            }
-
-            // Un mismo código dos veces en el archivo no es un error —la
-            // segunda fila actualiza a la primera— pero casi siempre es un
-            // descuido, y en silencio se pierde una de las dos.
-            $codigo = $normalizada['codigo'];
-            if (isset($codigos[$codigo])) {
-                $repetidosEnArchivo[$codigo] = ($repetidosEnArchivo[$codigo] ?? 1) + 1;
-            }
-            $codigos[$codigo] = true;
-
-            if (count($muestra) < self::FILAS_DE_MUESTRA) {
-                $muestra[] = ['linea' => $linea] + $normalizada;
-            }
-        }
-
-        $yaExisten = $this->cuantosYaExisten(array_keys($codigos));
-
-        return [
-            'filas_totales' => count($filasMapeadas),
-            'filas_validas' => count($filasMapeadas) - $conProblemas,
-            'filas_con_problemas' => $conProblemas,
-            'se_crearan' => count($codigos) - $yaExisten,
-            'se_actualizaran' => $yaExisten,
-            'sin_correo' => $sinCorreo,
-            'codigos_repetidos' => $repetidosEnArchivo,
-            'sucursales_nuevas' => $catalogos->porCrear('sucursal'),
-            'cargos_nuevos' => $catalogos->porCrear('cargo'),
-            // Códigos que la planilla usa y que no están cargados. A
-            // diferencia de los anteriores, estos **bloquean** su fila.
-            'sucursales_faltantes' => $catalogos->faltantes('sucursal'),
-            'cargos_faltantes' => $catalogos->faltantes('cargo'),
-            'muestra' => $muestra,
-            'problemas' => $problemas,
-            'problemas_omitidos' => max(0, $conProblemas - count($problemas)),
-        ];
-    }
-
-    /**
-     * Cuántos de esos códigos ya están en el directorio.
-     *
-     * Por lotes: una nómina completa son miles de códigos y meterlos todos en
-     * un solo `IN (...)` es una consulta que el motor no quiere recibir.
-     *
-     * @param  array<int, string>  $codigos
-     */
-    private function cuantosYaExisten(array $codigos): int
-    {
-        if ($codigos === []) {
-            return 0;
-        }
-
-        $total = 0;
-
-        foreach (array_chunk($codigos, 500) as $lote) {
-            $total += User::whereIn('external_code', $lote)->count();
-        }
-
-        return $total;
+        return $this->esquema->ensayar($filasMapeadas, $opciones);
     }
 }

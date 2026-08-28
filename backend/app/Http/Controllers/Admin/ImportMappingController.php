@@ -8,17 +8,23 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ImportResource;
 use App\Models\Import;
 use App\Models\ImportDraft;
-use App\Services\DirectoryImportService;
 use App\Services\ImportHousekeeping;
 use App\Services\ImportMapping;
+use App\Services\ImportSchemas;
 use App\Services\SpreadsheetReader;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
  * Importar una planilla que **no** viene con el formato del sistema.
+ *
+ * Sirve para los tres destinos —la nómina, las sucursales y los cargos— con el
+ * mismo camino y el mismo código. Lo único que cambia entre ellos es el
+ * `ImportSchema`, que se elige al subir el archivo y queda anotado en el
+ * borrador.
  *
  * Son tres pasos, y están separados en tres peticiones porque entre medio
  * trabaja una persona: se sube el archivo y se leen sus encabezados, se
@@ -38,8 +44,7 @@ class ImportMappingController extends Controller
 
     public function __construct(
         private readonly SpreadsheetReader $reader,
-        private readonly ImportMapping $mapper,
-        private readonly DirectoryImportService $importer,
+        private readonly ImportSchemas $esquemas,
         private readonly ImportHousekeeping $limpieza,
     ) {}
 
@@ -50,11 +55,15 @@ class ImportMappingController extends Controller
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:10240'],
+            'destino' => ['sometimes', Rule::in(ImportSchemas::DESTINOS)],
         ], [
             'file.required' => 'Elegí una planilla.',
             'file.mimes' => 'La planilla tiene que ser CSV o Excel.',
             'file.max' => 'La planilla no puede pesar más de 10 MB.',
         ]);
+
+        $destino = $request->string('destino', ImportSchemas::NOMINA)->toString();
+        $mapper = $this->mapperDe($destino);
 
         // Aprovecha el paso para tirar lo que otros abandonaron. La misma
         // limpieza corre por reloj en `importaciones:limpiar`; acá sirve para
@@ -90,6 +99,7 @@ class ImportMappingController extends Controller
         $borrador = ImportDraft::create([
             'user_id' => $request->user()->id,
             'filename' => $archivo->getClientOriginalName(),
+            'destino' => $destino,
             'stored_path' => $ruta,
             'headers' => array_values($leido['headers']),
             'samples' => $this->muestras($leido['headers'], $leido['rows']),
@@ -98,8 +108,8 @@ class ImportMappingController extends Controller
 
         return response()->json([
             'data' => $this->presentar($borrador),
-            'columnas_sistema' => $this->mapper->columnasDelSistema(),
-            'sugerencia' => $this->mapper->sugerir($leido['headers']),
+            'columnas_sistema' => $mapper->columnasDelSistema(),
+            'sugerencia' => $mapper->sugerir($leido['headers']),
         ], 201);
     }
 
@@ -110,12 +120,14 @@ class ImportMappingController extends Controller
     {
         $this->autorizar($request, $borrador);
 
-        $mapa = $this->mapper->validar(
+        $mapper = $this->mapperDe($borrador->destino);
+
+        $mapa = $mapper->validar(
             $this->mapaPedido($request),
             $borrador->headers,
         );
 
-        $filas = $this->mapper->aplicar($this->filasDe($borrador), $mapa);
+        $filas = $mapper->aplicar($this->filasDe($borrador), $mapa);
 
         return response()->json([
             'data' => $this->presentar($borrador),
@@ -123,7 +135,7 @@ class ImportMappingController extends Controller
             // Qué columnas del archivo quedan sin usar. No es un error, pero
             // verlo listado es la forma más rápida de notar que se olvidó una.
             'sin_usar' => $this->sinUsar($borrador, $mapa),
-            'resumen' => $this->mapper->ensayar($filas),
+            'resumen' => $mapper->ensayar($filas, $this->opciones($request, $mapa)),
         ]);
     }
 
@@ -134,16 +146,20 @@ class ImportMappingController extends Controller
     {
         $this->autorizar($request, $borrador);
 
-        $mapa = $this->mapper->validar(
+        $esquema = $this->esquemas->para($borrador->destino);
+        $mapper = new ImportMapping($esquema);
+
+        $mapa = $mapper->validar(
             $this->mapaPedido($request),
             $borrador->headers,
         );
 
-        $filas = $this->mapper->aplicar($this->filasDe($borrador), $mapa);
+        $filas = $mapper->aplicar($this->filasDe($borrador), $mapa);
 
         $import = Import::create([
             'user_id' => $request->user()->id,
             'filename' => $borrador->filename,
+            'destino' => $borrador->destino,
             'status' => Import::PENDING,
             // Queda registrado con qué homologación se cargó: si algo sale
             // torcido, lo primero que hay que poder mirar es qué se conectó
@@ -151,16 +167,16 @@ class ImportMappingController extends Controller
             'mapping' => $mapa,
         ]);
 
-        $import = $this->importer->import(
-            $filas,
-            $import,
-            $request->boolean('send_invitations', true),
-        );
+        // Las mismas opciones con las que se calculó el resumen. Si acá
+        // llegaran otras, lo que alguien aprobó y lo que se ejecuta no serían
+        // lo mismo, que es justamente lo que este camino de tres pasos existe
+        // para evitar.
+        $import = $esquema->importar($filas, $import, $this->opciones($request, $mapa));
 
         $this->descartar($borrador);
 
         return response()->json([
-            'message' => $this->mensajeFinal($import),
+            'message' => $esquema->mensajeFinal($import),
             'data' => (new ImportResource($import))->resolve(),
         ]);
     }
@@ -177,26 +193,47 @@ class ImportMappingController extends Controller
     // -----------------------------------------------------------------
 
     /**
-     * El mismo texto que el de la carga con formato propio: para quien mira
-     * la pantalla, terminó una importación, no «una homologación».
+     * El homologador para lo que se esté cargando.
+     *
+     * Se arma por petición y no se inyecta: depende del destino, que recién se
+     * sabe al mirar el borrador.
      */
-    private function mensajeFinal(Import $import): string
+    private function mapperDe(string $destino): ImportMapping
     {
-        $partes = [];
+        return new ImportMapping($this->esquemas->para($destino));
+    }
 
-        if ($import->rows_created > 0) {
-            $partes[] = "{$import->rows_created} creadas";
-        }
-        if ($import->rows_updated > 0) {
-            $partes[] = "{$import->rows_updated} actualizadas";
-        }
-        if ($import->rows_failed > 0) {
-            $partes[] = "{$import->rows_failed} rechazadas";
-        }
+    /**
+     * Lo que no es la homologación pero cambia el resultado.
+     *
+     * Se arma en un solo lugar porque lo usan los dos últimos pasos —el
+     * resumen y la importación— y tienen que ser idénticas: el resumen dice
+     * «se van a dar de baja 34 personas» y esa frase solo vale si la
+     * importación se ejecuta con la misma casilla puesta.
+     *
+     * @param  array<string, string>  $mapa
+     * @return array<string, mixed>
+     */
+    private function opciones(Request $request, array $mapa): array
+    {
+        $request->validate([
+            'send_invitations' => ['sometimes', 'boolean'],
+            'sincronizar_bajas' => ['sometimes', 'boolean'],
+        ]);
 
-        return $partes === []
-            ? 'La planilla no tenía filas para procesar.'
-            : 'Importación terminada: '.implode(', ', $partes).'.';
+        return [
+            'enviar_invitaciones' => $request->boolean('send_invitations', true),
+            // Dar de baja a quien el archivo no nombra. Va apagado por
+            // omisión: es la única opción de esta pantalla que puede sacar
+            // gente del directorio, y un valor por omisión que la encienda
+            // convierte cualquier llamada distraída a la API en una purga.
+            'sincronizar_bajas' => $request->boolean('sincronizar_bajas'),
+            // Quién está importando, para no darse de baja a sí mismo.
+            'ejecutor_id' => $request->user()->id,
+            // Si la columna de estado se conectó. Sin esto no se puede
+            // distinguir «la planilla no trae el dato» de «lo trae vacío».
+            'activo_conectado' => isset($mapa['activo']),
+        ];
     }
 
     /**
@@ -287,7 +324,7 @@ class ImportMappingController extends Controller
 
     /**
      * @param  array<string, string>  $mapa
-     * @return array<int, string>  etiquetas de las columnas que no se usaron
+     * @return array<int, string> etiquetas de las columnas que no se usaron
      */
     private function sinUsar(ImportDraft $borrador, array $mapa): array
     {
@@ -313,6 +350,7 @@ class ImportMappingController extends Controller
         return [
             'id' => $borrador->id,
             'filename' => $borrador->filename,
+            'destino' => $borrador->destino,
             'rows_total' => $borrador->rows_total,
             'headers' => array_map(fn (array $c) => $c + [
                 'ejemplos' => $borrador->samples[$c['clave']] ?? [],
